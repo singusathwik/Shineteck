@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 
 import { initSchema } from './db/schema.js';
 import { seedDatabase } from './db/seed.js';
+import { connectMongoDB } from './db/mongo.js';
 
 import { authenticateToken, requireAdmin } from './middleware/auth.js';
 import { uploadAvatar, uploadDocument, uploadTimesheet, AVATAR_DIR } from './middleware/upload.js';
@@ -168,19 +169,37 @@ app.use((err, req, res, next) => {
   });
 });
 
-import { connectMongoDB } from './db/mongo.js';
-
 // Initialize & Start Server
 async function startServer() {
-  // 1. Initialize SQLite Database & Local Defaults
-  await seedDatabase();
+  try {
+    // 1. Initialize SQLite Database & Local Defaults
+    try {
+      await seedDatabase();
+      console.log('[DB] Database schema and seeds ready.');
+    } catch (dbErr) {
+      console.error('[DB Init Warning]', dbErr.message);
+    }
 
-  // 2. Connect to MongoDB using MONGODB_URI in .env
-  await connectMongoDB();
+    // 2. Connect to MongoDB asynchronously (non-blocking)
+    connectMongoDB().catch(err => {
+      console.warn('[MongoDB Notice] Running without external MongoDB:', err.message);
+    });
 
-  app.listen(PORT, () => {
-    console.log(`[Shinetek Server] Running on http://localhost:${PORT}`);
-  });
+    const HOST = '0.0.0.0';
+    app.listen(PORT, HOST, () => {
+      console.log(`[Shinetek Server] Running on http://${HOST}:${PORT}`);
+    });
+  } catch (err) {
+    console.error('[Fatal Server Startup Error]', err);
+  }
 }
+
+process.on('uncaughtException', (err) => {
+  console.error('[Uncaught Exception]', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Unhandled Rejection]', reason);
+});
 
 startServer();
