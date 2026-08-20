@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+
+# Production / Build Output
+dist/
+dist-ssr/
+client/dist/
+build/
+*.local
+
+# Environment & Secrets
+.env
+.env.*
+server/.env
+client/.env
+!*.env.example
+
+# SQLite Database files
+*.db
+*.db-shm
+*.db-wal
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+
+# User Uploads
+server/uploads/avatars/*
+!server/uploads/avatars/.gitkeep
+server/uploads/private/documents/*
+!server/uploads/private/documents/.gitkeep
+server/uploads/timesheets/*
+!server/uploads/timesheets/.gitkeep
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor & OS files
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Vercel
+.vercel

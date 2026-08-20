@@ -1,0 +1,189 @@
+import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const dbDir = path.resolve(__dirname, '../data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const dbPath = path.resolve(dbDir, 'shinetek.db');
+export const db = new Database(dbPath);
+
+// Enable WAL mode and foreign keys for high performance & safety
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+export function initSchema() {
+  db.exec(`
+    -- System Configuration table (configurable sequential employee ID, etc.)
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      description TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- User accounts for authentication
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT CHECK(role IN ('employee', 'admin')) NOT NULL DEFAULT 'employee',
+      status TEXT CHECK(status IN ('active', 'suspended', 'pending')) NOT NULL DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Employee detailed profile and onboarding information
+    CREATE TABLE IF NOT EXISTS employees (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER UNIQUE,
+      employee_id TEXT UNIQUE NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
+      middle_initial TEXT,
+      full_name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      phone TEXT NOT NULL,
+      designation TEXT NOT NULL,
+      date_of_birth TEXT NOT NULL,
+      country TEXT NOT NULL,
+      state TEXT NOT NULL,
+      city TEXT NOT NULL,
+      zip_code TEXT NOT NULL,
+      address TEXT NOT NULL,
+      profile_image_url TEXT,
+      start_date TEXT,
+      end_date TEXT,
+      employment_status TEXT CHECK(employment_status IN ('Active', 'Inactive')) NOT NULL DEFAULT 'Active',
+      registration_status TEXT CHECK(registration_status IN ('Pending Review', 'Approved', 'Needs Correction', 'Rejected')) NOT NULL DEFAULT 'Pending Review',
+      admin_notes TEXT,
+      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at DATETIME,
+      reviewed_by TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    -- Employee uploaded documents (W-4, I-9, Passport, Visa)
+    CREATE TABLE IF NOT EXISTS documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT NOT NULL,
+      document_type TEXT CHECK(document_type IN ('w4', 'i9', 'passport', 'visa')) NOT NULL,
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      mime_type TEXT NOT NULL,
+      status TEXT CHECK(status IN ('Uploaded', 'Approved', 'Needs Replacement', 'Rejected')) NOT NULL DEFAULT 'Uploaded',
+      review_notes TEXT,
+      uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at DATETIME,
+      reviewed_by TEXT,
+      FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
+    );
+
+    -- Employee timesheets
+    CREATE TABLE IF NOT EXISTS timesheets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT NOT NULL,
+      employee_name TEXT,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      total_hours REAL NOT NULL,
+      file_name TEXT,
+      file_path TEXT,
+      notes TEXT,
+      status TEXT CHECK(status IN ('Pending', 'Approved', 'Rejected', 'Needs Correction')) NOT NULL DEFAULT 'Pending',
+      admin_feedback TEXT,
+      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at DATETIME,
+      reviewed_by TEXT,
+      FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
+    );
+
+    -- Payroll records
+    CREATE TABLE IF NOT EXISTS payroll_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT NOT NULL,
+      pay_period_start TEXT NOT NULL,
+      pay_period_end TEXT NOT NULL,
+      gross_pay REAL NOT NULL,
+      deductions REAL NOT NULL DEFAULT 0.0,
+      net_pay REAL NOT NULL,
+      payment_date TEXT NOT NULL,
+      payment_status TEXT CHECK(payment_status IN ('Paid', 'Processing', 'Scheduled')) NOT NULL DEFAULT 'Paid',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
+    );
+
+    -- System Audit Trail
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      user_name TEXT,
+      user_role TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT,
+      entity_id TEXT,
+      details TEXT,
+      ip_address TEXT,
+      status TEXT DEFAULT 'SUCCESS',
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Notifications
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT CHECK(type IN ('info', 'success', 'warning', 'error')) DEFAULT 'info',
+      is_read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Password Reset tokens (secure simulated/expiring token table)
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Column migrations for existing database files
+  try {
+    const empColumns = db.prepare("PRAGMA table_info(employees)").all().map(c => c.name);
+    if (!empColumns.includes('first_name')) {
+      db.exec("ALTER TABLE employees ADD COLUMN first_name TEXT;");
+    }
+    if (!empColumns.includes('last_name')) {
+      db.exec("ALTER TABLE employees ADD COLUMN last_name TEXT;");
+    }
+    if (!empColumns.includes('middle_initial')) {
+      db.exec("ALTER TABLE employees ADD COLUMN middle_initial TEXT;");
+    }
+    if (!empColumns.includes('start_date')) {
+      db.exec("ALTER TABLE employees ADD COLUMN start_date TEXT;");
+    }
+    if (!empColumns.includes('end_date')) {
+      db.exec("ALTER TABLE employees ADD COLUMN end_date TEXT;");
+    }
+    if (!empColumns.includes('employment_status')) {
+      db.exec("ALTER TABLE employees ADD COLUMN employment_status TEXT DEFAULT 'Active';");
+    }
+  } catch (migErr) {
+    console.warn('[DB Migration Warning]', migErr.message);
+  }
+
+  console.log('[DB] Database schema initialized.');
+}
