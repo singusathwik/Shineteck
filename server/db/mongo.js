@@ -16,14 +16,29 @@ dotenv.config();
 
 let isConnected = false;
 
+// Attach global error listener on Mongoose connection to prevent unhandled error events
+mongoose.connection.on('error', (err) => {
+  console.warn('[MongoDB Connection Warning]', err.message);
+});
+
 export async function connectMongoDB() {
-  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/shinetek_db';
+  const mongoUri = process.env.MONGODB_URI;
+
+  // In production (like on Render), if no URI or pointing to localhost, skip safely
+  if (!mongoUri || (mongoUri.includes('localhost') || mongoUri.includes('127.0.0.1')) && process.env.NODE_ENV === 'production') {
+    console.log('[MongoDB] Running with SQLite local database engine (No external MongoDB URI configured).');
+    isConnected = false;
+    return false;
+  }
+
+  const effectiveUri = mongoUri || 'mongodb://localhost:27017/shinetek_db';
 
   try {
-    console.log(`[MongoDB] Connecting to ${mongoUri.replace(/:[^:@]+@/, ':****@')}...`);
+    console.log(`[MongoDB] Connecting to ${effectiveUri.replace(/:[^:@]+@/, ':****@')}...`);
     
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000 // 5 second timeout for fast detection
+    await mongoose.connect(effectiveUri, {
+      serverSelectionTimeoutMS: 4000,
+      connectTimeoutMS: 4000
     });
 
     isConnected = true;
@@ -35,7 +50,7 @@ export async function connectMongoDB() {
     return true;
   } catch (err) {
     console.warn('[MongoDB Warning] Could not connect to MongoDB instance:', err.message);
-    console.warn('[MongoDB Notice] Ensure your MongoDB server is running or update MONGODB_URI in .env');
+    console.warn('[MongoDB Notice] Continuing with built-in SQLite engine.');
     isConnected = false;
     return false;
   }
