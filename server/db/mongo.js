@@ -24,14 +24,23 @@ mongoose.connection.on('error', (err) => {
 export async function connectMongoDB() {
   const mongoUri = process.env.MONGODB_URI;
 
-  // In production (like on Render), if no URI or pointing to localhost, skip safely
-  if (!mongoUri || (mongoUri.includes('localhost') || mongoUri.includes('127.0.0.1')) && process.env.NODE_ENV === 'production') {
-    console.log('[MongoDB] Running with SQLite local database engine (No external MongoDB URI configured).');
+  const isLocalHost = !mongoUri || mongoUri.includes('localhost') || mongoUri.includes('127.0.0.1') || mongoUri.includes('::1');
+  const isCloudHost = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || !!process.env.RENDER || !!process.env.VERCEL;
+
+  // In cloud environments (Render, Vercel, production), skip localhost attempts completely
+  if (isCloudHost && isLocalHost) {
+    console.log('[MongoDB] Running with SQLite database engine (No external MongoDB Atlas URI configured).');
     isConnected = false;
     return false;
   }
 
-  const effectiveUri = mongoUri || 'mongodb://localhost:27017/shinetek_db';
+  if (!mongoUri) {
+    console.log('[MongoDB] No MONGODB_URI configured. Running with SQLite database engine.');
+    isConnected = false;
+    return false;
+  }
+
+  const effectiveUri = mongoUri;
 
   try {
     console.log(`[MongoDB] Connecting to ${effectiveUri.replace(/:[^:@]+@/, ':****@')}...`);
