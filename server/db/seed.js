@@ -11,6 +11,10 @@ const __dirname = path.dirname(__filename);
 
 export async function seedDatabase() {
   initSchema();
+  if (!db) {
+    console.warn('[DB] Cannot seed: database instance not available.');
+    return;
+  }
 
   console.log('[DB] Checking seed data...');
 

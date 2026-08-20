@@ -8,17 +8,38 @@ const __dirname = path.dirname(__filename);
 
 const dbDir = path.resolve(__dirname, '../data');
 if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+  try {
+    fs.mkdirSync(dbDir, { recursive: true });
+  } catch (e) {
+    console.warn('[DB Directory Warning]', e.message);
+  }
 }
 
 const dbPath = path.resolve(dbDir, 'shinetek.db');
-export const db = new Database(dbPath);
+let db;
+try {
+  db = new Database(dbPath);
+  try {
+    db.pragma('journal_mode = WAL');
+  } catch (walErr) {
+    console.warn('[SQLite Notice] WAL mode not supported in this container environment, continuing with default mode.');
+  }
+  try {
+    db.pragma('foreign_keys = ON');
+  } catch (fkErr) {
+    console.warn('[SQLite Notice] Foreign keys pragma warning:', fkErr.message);
+  }
+} catch (err) {
+  console.error('[SQLite Connection Error]', err);
+}
 
-// Enable WAL mode and foreign keys for high performance & safety
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+export { db };
 
 export function initSchema() {
+  if (!db) {
+    console.error('[DB] SQLite database not initialized.');
+    return;
+  }
   db.exec(`
     -- System Configuration table (configurable sequential employee ID, etc.)
     CREATE TABLE IF NOT EXISTS system_settings (
