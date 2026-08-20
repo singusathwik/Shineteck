@@ -138,6 +138,28 @@ app.delete('/api/admin/payroll-entries/:id', requireAdmin, payrollEntryCtrl.dele
 // Admin Audit Logs
 app.get('/api/admin/audit-logs', requireAdmin, auditCtrl.getAuditLogs);
 
+// Serve Frontend static assets if client/dist exists (Fullstack All-In-One Deployment)
+const clientDistPath = path.resolve(__dirname, '../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+} else {
+  // Public Health & Status Route (when running API-only)
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'online',
+      service: 'Shinetek Inc. Enterprise API Server',
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    });
+  });
+}
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('[Server Error]', err);
