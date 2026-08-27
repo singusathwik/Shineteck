@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import dns from 'dns';
 import {
   User,
   Employee,
@@ -14,6 +15,13 @@ import {
 
 dotenv.config();
 
+// Ensure SRV DNS records resolve reliably across Windows and various ISP networks
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (dnsErr) {
+  // Ignore if custom DNS set fails in restricted environments
+}
+
 let isConnected = false;
 
 // Attach global error listener on Mongoose connection to prevent unhandled error events
@@ -24,41 +32,40 @@ mongoose.connection.on('error', (err) => {
 export async function connectMongoDB() {
   const mongoUri = process.env.MONGODB_URI;
 
-  const isLocalHost = !mongoUri || mongoUri.includes('localhost') || mongoUri.includes('127.0.0.1') || mongoUri.includes('::1');
-  const isCloudHost = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' || !!process.env.RENDER || !!process.env.VERCEL;
-
-  // In cloud environments (Render, Vercel, production), skip localhost attempts completely
-  if (isCloudHost && isLocalHost) {
-    console.log('[MongoDB] Running with SQLite database engine (No external MongoDB Atlas URI configured).');
+  if (!mongoUri || mongoUri.trim() === '') {
+    console.log('[MongoDB Atlas] No MONGODB_URI configured. Running with SQLite database engine.');
     isConnected = false;
     return false;
   }
 
-  if (!mongoUri) {
-    console.log('[MongoDB] No MONGODB_URI configured. Running with SQLite database engine.');
+  const effectiveUri = mongoUri.trim();
+
+  // Detect unreplaced template placeholders or angle brackets
+  if (effectiveUri.includes('<') && effectiveUri.includes('>')) {
+    console.warn('[MongoDB Atlas Notice] Angle brackets `<...>` detected in your MONGODB_URI.');
+    console.warn('[MongoDB Atlas Notice] Please remove the `<` and `>` characters and insert your actual database password in .env.');
     isConnected = false;
     return false;
   }
-
-  const effectiveUri = mongoUri;
 
   try {
-    console.log(`[MongoDB] Connecting to ${effectiveUri.replace(/:[^:@]+@/, ':****@')}...`);
+    const maskedUri = effectiveUri.replace(/:[^:@]+@/, ':****@');
+    console.log(`[MongoDB Atlas] Connecting to cluster (${maskedUri})...`);
     
     await mongoose.connect(effectiveUri, {
-      serverSelectionTimeoutMS: 4000,
-      connectTimeoutMS: 4000
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000
     });
 
     isConnected = true;
-    console.log('[MongoDB] Connected successfully.');
+    console.log('[MongoDB Atlas] Connected successfully to Cloud Database.');
 
     // Seed default settings and admin in MongoDB if empty
     await seedMongoDefaults();
 
     return true;
   } catch (err) {
-    console.warn('[MongoDB Warning] Could not connect to MongoDB instance:', err.message);
+    console.warn('[MongoDB Atlas Warning] Could not connect to Atlas instance:', err.message);
     console.warn('[MongoDB Notice] Continuing with built-in SQLite engine.');
     isConnected = false;
     return false;

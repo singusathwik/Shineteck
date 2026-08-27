@@ -59,7 +59,7 @@ cp .env.example .env
 Ensure the following variables are defined in `.env`:
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/shinetek_db
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/shinetek_db?retryWrites=true&w=majority
 JWT_SECRET=your_jwt_secret_key_change_in_production
 NODE_ENV=development
 ```

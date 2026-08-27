@@ -48,6 +48,16 @@ app.use('/uploads/avatars', express.static(AVATAR_DIR));
 // Public Routes
 // -------------------------------------------------------------
 
+// Health check for Render / Cloud monitors
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Shinetek Inc. Enterprise API Server',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // System & ID Preview
 app.get('/api/settings/next-id', settingsCtrl.getNextIdPreview);
 
