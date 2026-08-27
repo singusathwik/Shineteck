@@ -112,8 +112,41 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
             </div>
           </form>
 
+          {/* Quick Demo Fill Buttons */}
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 text-center mb-3">
+              Quick Fill Demo Credentials
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIdentifier('admin@shinetek.com');
+                  setPassword('Admin@1234');
+                  setErrorMsg(null);
+                }}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 rounded-lg transition-all"
+              >
+                <span>👑</span>
+                <span>Admin Login</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIdentifier('johnathan.vance@shinetek.com');
+                  setPassword('Password@123');
+                  setErrorMsg(null);
+                }}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 rounded-lg transition-all"
+              >
+                <span>👤</span>
+                <span>Employee Login</span>
+              </button>
+            </div>
+          </div>
+
           {/* Registration link */}
-          <div className="mt-8 pt-6 border-t border-slate-200 text-center">
+          <div className="mt-4 pt-4 text-center">
             <p className="text-sm text-slate-600">
               New employee joining Shinetek Inc.?{' '}
               <button
