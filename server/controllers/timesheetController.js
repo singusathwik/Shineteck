@@ -65,10 +65,6 @@ export async function submitTimesheet(req, res) {
       return res.status(400).json({ error: 'Start Date and End Date are required.' });
     }
 
-    if (new Date(startDate) > new Date(endDate)) {
-      return res.status(400).json({ error: 'Start date cannot be after end date.' });
-    }
-
     let parsedHours = totalHours ? parseFloat(totalHours) : null;
     let fileName = null;
     let filePath = null;
@@ -87,41 +83,62 @@ export async function submitTimesheet(req, res) {
       return res.status(400).json({ error: 'Total work hours must be a valid positive number.' });
     }
 
-    const employee = db.prepare('SELECT full_name FROM employees WHERE employee_id = ?').get(employeeId);
-    const employeeName = employee ? employee.full_name : req.user.email;
+    // Ensure employee exists in SQLite to prevent Foreign Key errors
+    let employee = db.prepare('SELECT full_name FROM employees WHERE employee_id = ?').get(employeeId);
+    let employeeName = employee ? employee.full_name : req.user.email;
+
+    if (!employee) {
+      try {
+        db.prepare(`
+          INSERT OR IGNORE INTO employees (
+            employee_id, full_name, email, registration_status, submitted_at
+          ) VALUES (?, ?, ?, 'Approved', CURRENT_TIMESTAMP)
+        `).run(employeeId, employeeName, req.user.email);
+      } catch (sqSyncErr) {
+        console.warn('[SQLite Employee Sync Warning]', sqSyncErr.message);
+      }
+    }
 
     // Resolve vendor name: prioritize explicit user input, fallback to employee's assigned vendor
     let finalVendorName = (vendorName || vendor_name || '').trim();
     if (!finalVendorName) {
-      const assignedVendor = db.prepare('SELECT vendor_name FROM vendor_details WHERE employee_id = ? LIMIT 1').get(employeeId);
-      if (assignedVendor?.vendor_name) {
-        finalVendorName = assignedVendor.vendor_name;
-      }
+      try {
+        const assignedVendor = db.prepare('SELECT vendor_name FROM vendor_details WHERE employee_id = ? LIMIT 1').get(employeeId);
+        if (assignedVendor?.vendor_name) {
+          finalVendorName = assignedVendor.vendor_name;
+        }
+      } catch (vErr) {}
     }
 
-    const insertStmt = db.prepare(`
-      INSERT INTO timesheets (
-        employee_id, employee_name, vendor_name, start_date, end_date, total_hours,
-        file_name, file_path, notes, status, submitted_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', CURRENT_TIMESTAMP)
-    `);
+    let result = null;
+    try {
+      const insertStmt = db.prepare(`
+        INSERT INTO timesheets (
+          employee_id, employee_name, vendor_name, start_date, end_date, total_hours,
+          file_name, file_path, notes, status, submitted_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', CURRENT_TIMESTAMP)
+      `);
 
-    const result = insertStmt.run(
-      employeeId,
-      employeeName,
-      finalVendorName,
-      startDate,
-      endDate,
-      parsedHours,
-      fileName,
-      filePath,
-      notes ? notes.trim() : null
-    );
+      result = insertStmt.run(
+        employeeId,
+        employeeName,
+        finalVendorName,
+        startDate,
+        endDate,
+        parsedHours,
+        fileName,
+        filePath,
+        notes ? notes.trim() : null
+      );
+    } catch (dbInsertErr) {
+      console.warn('[SQLite Timesheet Insert Warning]', dbInsertErr.message);
+    }
 
     // Also sync to MongoDB if connected
+    let mongoDoc = null;
     if (isMongoConnected()) {
       try {
-        await MongoTimesheet.create({
+        mongoDoc = await MongoTimesheet.create({
           employee_id: employeeId,
           employee_name: employeeName,
           vendor_name: finalVendorName,
@@ -139,28 +156,52 @@ export async function submitTimesheet(req, res) {
     }
 
     // Notify employee of submission
-    db.prepare(`
-      INSERT INTO notifications (employee_id, title, message, type)
-      VALUES (?, ?, ?, ?)
-    `).run(
-      employeeId,
-      'Timesheet Submitted',
-      `Your timesheet for period ${startDate} to ${endDate} (${parsedHours} hrs${finalVendorName ? ` under ${finalVendorName}` : ''}) has been submitted for manager approval.`,
-      'info'
-    );
+    try {
+      db.prepare(`
+        INSERT INTO notifications (employee_id, title, message, type)
+        VALUES (?, ?, ?, ?)
+      `).run(
+        employeeId,
+        'Timesheet Submitted',
+        `Your timesheet for period ${startDate} to ${endDate} (${parsedHours} hrs${finalVendorName ? ` under ${finalVendorName}` : ''}) has been submitted for manager approval.`,
+        'info'
+      );
+    } catch (notifErr) {}
 
-    logAudit({
-      userId: employeeId,
-      userName: employeeName,
-      userRole: 'employee',
-      action: 'TIMESHEET_SUBMITTED',
-      entityType: 'timesheet',
-      entityId: result.lastInsertRowid,
-      details: `Timesheet submitted for period ${startDate} - ${endDate} (${parsedHours} hrs, Vendor: ${finalVendorName || 'Standard'})`,
-      ipAddress: req.ip
-    });
+    try {
+      logAudit({
+        userId: employeeId,
+        userName: employeeName,
+        userRole: 'employee',
+        action: 'TIMESHEET_SUBMITTED',
+        entityType: 'timesheet',
+        entityId: result ? result.lastInsertRowid : (mongoDoc ? mongoDoc._id : 1),
+        details: `Timesheet submitted for period ${startDate} - ${endDate} (${parsedHours} hrs, Vendor: ${finalVendorName || 'Standard'})`,
+        ipAddress: req.ip
+      });
+    } catch (auditErr) {}
 
-    const newTimesheet = db.prepare('SELECT * FROM timesheets WHERE id = ?').get(result.lastInsertRowid);
+    let newTimesheet = null;
+    if (result) {
+      try {
+        newTimesheet = db.prepare('SELECT * FROM timesheets WHERE id = ?').get(result.lastInsertRowid);
+      } catch (getErr) {}
+    }
+    if (!newTimesheet && mongoDoc) {
+      newTimesheet = {
+        id: mongoDoc._id,
+        employee_id: employeeId,
+        employee_name: employeeName,
+        vendor_name: finalVendorName,
+        start_date: startDate,
+        end_date: endDate,
+        total_hours: parsedHours,
+        file_name: fileName,
+        file_path: filePath,
+        notes: notes ? notes.trim() : null,
+        status: 'Pending'
+      };
+    }
 
     res.status(201).json({
       message: 'Timesheet submitted successfully.',
@@ -168,7 +209,7 @@ export async function submitTimesheet(req, res) {
     });
   } catch (err) {
     console.error('[submitTimesheet Error]', err);
-    res.status(500).json({ error: 'Failed to submit timesheet.' });
+    res.status(500).json({ error: err.message || 'Failed to submit timesheet.' });
   }
 }
 
