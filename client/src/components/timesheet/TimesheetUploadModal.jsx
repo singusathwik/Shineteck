@@ -155,7 +155,7 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Vendor Name Selection (Crucial for multiple vendor billing) */}
+          {/* Vendor Name Input with Quick Suggestion Chips */}
           <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-1.5 text-xs font-bold text-blue-950">
@@ -169,44 +169,57 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
               )}
             </div>
 
-            {availableVendors.length > 0 ? (
-              <div className="space-y-1.5">
-                <select
-                  value={vendorName}
-                  onChange={(e) => setVendorName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-blue-300 rounded-lg bg-white text-slate-900 font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  {availableVendors.map((v) => (
-                    <option key={v._id || v.id} value={v.vendor_name}>
-                      {v.vendor_name} {v.client_name ? `(Client: ${v.client_name})` : ''}
-                    </option>
-                  ))}
-                  <option value="CUSTOM">+ Enter Different / Custom Vendor</option>
-                </select>
-
-                {vendorName === 'CUSTOM' && (
-                  <input
-                    type="text"
-                    required
-                    placeholder="Type custom vendor name (e.g. Infosys, TCS, Apex Systems)..."
-                    onChange={(e) => setVendorName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-blue-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none mt-1"
-                    autoFocus
-                  />
-                )}
-              </div>
-            ) : (
+            <div className="relative">
               <input
                 type="text"
                 required
-                placeholder="Enter vendor name (e.g. Infosys, TCS, Apex Systems, Wipro)..."
                 value={vendorName}
                 onChange={(e) => setVendorName(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-blue-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Type or select vendor name (e.g. Apex Systems, TCS, Infosys, Wipro)..."
+                className="w-full px-3 py-2 text-xs border border-blue-300 rounded-lg bg-white text-slate-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               />
+              {vendorName && (
+                <button
+                  type="button"
+                  onClick={() => setVendorName('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded"
+                  title="Clear vendor name"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Quick-fill pills for assigned vendors */}
+            {availableVendors.length > 0 && (
+              <div className="pt-1">
+                <span className="text-[10px] font-bold text-slate-500 block mb-1">
+                  Click to auto-fill:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableVendors.map((v) => {
+                    const isSelected = vendorName.trim().toLowerCase() === v.vendor_name.trim().toLowerCase();
+                    return (
+                      <button
+                        key={v._id || v.id}
+                        type="button"
+                        onClick={() => setVendorName(v.vendor_name)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700'
+                        }`}
+                      >
+                        {v.vendor_name} {v.client_name ? `(${v.client_name})` : ''}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
+
             <p className="text-[11px] text-slate-500">
-              Specify the vendor this timesheet belongs to so the admin can verify rates and approve quickly.
+              Type or select the vendor this timesheet belongs to so the admin can verify rates and approve quickly.
             </p>
           </div>
 
