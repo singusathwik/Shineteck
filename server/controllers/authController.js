@@ -161,36 +161,45 @@ export async function register(req, res) {
     if (isMongoConnected()) {
       (async () => {
         try {
-          const mUser = await MongoUser.create({
-            employee_id: newEmployeeId,
-            email: email.toLowerCase().trim(),
-            password_hash: passwordHash,
-            role: 'employee',
-            status: 'pending'
-          });
+          const mUser = await MongoUser.findOneAndUpdate(
+            { employee_id: newEmployeeId },
+            {
+              employee_id: newEmployeeId,
+              email: email.toLowerCase().trim(),
+              password_hash: passwordHash,
+              role: 'employee',
+              status: 'pending'
+            },
+            { upsert: true, returnDocument: 'after' }
+          );
 
-          await MongoEmployee.create({
-            user_id: mUser._id,
-            employee_id: newEmployeeId,
-            first_name: trimmedFirstName || null,
-            last_name: trimmedLastName || null,
-            middle_initial: trimmedMiddleInitial || null,
-            full_name: effectiveFullName,
-            email: email.toLowerCase().trim(),
-            phone: phone.trim(),
-            designation: designation.trim(),
-            date_of_birth: dateOfBirth,
-            country,
-            state,
-            city,
-            zip_code: zipCode.trim(),
-            address: address.trim(),
-            start_date: todayDate,
-            end_date: null,
-            employment_status: 'Active',
-            profile_image_url: profileImageUrl || null,
-            registration_status: 'Pending Review'
-          });
+          await MongoEmployee.findOneAndUpdate(
+            { employee_id: newEmployeeId },
+            {
+              user_id: mUser._id,
+              employee_id: newEmployeeId,
+              first_name: trimmedFirstName || null,
+              last_name: trimmedLastName || null,
+              middle_initial: trimmedMiddleInitial || null,
+              full_name: effectiveFullName,
+              email: email.toLowerCase().trim(),
+              phone: phone.trim(),
+              designation: designation.trim(),
+              date_of_birth: dateOfBirth,
+              country,
+              state,
+              city,
+              zip_code: zipCode.trim(),
+              address: address.trim(),
+              start_date: todayDate,
+              end_date: null,
+              employment_status: 'Active',
+              profile_image_url: profileImageUrl || null,
+              registration_status: 'Pending Review',
+              submitted_at: new Date()
+            },
+            { upsert: true }
+          );
 
           if (Array.isArray(uploadedDocuments) && uploadedDocuments.length > 0) {
             for (const doc of uploadedDocuments) {

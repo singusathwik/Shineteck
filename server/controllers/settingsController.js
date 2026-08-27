@@ -104,14 +104,16 @@ export function generateNextEmployeeIdSync() {
     const minLength = parseInt(map['id_min_length'] || '4', 10);
     let currentSeq = parseInt(map['id_current_seq'] || map['id_start_number'] || '2005', 10);
 
-    // Keep checking against existing users to guarantee zero duplicate
+    // Keep checking against existing users and employees to guarantee zero duplicate
     let candidate = formatEmployeeId(currentSeq, prefix, minLength);
-    let exists = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
+    let existsUser = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
+    let existsEmp = db.prepare('SELECT 1 FROM employees WHERE employee_id = ?').get(candidate);
     
-    while (exists) {
+    while (existsUser || existsEmp) {
       currentSeq++;
       candidate = formatEmployeeId(currentSeq, prefix, minLength);
-      exists = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
+      existsUser = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
+      existsEmp = db.prepare('SELECT 1 FROM employees WHERE employee_id = ?').get(candidate);
     }
 
     // Save incremented next sequence
@@ -137,11 +139,13 @@ export function getNextIdPreview(req, res) {
     let currentSeq = parseInt(map['id_current_seq'] || map['id_start_number'] || '2005', 10);
 
     let candidate = formatEmployeeId(currentSeq, prefix, minLength);
-    let exists = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
-    while (exists) {
+    let existsUser = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
+    let existsEmp = db.prepare('SELECT 1 FROM employees WHERE employee_id = ?').get(candidate);
+    while (existsUser || existsEmp) {
       currentSeq++;
       candidate = formatEmployeeId(currentSeq, prefix, minLength);
-      exists = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
+      existsUser = db.prepare('SELECT 1 FROM users WHERE employee_id = ?').get(candidate);
+      existsEmp = db.prepare('SELECT 1 FROM employees WHERE employee_id = ?').get(candidate);
     }
 
     res.json({

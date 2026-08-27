@@ -542,11 +542,15 @@ export async function getAllEmployees(req, res) {
               source: 'mongo'
             });
           } else {
-            // Merge properties, prioritizing the more recent registration status
+            // Merge properties: prioritize the active registered user data from SQLite
             empMap.set(empId, {
-              ...existing,
               ...mEmp,
+              ...existing,
               id: existing.id || mEmp._id.toString(),
+              full_name: existing.full_name || mEmp.full_name,
+              email: existing.email || mEmp.email,
+              designation: existing.designation || mEmp.designation,
+              country: existing.country || mEmp.country,
               registration_status: existing.registration_status || mEmp.registration_status,
               employment_status: existing.employment_status || mEmp.employment_status || 'Active',
               total_docs: existing.total_docs || 0,
