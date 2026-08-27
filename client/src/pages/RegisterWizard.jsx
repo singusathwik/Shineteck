@@ -347,20 +347,20 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* ── Top Header ─────────────────────────────────────────────────── */}
-      <header className="bg-[#0f2b48] border-b border-[#1b3d63] text-white py-3.5 px-6 sticky top-0 z-30 shadow-sm">
+      <header className="bg-white border-b border-slate-200 text-slate-900 py-3.5 px-6 sticky top-0 z-30 shadow-2xs">
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <ShineteckLogo size="sm" textColor="white" />
-            <span className="text-xs text-slate-400 hidden sm:block font-normal pl-3 border-l border-slate-700">
+            <ShineteckLogo size="sm" />
+            <span className="text-xs text-slate-500 hidden sm:block font-medium pl-3 border-l border-slate-200">
               Employee Onboarding & Identity Registration
             </span>
           </div>
           <button
             type="button"
             onClick={onNavigateLogin}
-            className="text-xs font-medium text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 px-3 py-1.5 rounded-md transition-colors"
+            className="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 hover:border-slate-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-2xs"
           >
             Already registered? Sign In
           </button>

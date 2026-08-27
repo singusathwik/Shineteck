@@ -2,61 +2,168 @@
 
 @layer base {
   :root {
-    --brand-navy-900: #0b1e33;
-    --brand-navy-800: #102a45;
-    --brand-navy-700: #1b3d63;
+    --brand-navy-950: #071524;
+    --brand-navy-900: #0b1f36;
+    --brand-navy-800: #0f2b48;
+    --brand-navy-700: #173f67;
     --brand-blue-600: #2563eb;
     --brand-blue-500: #3b82f6;
-    --brand-slate-50: #f8fafc;
-    --brand-slate-100: #f1f5f9;
-    --brand-slate-200: #e2e8f0;
-    --brand-slate-300: #cbd5e1;
-    --brand-slate-600: #475569;
-    --brand-slate-800: #1e293b;
-    --brand-slate-900: #0f172a;
+    --brand-blue-50: #eff6ff;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
   }
 
   body {
-    background-color: #f1f5f9;
-    color: #1e293b;
+    background-color: #f8fafc;
+    color: #0f172a;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     margin: 0;
     padding: 0;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.5;
   }
 }
 
-/* Custom Corporate HR styles */
+/* Modern Enterprise SaaS Design Tokens */
 .enterprise-card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 0.625rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.enterprise-header {
-  background-color: #0f2b48;
+.enterprise-card:hover {
+  border-color: #cbd5e1;
+}
+
+.enterprise-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.enterprise-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.enterprise-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: #ffffff;
+  background-color: #0f2b48;
+  border: 1px solid #0b1f36;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-/* Page content wrapper — comfortable max-width for readability */
+.enterprise-btn-primary:hover {
+  background-color: #173f67;
+  border-color: #0f2b48;
+}
+
+.enterprise-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #334155;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.enterprise-btn-secondary:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+/* Data Table Styling */
+.table-container {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  background-color: #ffffff;
+}
+
+.enterprise-table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.enterprise-table thead {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.enterprise-table th {
+  padding: 0.625rem 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+}
+
+.enterprise-table td {
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.enterprise-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Page content container */
 .page-content {
-  max-width: 1200px;
+  max-width: 1360px;
   width: 100%;
 }
 
+/* Refined thin scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f8fafc;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;

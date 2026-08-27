@@ -1,56 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export function ShineteckLogo({ size = 'md', className = '', showText = true, textColor = 'auto' }) {
-  // Dimension mapping
-  const heightMap = {
+  const [imgError, setImgError] = useState(false);
+
+  const heightClasses = {
     sm: 'h-7',
-    md: 'h-10',
-    lg: 'h-14',
-    xl: 'h-18'
+    md: 'h-9',
+    lg: 'h-11',
+    xl: 'h-14'
   };
 
   return (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      {/* SVG Icon: Orange Lightning Bolt + Green Chevron matching official Shineteck Inc logo */}
-      <svg
-        viewBox="0 0 100 100"
-        className={`${heightMap[size] || 'h-10'} w-auto shrink-0`}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Green Accent Chevron / Diagonal Wing */}
-        <path
-          d="M 28 26 L 82 26 L 68 56 L 46 56 Z"
-          fill="#439b61"
+    <div className={`inline-flex items-center gap-2 select-none ${className}`}>
+      {!imgError ? (
+        <img
+          src="/shineteck-logo.png"
+          alt="Shineteck Inc."
+          className={`${heightClasses[size] || 'h-9'} w-auto object-contain shrink-0`}
+          onError={() => setImgError(true)}
         />
-        {/* Orange / Terracotta Dynamic Lightning Bolt */}
-        <path
-          d="M 46 12 L 20 54 L 44 54 L 28 88 L 68 46 L 45 46 Z"
-          fill="#e27a3f"
-        />
-      </svg>
-
-      {showText && (
-        <span
-          className={`font-black tracking-tight ${
-            size === 'sm'
-              ? 'text-lg'
-              : size === 'lg'
-              ? 'text-3xl'
-              : size === 'xl'
-              ? 'text-4xl'
-              : 'text-2xl'
-          } ${
-            textColor === 'white'
-              ? 'text-white'
-              : textColor === 'dark'
-              ? 'text-slate-900'
-              : 'text-[#e27a3f]'
-          }`}
-          style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
-        >
-          Shineteck <span className="font-extrabold text-[#e27a3f]">Inc</span>
-        </span>
+      ) : (
+        <div className="inline-flex items-center gap-2">
+          {/* Official Geometric Dual-Angle Mark Fallback */}
+          <svg
+            viewBox="0 0 100 100"
+            className={`${heightClasses[size] || 'h-9'} w-auto shrink-0`}
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M 28 26 L 82 26 L 68 56 L 46 56 Z" fill="#439b61" />
+            <path d="M 46 12 L 20 54 L 44 54 L 28 88 L 68 46 L 45 46 Z" fill="#e27a3f" />
+          </svg>
+          {showText && (
+            <span
+              className={`font-black tracking-tight text-slate-900 ${
+                size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-2xl' : 'text-lg'
+              }`}
+            >
+              Shineteck <span className="text-[#e27a3f] font-extrabold">Inc</span>
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
