@@ -223,50 +223,52 @@ export function AdminVendorDetails() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Building2 className="w-6 h-6 text-blue-600" />
-            Vendor Details
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage vendor-client billing, employee rates, and margin calculations for Indian & Global consultants.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="enterprise-btn-secondary"
-            title="Download vendor placements as CSV"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
-          </button>
-          <button
-            onClick={openCreate}
-            className="enterprise-btn-primary"
-          >
-            <Plus className="w-4 h-4" /> Add Vendor Record
-          </button>
+      <div className="enterprise-header-banner p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5 font-display">
+              <Building2 className="w-6 h-6 text-blue-700" />
+              Vendor Placements & Margin Calculator
+            </h1>
+            <p className="text-xs text-slate-600 mt-1 font-medium">
+              Manage vendor-client billing, employee rates, and margin calculations for Indian & Global consultants.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="enterprise-btn-secondary"
+              title="Download vendor placements as CSV"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export CSV</span>
+            </button>
+            <button
+              onClick={openCreate}
+              className="enterprise-btn-primary"
+            >
+              <Plus className="w-4 h-4" /> Add Vendor Record
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-1">
+      {/* Tabs (Rich Segmented Bar) */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-200/90 rounded-2xl border border-slate-300 shadow-2xs">
         <button
           type="button"
           onClick={() => setActiveTab('INR')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeTab === 'INR'
-              ? 'border-orange-600 text-orange-900 bg-orange-50/80 font-bold'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-orange-600 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
           <span className="text-base leading-none">🇮🇳</span>
           <span>Indian Vendors (INR ₹)</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            activeTab === 'INR' ? 'bg-orange-200 text-orange-950' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'INR' ? 'bg-orange-900 text-orange-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {inrVendorsCount}
           </span>
@@ -275,16 +277,16 @@ export function AdminVendorDetails() {
         <button
           type="button"
           onClick={() => setActiveTab('USD')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeTab === 'USD'
-              ? 'border-blue-600 text-blue-900 bg-blue-50/80 font-bold'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-blue-700 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
           <span className="text-base leading-none">🌐</span>
           <span>US & Global Vendors (USD $)</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            activeTab === 'USD' ? 'bg-blue-200 text-blue-950' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'USD' ? 'bg-blue-900 text-blue-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {usdVendorsCount}
           </span>
@@ -293,16 +295,16 @@ export function AdminVendorDetails() {
         <button
           type="button"
           onClick={() => setActiveTab('ALL')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeTab === 'ALL'
-              ? 'border-slate-800 text-slate-900 bg-slate-100 font-bold'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-[#0f2b48] text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <Layers className="w-3.5 h-3.5 text-slate-500" />
+          <Layers className="w-3.5 h-3.5" />
           <span>All Vendors</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            activeTab === 'ALL' ? 'bg-slate-200 text-slate-900' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'ALL' ? 'bg-slate-900 text-slate-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {vendors.length}
           </span>
@@ -311,23 +313,23 @@ export function AdminVendorDetails() {
 
       {/* Status Message */}
       {statusMessage && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border ${
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold border shadow-2xs ${
           statusMessage.type === 'success'
-            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-            : 'bg-rose-50 text-rose-800 border-rose-200'
+            ? 'bg-emerald-100/80 text-emerald-950 border-emerald-300'
+            : 'bg-rose-100/80 text-rose-950 border-rose-300'
         }`}>
           {statusMessage.type === 'success'
-            ? <CheckCircle2 className="w-4 h-4 shrink-0" />
-            : <AlertCircle className="w-4 h-4 shrink-0" />}
+            ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-700" />
+            : <AlertCircle className="w-4 h-4 shrink-0 text-rose-700" />}
           <span>{statusMessage.text}</span>
-          <button onClick={() => setStatusMessage(null)} className="ml-auto p-0.5 hover:opacity-70">
+          <button onClick={() => setStatusMessage(null)} className="ml-auto p-0.5 hover:opacity-70 cursor-pointer">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Search Bar */}
-      <div className="enterprise-card p-4 bg-white flex items-center gap-3">
+      <div className="enterprise-card p-4 bg-slate-100/90 border-slate-300 flex items-center gap-3">
         <Search className="w-4 h-4 text-slate-400 shrink-0" />
         <input
           type="text"

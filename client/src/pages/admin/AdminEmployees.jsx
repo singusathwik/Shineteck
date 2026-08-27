@@ -220,15 +220,14 @@ export function AdminEmployees({ onSelectEmployee }) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      {/* Top Banner */}
-      <div className="enterprise-card p-6 bg-white">
+      {/* Header Banner */}
+      <div className="enterprise-header-banner p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
               Employee Directory & Workforce Lifecycle
             </h1>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
+            <p className="text-xs text-slate-600 mt-1 font-medium">
               Track active working status, employment start & end dates, and manage consultant personnel records
             </p>
           </div>
@@ -256,44 +255,44 @@ export function AdminEmployees({ onSelectEmployee }) {
 
       {/* Action feedback banner */}
       {actionFeedback && (
-        <div className={`p-4 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs ${
+        <div className={`p-4 rounded-xl text-xs font-bold flex items-center justify-between gap-2 shadow-2xs ${
           actionFeedback.type === 'success'
-            ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-            : 'bg-rose-50 text-rose-900 border border-rose-200'
+            ? 'bg-emerald-100/80 text-emerald-950 border border-emerald-300'
+            : 'bg-rose-100/80 text-rose-950 border border-rose-300'
         }`}>
           <div className="flex items-center gap-2">
             {actionFeedback.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
             ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-rose-700 shrink-0" />
             )}
             <span>{actionFeedback.message}</span>
           </div>
           <button
             type="button"
             onClick={() => setActionFeedback(null)}
-            className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+            className="text-slate-500 hover:text-slate-800 p-1 cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* Active / Inactive Tab Navigation */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200/80 pb-1">
+      {/* Active / Inactive Tab Navigation (Segmented Bar) */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-200/90 rounded-2xl border border-slate-300 shadow-2xs">
         <button
           type="button"
           onClick={() => setEmploymentTab('Active')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-b-2 cursor-pointer font-display ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer font-display ${
             employmentTab === 'Active'
-              ? 'border-emerald-600 text-emerald-900 bg-emerald-50/80'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-emerald-700 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-status-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-emerald-300"></span>
           <span>Active Employees</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-            employmentTab === 'Active' ? 'bg-emerald-200/80 text-emerald-950' : 'bg-slate-100 text-slate-600'
+            employmentTab === 'Active' ? 'bg-emerald-900 text-emerald-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {counts.active}
           </span>
@@ -302,16 +301,16 @@ export function AdminEmployees({ onSelectEmployee }) {
         <button
           type="button"
           onClick={() => setEmploymentTab('Inactive')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-b-2 cursor-pointer font-display ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer font-display ${
             employmentTab === 'Inactive'
-              ? 'border-rose-600 text-rose-900 bg-rose-50/80'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-rose-700 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span className="w-2 h-2 rounded-full bg-rose-300"></span>
           <span>Inactive / Ended</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-            employmentTab === 'Inactive' ? 'bg-rose-200/80 text-rose-950' : 'bg-slate-100 text-slate-600'
+            employmentTab === 'Inactive' ? 'bg-rose-900 text-rose-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {counts.inactive}
           </span>
@@ -320,16 +319,16 @@ export function AdminEmployees({ onSelectEmployee }) {
         <button
           type="button"
           onClick={() => setEmploymentTab('ALL')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-b-2 cursor-pointer font-display ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer font-display ${
             employmentTab === 'ALL'
-              ? 'border-blue-600 text-blue-900 bg-blue-50/80'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-[#0f2b48] text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <Users className="w-3.5 h-3.5 text-slate-500" />
+          <Users className="w-3.5 h-3.5" />
           <span>All Employees</span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-            employmentTab === 'ALL' ? 'bg-blue-200/80 text-blue-950' : 'bg-slate-100 text-slate-600'
+            employmentTab === 'ALL' ? 'bg-slate-900 text-slate-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {counts.all}
           </span>
@@ -337,7 +336,7 @@ export function AdminEmployees({ onSelectEmployee }) {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="enterprise-card p-4 bg-white border-slate-200">
+      <div className="enterprise-card p-4 bg-slate-100/90 border-slate-300">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           {/* Search Input */}
           <div className="relative flex-1 min-w-[240px]">
@@ -347,7 +346,7 @@ export function AdminEmployees({ onSelectEmployee }) {
               placeholder="Search by first/last name, Employee ID, email, or designation..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
           </div>
 

@@ -34,11 +34,11 @@ export function EmployeePayroll() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="enterprise-card p-6 bg-white">
+      <div className="enterprise-header-banner p-6">
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
           Payment & Payroll Statements
         </h1>
-        <p className="text-xs text-slate-500 mt-1 font-medium">
+        <p className="text-xs text-slate-600 mt-1 font-medium">
           Review official earnings statements, tax withholdings, and net direct deposits issued by Shineteck Inc. HR
         </p>
       </div>

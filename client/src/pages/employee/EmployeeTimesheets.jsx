@@ -66,13 +66,13 @@ export function EmployeeTimesheets() {
   return (
     <div className="space-y-6">
       {/* Header & Submit CTA */}
-      <div className="enterprise-card p-6 bg-white">
+      <div className="enterprise-header-banner p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
               Work Timesheet Submissions
             </h1>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
+            <p className="text-xs text-slate-600 mt-1 font-medium">
               Submit periodic work hours, upload CSV/Excel activity sheets, and track HR payroll authorization
             </p>
           </div>
@@ -100,7 +100,7 @@ export function EmployeeTimesheets() {
       </div>
 
       {/* Filters Bar */}
-      <div className="enterprise-card p-4 bg-white">
+      <div className="enterprise-card p-4 bg-slate-100/90 border-slate-300">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-slate-500 font-bold flex items-center gap-1 font-display">

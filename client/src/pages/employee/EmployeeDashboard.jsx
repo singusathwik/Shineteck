@@ -60,7 +60,7 @@ export function EmployeeDashboard({ onNavigateTab }) {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="enterprise-card p-6 bg-white border-slate-300 shadow-sm">
+      <div className="enterprise-header-banner p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <EmployeeAvatar

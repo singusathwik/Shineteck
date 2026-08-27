@@ -87,13 +87,13 @@ export function AdminTimesheets() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="enterprise-card p-6 bg-white border-slate-200">
+      <div className="enterprise-header-banner p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
               Organization Timesheet Approvals
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5 font-medium">
+            <p className="text-xs text-slate-600 mt-0.5 font-medium">
               Review work periods, verify CSV/Excel timesheet logs, and authorize payroll hours
             </p>
           </div>
@@ -110,14 +110,14 @@ export function AdminTimesheets() {
       </div>
 
       {statusMessage && (
-        <div className="p-3 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <div className="p-3 text-xs text-emerald-900 bg-emerald-100/80 border border-emerald-300 rounded-xl flex items-center gap-2 font-bold shadow-2xs">
+          <CheckCircle2 className="w-4 h-4 text-emerald-700" />
           <span>{statusMessage}</span>
         </div>
       )}
 
       {/* Filter & Search Bar */}
-      <div className="enterprise-card p-4 bg-white border-slate-200">
+      <div className="enterprise-card p-4 bg-slate-100/90 border-slate-300">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
@@ -126,16 +126,16 @@ export function AdminTimesheets() {
               placeholder="Search by Employee Name, ID, or Vendor..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-medium">Status:</span>
+            <span className="text-slate-600 font-bold">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-300 rounded bg-white text-slate-700 focus:ring-1 focus:ring-blue-600"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-700 font-medium focus:ring-2 focus:ring-blue-500/20"
             >
               <option value="ALL">All Statuses</option>
               <option value="Pending">Pending</option>

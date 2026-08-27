@@ -98,7 +98,7 @@ export function EmployeeProfile() {
   return (
     <div className="space-y-6">
       {/* Profile Overview Card */}
-      <div className="enterprise-card p-6 bg-white">
+      <div className="enterprise-header-banner p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <EmployeeAvatar

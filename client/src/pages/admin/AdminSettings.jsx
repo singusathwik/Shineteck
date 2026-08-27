@@ -63,11 +63,11 @@ export function AdminSettings() {
   return (
     <div className="space-y-6">
       {/* Executive Page Header */}
-      <div className="enterprise-card p-6 bg-white">
+      <div className="enterprise-header-banner p-6">
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
           System & Sequence ID Parameters
         </h1>
-        <p className="text-xs text-slate-500 mt-1 font-medium">
+        <p className="text-xs text-slate-600 mt-1 font-medium">
           Configure atomic sequential Employee ID numbering rules, corporate prefix standards, and zero-padding formats
         </p>
       </div>

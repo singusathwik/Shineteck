@@ -223,117 +223,119 @@ export function AdminPayrollEntries() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Receipt className="w-6 h-6 text-emerald-600" />
-            Payroll Information
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Monthly payroll billing records — hours, rates, and gross amount calculations for Indian & Global consultants.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="enterprise-btn-secondary"
-            title="Download payroll entries as CSV"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
-          </button>
-          <button
-            onClick={openCreate}
-            className="enterprise-btn-primary"
-          >
-            <Plus className="w-4 h-4" /> Add Payroll Entry
-          </button>
+      <div className="enterprise-header-banner p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5 font-display">
+              <Receipt className="w-6 h-6 text-emerald-700" />
+              Payroll Information & Billing Records
+            </h1>
+            <p className="text-xs text-slate-600 mt-1 font-medium">
+              Monthly payroll billing records — hours, rates, and gross amount calculations for Indian & Global consultants.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="enterprise-btn-secondary"
+              title="Download payroll entries as CSV"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export CSV</span>
+            </button>
+            <button
+              onClick={openCreate}
+              className="enterprise-btn-primary"
+            >
+              <Plus className="w-4 h-4" /> Add Payroll Entry
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* India Total Billing */}
-        <div className="enterprise-card p-4 bg-gradient-to-br from-amber-50/60 to-orange-50/40 border-orange-200 rounded-xl">
+        <div className="enterprise-card p-4.5 bg-amber-50/80 border-amber-300 rounded-2xl shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold text-orange-950 flex items-center gap-1.5">
+            <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
               <span>🇮🇳</span>
               <span>Indian Billing (INR)</span>
             </span>
-            <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full font-bold text-[10px]">
+            <span className="px-2 py-0.5 bg-amber-200 text-amber-950 rounded-full font-bold font-mono text-[10px]">
               {summary.inrCount} entries
             </span>
           </div>
-          <div className="text-lg font-extrabold font-mono text-orange-950">
+          <div className="text-xl font-black font-mono text-amber-950 font-display">
             {formatMoney(summary.inrGross, 'INR')}
           </div>
-          <p className="text-[11px] text-orange-800/80 mt-1">
-            Total Hours: <span className="font-bold">{summary.inrHours.toFixed(1)} hrs</span>
+          <p className="text-[11px] text-amber-900 mt-1 font-medium">
+            Total Hours: <span className="font-bold font-mono text-amber-950">{summary.inrHours.toFixed(1)} hrs</span>
           </p>
         </div>
 
         {/* US & Foreign Total Billing */}
-        <div className="enterprise-card p-4 bg-gradient-to-br from-blue-50/60 to-indigo-50/40 border-blue-200 rounded-xl">
+        <div className="enterprise-card p-4.5 bg-blue-50/80 border-blue-300 rounded-2xl shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
               <span>🌐</span>
               <span>US & Global (USD)</span>
             </span>
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full font-bold text-[10px]">
+            <span className="px-2 py-0.5 bg-blue-200 text-blue-950 rounded-full font-bold font-mono text-[10px]">
               {summary.usdCount} entries
             </span>
           </div>
-          <div className="text-lg font-extrabold font-mono text-blue-950">
+          <div className="text-xl font-black font-mono text-blue-950 font-display">
             {formatMoney(summary.usdGross, 'USD')}
           </div>
-          <p className="text-[11px] text-blue-800/80 mt-1">
-            Total Hours: <span className="font-bold">{summary.usdHours.toFixed(1)} hrs</span>
+          <p className="text-[11px] text-blue-900 mt-1 font-medium">
+            Total Hours: <span className="font-bold font-mono text-blue-950">{summary.usdHours.toFixed(1)} hrs</span>
           </p>
         </div>
 
-        {/* Total Hours */}
-        <div className="enterprise-card p-4 bg-white border-slate-200 rounded-xl">
+        {/* Global Total Hours */}
+        <div className="enterprise-card p-4.5 bg-purple-50/80 border-purple-300 rounded-2xl shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-xl bg-purple-200 text-purple-900 border border-purple-300 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Billed Hours</p>
-              <p className="text-lg font-extrabold text-slate-900">{summary.totalHours.toFixed(1)} hrs</p>
+              <p className="text-[10px] font-bold text-purple-900 uppercase tracking-wider font-display">Global Billable Hours</p>
+              <p className="text-xl font-black text-purple-950 font-display font-mono">{summary.totalHours.toFixed(1)} <span className="text-xs font-bold font-sans">hrs</span></p>
             </div>
           </div>
         </div>
 
-        {/* Total Entries */}
-        <div className="enterprise-card p-4 bg-white border-slate-200 rounded-xl">
+        {/* Total Records */}
+        <div className="enterprise-card p-4.5 bg-emerald-50/80 border-emerald-300 rounded-2xl shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-              <Receipt className="w-5 h-5 text-emerald-600" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-200 text-emerald-900 border border-emerald-300 flex items-center justify-center shrink-0">
+              <Receipt className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">All Billing Records</p>
-              <p className="text-lg font-extrabold text-slate-900">{summary.totalEntries}</p>
+              <p className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider font-display">All Billing Records</p>
+              <p className="text-xl font-black text-emerald-950 font-display font-mono">{summary.totalEntries}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs: Indian Entries vs US/Foreign Entries vs All */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-1">
+      {/* Tabs (Rich Segmented Bar) */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-200/90 rounded-2xl border border-slate-300 shadow-2xs">
         <button
           type="button"
           onClick={() => setActiveTab('INR')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeTab === 'INR'
-              ? 'border-orange-600 text-orange-900 bg-orange-50/80 font-bold'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-orange-600 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
           <span className="text-base leading-none">🇮🇳</span>
           <span>Indian Employees (INR ₹)</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            activeTab === 'INR' ? 'bg-orange-200 text-orange-950' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'INR' ? 'bg-orange-900 text-orange-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {summary.inrCount}
           </span>
@@ -342,16 +344,16 @@ export function AdminPayrollEntries() {
         <button
           type="button"
           onClick={() => setActiveTab('USD')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeTab === 'USD'
-              ? 'border-blue-600 text-blue-900 bg-blue-50/80 font-bold'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-blue-700 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
           <span className="text-base leading-none">🌐</span>
           <span>US & Foreign Employees (USD $)</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            activeTab === 'USD' ? 'bg-blue-200 text-blue-950' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'USD' ? 'bg-blue-900 text-blue-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {summary.usdCount}
           </span>
@@ -360,16 +362,16 @@ export function AdminPayrollEntries() {
         <button
           type="button"
           onClick={() => setActiveTab('ALL')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeTab === 'ALL'
-              ? 'border-slate-800 text-slate-900 bg-slate-100 font-bold'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-[#0f2b48] text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <Layers className="w-3.5 h-3.5 text-slate-500" />
+          <Layers className="w-3.5 h-3.5" />
           <span>All Payroll Entries</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            activeTab === 'ALL' ? 'bg-slate-200 text-slate-900' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            activeTab === 'ALL' ? 'bg-slate-900 text-slate-100' : 'bg-slate-300 text-slate-800'
           }`}>
             {summary.totalEntries}
           </span>
@@ -378,23 +380,23 @@ export function AdminPayrollEntries() {
 
       {/* Status Message */}
       {statusMessage && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border ${
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold border shadow-2xs ${
           statusMessage.type === 'success'
-            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-            : 'bg-rose-50 text-rose-800 border-rose-200'
+            ? 'bg-emerald-100/80 text-emerald-950 border-emerald-300'
+            : 'bg-rose-100/80 text-rose-950 border-rose-300'
         }`}>
           {statusMessage.type === 'success'
-            ? <CheckCircle2 className="w-4 h-4 shrink-0" />
-            : <AlertCircle className="w-4 h-4 shrink-0" />}
+            ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-700" />
+            : <AlertCircle className="w-4 h-4 shrink-0 text-rose-700" />}
           <span>{statusMessage.text}</span>
-          <button onClick={() => setStatusMessage(null)} className="ml-auto p-0.5 hover:opacity-70">
+          <button onClick={() => setStatusMessage(null)} className="ml-auto p-0.5 hover:opacity-70 cursor-pointer">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Filters */}
-      <div className="enterprise-card p-4 bg-white flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="enterprise-card p-4 bg-slate-100/90 border-slate-300 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="flex items-center gap-2 flex-1">
           <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input

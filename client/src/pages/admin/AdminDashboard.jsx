@@ -45,17 +45,17 @@ export function AdminDashboard({ onSelectEmployee, onNavigateTab }) {
   return (
     <div className="space-y-6">
       {/* Executive Page Header */}
-      <div className="enterprise-card p-6 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="enterprise-header-banner p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
               Corporate Operations Dashboard
             </h1>
-            <span className="text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80 px-2.5 py-0.5 rounded-full font-display">
+            <span className="text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-300 px-2.5 py-0.5 rounded-full font-display shadow-2xs">
               HR Administration
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
+          <p className="text-xs text-slate-600 mt-1 font-medium">
             Real-time workforce metrics, pending onboarding compliance verification, and timesheet authorization queue
           </p>
         </div>

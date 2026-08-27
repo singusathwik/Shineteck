@@ -138,24 +138,24 @@ export function AdminApprovals({ onSelectEmployee }) {
   return (
     <div className="space-y-6">
       {/* ── Page Header ─────────────────────────────────────────────── */}
-      <div className="enterprise-card p-6 bg-white border-slate-200 shadow-sm">
+      <div className="enterprise-header-banner p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center border border-blue-300">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">Employee Onboarding Approvals & Decision Center</h1>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">Employee Onboarding Approvals & Decision Center</h1>
+                <p className="text-xs text-slate-600 mt-0.5 font-medium">
                   Inspect submitted personal records and uploaded compliance documents to Accept, Request Correction, or Reject applications
                 </p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-3 py-1.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-lg flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-amber-600" />
+            <span className="text-xs font-bold px-3 py-1.5 bg-amber-100 text-amber-950 border border-amber-300 rounded-xl flex items-center gap-1.5 shadow-2xs">
+              <Clock className="w-3.5 h-3.5 text-amber-700" />
               Active Review Filter: <strong>{activeStatusTab}</strong>
             </span>
           </div>
@@ -166,88 +166,88 @@ export function AdminApprovals({ onSelectEmployee }) {
       {actionFeedback && (
         <div className={`p-4 rounded-xl text-xs flex items-center justify-between gap-2 shadow-2xs ${
           actionFeedback.type === 'success'
-            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+            ? 'bg-emerald-100/80 text-emerald-900 border border-emerald-300 font-bold'
             : (actionFeedback.type === 'warning'
-              ? 'bg-amber-50 text-amber-800 border border-amber-200'
-              : 'bg-rose-50 text-rose-800 border border-rose-200')
+              ? 'bg-amber-100/80 text-amber-950 border border-amber-300 font-bold'
+              : 'bg-rose-100/80 text-rose-950 border border-rose-300 font-bold')
         }`}>
           <div className="flex items-center gap-2">
-            {actionFeedback.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
-            {actionFeedback.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />}
-            {actionFeedback.type === 'error' && <UserX className="w-4 h-4 text-rose-600 shrink-0" />}
-            <span className="font-medium">{actionFeedback.message}</span>
+            {actionFeedback.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />}
+            {actionFeedback.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />}
+            {actionFeedback.type === 'error' && <UserX className="w-4 h-4 text-rose-700 shrink-0" />}
+            <span>{actionFeedback.message}</span>
           </div>
           <button
             type="button"
             onClick={() => setActionFeedback(null)}
-            className="text-slate-400 hover:text-slate-600 p-1"
+            className="text-slate-500 hover:text-slate-800 p-1 cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* ── Status Tab Navigation ────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-1">
+      {/* ── Status Tab Navigation (Rich Segmented Bar) ───────────────── */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-200/90 rounded-2xl border border-slate-300 shadow-2xs">
         <button
           type="button"
           onClick={() => setActiveStatusTab('Pending Review')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-bold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeStatusTab === 'Pending Review'
-              ? 'border-amber-500 text-amber-900 bg-amber-50/80 shadow-2xs'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-amber-500 text-slate-950 shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-200 animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-slate-950"></span>
           <span>Pending HR Review</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveStatusTab('Needs Correction')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-bold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeStatusTab === 'Needs Correction'
-              ? 'border-orange-500 text-orange-900 bg-orange-50/80'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-orange-600 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-orange-500 ring-2 ring-orange-200"></span>
+          <span className="w-2 h-2 rounded-full bg-white"></span>
           <span>Needs Correction</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveStatusTab('Approved')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-bold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeStatusTab === 'Approved'
-              ? 'border-emerald-500 text-emerald-900 bg-emerald-50/80'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-emerald-700 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span>
+          <span className="w-2 h-2 rounded-full bg-emerald-200"></span>
           <span>Approved Applications</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveStatusTab('Rejected')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-bold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeStatusTab === 'Rejected'
-              ? 'border-rose-500 text-rose-900 bg-rose-50/80'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-rose-700 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-200"></span>
+          <span className="w-2 h-2 rounded-full bg-rose-200"></span>
           <span>Rejected Applications</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveStatusTab('ALL')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-bold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeStatusTab === 'ALL'
-              ? 'border-blue-600 text-blue-900 bg-blue-50/80'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-[#0f2b48] text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
           }`}
         >
           <span>All Records</span>
@@ -255,7 +255,7 @@ export function AdminApprovals({ onSelectEmployee }) {
       </div>
 
       {/* ── Search Bar ─────────────────────────────────────────────── */}
-      <div className="enterprise-card p-4 bg-white border-slate-200 flex items-center justify-between gap-3 text-xs">
+      <div className="enterprise-card p-4 bg-slate-100/90 border-slate-300 flex items-center justify-between gap-3 text-xs">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
           <input
@@ -263,11 +263,11 @@ export function AdminApprovals({ onSelectEmployee }) {
             placeholder="Filter by applicant name, Employee ID, email, or designation..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
-        <span className="text-slate-500 font-medium">
-          Showing <strong className="text-slate-800 font-mono">{employees.length}</strong> applicant(s)
+        <span className="text-slate-600 font-bold">
+          Showing <strong className="text-slate-900 font-mono">{employees.length}</strong> applicant(s)
         </span>
       </div>
 
