@@ -484,7 +484,7 @@ export function toggleEmploymentStatus(req, res) {
 }
 
 // Admin: Get all employees with filtering, searching, sorting, and active/inactive tabs
-export function getAllEmployees(req, res) {
+export async function getAllEmployees(req, res) {
   try {
     const {
       search = '',
@@ -495,63 +495,115 @@ export function getAllEmployees(req, res) {
       sortOrder = 'DESC'
     } = req.query;
 
-    let query = `
-      SELECT e.id, e.employee_id, e.first_name, e.last_name, e.middle_initial, e.full_name, e.email, e.phone, e.designation,
-             e.date_of_birth, e.country, e.state, e.city, e.registration_status,
-             e.start_date, e.end_date, e.employment_status,
-             e.profile_image_url, e.submitted_at, e.created_at,
-             (SELECT COUNT(*) FROM documents WHERE employee_id = e.employee_id) as total_docs,
-             (SELECT COUNT(*) FROM documents WHERE employee_id = e.employee_id AND status = 'Approved') as approved_docs,
-             (SELECT COUNT(*) FROM timesheets WHERE employee_id = e.employee_id AND status = 'Pending') as pending_timesheets
-      FROM employees e
-      WHERE 1=1
-    `;
+    let employees = [];
 
-    const params = [];
+    // 1. Try MongoDB Atlas if connected
+    if (isMongoConnected()) {
+      try {
+        const filter = {};
+        if (search.trim()) {
+          const term = search.trim();
+          filter.$or = [
+            { full_name: { $regex: term, $options: 'i' } },
+            { first_name: { $regex: term, $options: 'i' } },
+            { last_name: { $regex: term, $options: 'i' } },
+            { employee_id: { $regex: term, $options: 'i' } },
+            { email: { $regex: term, $options: 'i' } },
+            { designation: { $regex: term, $options: 'i' } }
+          ];
+        }
 
-    if (search.trim()) {
-      query += ` AND (LOWER(e.full_name) LIKE ? OR LOWER(e.first_name) LIKE ? OR LOWER(e.last_name) LIKE ? OR LOWER(e.employee_id) LIKE ? OR LOWER(e.email) LIKE ? OR LOWER(e.designation) LIKE ?)`;
-      const term = `%${search.trim().toLowerCase()}%`;
-      params.push(term, term, term, term, term, term);
-    }
+        if (status && status !== 'ALL') {
+          filter.registration_status = status;
+        }
 
-    if (status && status !== 'ALL') {
-      query += ` AND e.registration_status = ?`;
-      params.push(status);
-    }
+        if (employmentStatus && employmentStatus !== 'ALL') {
+          if (employmentStatus === 'Active') {
+            filter.$or = [{ employment_status: 'Active' }, { employment_status: null }, { employment_status: { $exists: false } }];
+          } else if (employmentStatus === 'Inactive') {
+            filter.employment_status = 'Inactive';
+          }
+        }
 
-    if (employmentStatus && employmentStatus !== 'ALL') {
-      if (employmentStatus === 'Active') {
-        query += ` AND (e.employment_status = 'Active' OR e.employment_status IS NULL)`;
-      } else if (employmentStatus === 'Inactive') {
-        query += ` AND e.employment_status = 'Inactive'`;
+        if (country && country !== 'ALL') {
+          filter.country = country;
+        }
+
+        const mEmps = await MongoEmployee.find(filter).sort({ employee_id: 1 }).lean();
+        if (mEmps && mEmps.length > 0) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          employees = mEmps.map(emp => ({
+            ...emp,
+            id: emp._id.toString(),
+            employment_status: emp.employment_status || 'Active',
+            is_still_working: (emp.employment_status !== 'Inactive') && (!emp.end_date || emp.end_date >= todayStr)
+          }));
+        }
+      } catch (mErr) {
+        console.warn('[getAllEmployees Mongo Notice]', mErr.message);
       }
     }
 
-    if (country && country !== 'ALL') {
-      query += ` AND e.country = ?`;
-      params.push(country);
+    // 2. Fallback to SQLite if MongoDB returned 0 or is disconnected
+    if (employees.length === 0) {
+      let query = `
+        SELECT e.id, e.employee_id, e.first_name, e.last_name, e.middle_initial, e.full_name, e.email, e.phone, e.designation,
+               e.date_of_birth, e.country, e.state, e.city, e.registration_status,
+               e.start_date, e.end_date, e.employment_status,
+               e.profile_image_url, e.submitted_at, e.created_at,
+               (SELECT COUNT(*) FROM documents WHERE employee_id = e.employee_id) as total_docs,
+               (SELECT COUNT(*) FROM documents WHERE employee_id = e.employee_id AND status = 'Approved') as approved_docs,
+               (SELECT COUNT(*) FROM timesheets WHERE employee_id = e.employee_id AND status = 'Pending') as pending_timesheets
+        FROM employees e
+        WHERE 1=1
+      `;
+
+      const params = [];
+
+      if (search.trim()) {
+        query += ` AND (LOWER(e.full_name) LIKE ? OR LOWER(e.first_name) LIKE ? OR LOWER(e.last_name) LIKE ? OR LOWER(e.employee_id) LIKE ? OR LOWER(e.email) LIKE ? OR LOWER(e.designation) LIKE ?)`;
+        const term = `%${search.trim().toLowerCase()}%`;
+        params.push(term, term, term, term, term, term);
+      }
+
+      if (status && status !== 'ALL') {
+        query += ` AND e.registration_status = ?`;
+        params.push(status);
+      }
+
+      if (employmentStatus && employmentStatus !== 'ALL') {
+        if (employmentStatus === 'Active') {
+          query += ` AND (e.employment_status = 'Active' OR e.employment_status IS NULL)`;
+        } else if (employmentStatus === 'Inactive') {
+          query += ` AND e.employment_status = 'Inactive'`;
+        }
+      }
+
+      if (country && country !== 'ALL') {
+        query += ` AND e.country = ?`;
+        params.push(country);
+      }
+
+      const validSortCols = ['created_at', 'submitted_at', 'full_name', 'employee_id', 'registration_status', 'start_date', 'employment_status'];
+      const col = validSortCols.includes(sortBy) ? sortBy : 'employee_id';
+      const order = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+      query += ` ORDER BY e.${col} ${order}`;
+
+      const rawEmployees = db.prepare(query).all(...params);
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      employees = rawEmployees.map(emp => ({
+        ...emp,
+        employment_status: emp.employment_status || 'Active',
+        is_still_working: (emp.employment_status !== 'Inactive') && (!emp.end_date || emp.end_date >= todayStr)
+      }));
     }
 
-    const validSortCols = ['created_at', 'submitted_at', 'full_name', 'employee_id', 'registration_status', 'start_date', 'employment_status'];
-    const col = validSortCols.includes(sortBy) ? sortBy : 'created_at';
-    const order = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    query += ` ORDER BY e.${col} ${order}`;
-
-    const rawEmployees = db.prepare(query).all(...params);
-
-    const todayStr = new Date().toISOString().split('T')[0];
-    const employees = rawEmployees.map(emp => ({
-      ...emp,
-      employment_status: emp.employment_status || 'Active',
-      is_still_working: (emp.employment_status !== 'Inactive') && (!emp.end_date || emp.end_date >= todayStr)
-    }));
-
     // Quick counts for tabs
-    const activeCount = db.prepare("SELECT COUNT(*) as count FROM employees WHERE employment_status != 'Inactive' OR employment_status IS NULL").get()?.count || 0;
-    const inactiveCount = db.prepare("SELECT COUNT(*) as count FROM employees WHERE employment_status = 'Inactive'").get()?.count || 0;
-    const totalCount = db.prepare("SELECT COUNT(*) as count FROM employees").get()?.count || 0;
+    const activeCount = employees.filter(e => e.employment_status !== 'Inactive').length;
+    const inactiveCount = employees.filter(e => e.employment_status === 'Inactive').length;
+    const totalCount = employees.length;
 
     res.json({
       total: employees.length,

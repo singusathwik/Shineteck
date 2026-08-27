@@ -2,13 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.js';
 import {
   Building2, Search, Plus, X, Edit3, Trash2, DollarSign, Users,
-  MapPin, Briefcase, ChevronDown, AlertCircle, CheckCircle2, Calculator
+  MapPin, Briefcase, ChevronDown, AlertCircle, CheckCircle2, Calculator,
+  Layers, Globe
 } from 'lucide-react';
+
+function formatMoney(amount, currency = 'USD') {
+  const num = parseFloat(amount) || 0;
+  if (currency === 'INR') {
+    return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export function AdminVendorDetails() {
   const [vendors, setVendors] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'INR' | 'USD'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,7 +31,8 @@ export function AdminVendorDetails() {
     vendor_name: '', vendor_address: '',
     client_name: '', client_address: '',
     hourly_bill_rate: '', employee_rate: '',
-    visa_type: 'H-1B'
+    visa_type: 'H-1B',
+    currency: 'USD'
   });
 
   // Employee search dropdown
@@ -66,10 +77,16 @@ export function AdminVendorDetails() {
   const taxPct = form.visa_type === 'OPT' ? 2.5 : 8.5;
   const netMargin = buMargin - (buMargin * taxPct / 100);
 
-  const filteredEmps = employees.filter(e =>
-    e.employee_id?.toLowerCase().includes(empSearch.toLowerCase()) ||
-    e.full_name?.toLowerCase().includes(empSearch.toLowerCase())
-  );
+  // Search filter for employee picker
+  const filteredEmps = employees.filter(e => {
+    if (!empSearch.trim()) return true;
+    const term = empSearch.toLowerCase().trim();
+    const idMatch = e.employee_id?.toLowerCase().includes(term);
+    const nameMatch = e.full_name?.toLowerCase().includes(term);
+    const desigMatch = e.designation?.toLowerCase().includes(term);
+    const emailMatch = e.email?.toLowerCase().includes(term);
+    return idMatch || nameMatch || desigMatch || emailMatch;
+  });
 
   const resetForm = () => {
     setForm({
@@ -77,18 +94,24 @@ export function AdminVendorDetails() {
       vendor_name: '', vendor_address: '',
       client_name: '', client_address: '',
       hourly_bill_rate: '', employee_rate: '',
-      visa_type: 'H-1B'
+      visa_type: 'H-1B',
+      currency: 'USD'
     });
     setEmpSearch('');
+    setShowEmpDropdown(false);
   };
 
   const openCreate = () => {
     resetForm();
     setEditingVendor(null);
     setIsModalOpen(true);
+    fetchData(); // Ensure latest employees list is loaded
   };
 
   const openEdit = (vendor) => {
+    const emp = employees.find(e => e.employee_id === vendor.employee_id);
+    const cur = (emp && emp.country === 'India') ? 'INR' : 'USD';
+
     setForm({
       employee_id: vendor.employee_id,
       employee_name: vendor.employee_name,
@@ -98,11 +121,24 @@ export function AdminVendorDetails() {
       client_address: vendor.client_address || '',
       hourly_bill_rate: String(vendor.hourly_bill_rate),
       employee_rate: String(vendor.employee_rate),
-      visa_type: vendor.visa_type || 'H-1B'
+      visa_type: vendor.visa_type || 'H-1B',
+      currency: cur
     });
     setEmpSearch(`${vendor.employee_id} — ${vendor.employee_name}`);
     setEditingVendor(vendor);
     setIsModalOpen(true);
+  };
+
+  const selectEmployee = (emp) => {
+    const isIndia = emp.country === 'India';
+    setForm(f => ({
+      ...f,
+      employee_id: emp.employee_id,
+      employee_name: emp.full_name,
+      currency: isIndia ? 'INR' : 'USD'
+    }));
+    setEmpSearch(`${emp.employee_id} — ${emp.full_name}`);
+    setShowEmpDropdown(false);
   };
 
   const handleSubmit = async (e) => {
@@ -113,9 +149,16 @@ export function AdminVendorDetails() {
     }
     setIsSubmitting(true);
     try {
-      const payload = { ...form, hourly_bill_rate: billRate, employee_rate: empRate };
+      const payload = {
+        ...form,
+        hourly_bill_rate: billRate,
+        employee_rate: empRate,
+        bu_margin: buMargin,
+        tax_percent: taxPct,
+        net_margin: netMargin
+      };
       if (editingVendor) {
-        await api.updateVendorDetail(editingVendor._id, payload);
+        await api.updateVendorDetail(editingVendor._id || editingVendor.id, payload);
         setStatusMessage({ type: 'success', text: 'Vendor detail updated successfully.' });
       } else {
         await api.createVendorDetail(payload);
@@ -142,7 +185,21 @@ export function AdminVendorDetails() {
     }
   };
 
-  const fmt = (n) => typeof n === 'number' ? `$${n.toFixed(2)}` : '—';
+  // Tab Filtering
+  const displayedVendors = vendors.filter(v => {
+    const emp = employees.find(e => e.employee_id === v.employee_id);
+    const isIndia = emp?.country === 'India' || v.vendor_address?.includes('India') || (parseFloat(v.hourly_bill_rate) > 500);
+    if (activeTab === 'INR') return isIndia;
+    if (activeTab === 'USD') return !isIndia;
+    return true;
+  });
+
+  const inrVendorsCount = vendors.filter(v => {
+    const emp = employees.find(e => e.employee_id === v.employee_id);
+    return emp?.country === 'India' || v.vendor_address?.includes('India') || (parseFloat(v.hourly_bill_rate) > 500);
+  }).length;
+
+  const usdVendorsCount = vendors.length - inrVendorsCount;
 
   return (
     <div className="space-y-6">
@@ -154,7 +211,7 @@ export function AdminVendorDetails() {
             Vendor Details
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Manage vendor-client billing, employee rates, and margin calculations.
+            Manage vendor-client billing, employee rates, and margin calculations for Indian & Global consultants.
           </p>
         </div>
         <button
@@ -162,6 +219,63 @@ export function AdminVendorDetails() {
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors"
         >
           <Plus className="w-4 h-4" /> Add Vendor Record
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('INR')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+            activeTab === 'INR'
+              ? 'border-orange-600 text-orange-900 bg-orange-50/80 font-bold'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <span className="text-base leading-none">🇮🇳</span>
+          <span>Indian Vendors (INR ₹)</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            activeTab === 'INR' ? 'bg-orange-200 text-orange-950' : 'bg-slate-100 text-slate-600'
+          }`}>
+            {inrVendorsCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('USD')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+            activeTab === 'USD'
+              ? 'border-blue-600 text-blue-900 bg-blue-50/80 font-bold'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <span className="text-base leading-none">🌐</span>
+          <span>US & Global Vendors (USD $)</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            activeTab === 'USD' ? 'bg-blue-200 text-blue-950' : 'bg-slate-100 text-slate-600'
+          }`}>
+            {usdVendorsCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('ALL')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+            activeTab === 'ALL'
+              ? 'border-slate-800 text-slate-900 bg-slate-100 font-bold'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5 text-slate-500" />
+          <span>All Vendors</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            activeTab === 'ALL' ? 'bg-slate-200 text-slate-900' : 'bg-slate-100 text-slate-600'
+          }`}>
+            {vendors.length}
+          </span>
         </button>
       </div>
 
@@ -200,12 +314,13 @@ export function AdminVendorDetails() {
       </div>
 
       {/* Vendor Records Table */}
-      <div className="enterprise-card bg-white overflow-hidden">
+      <div className="enterprise-card bg-white overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Employee</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Region</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Vendor</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Client</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Bill Rate</th>
@@ -217,53 +332,72 @@ export function AdminVendorDetails() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {vendors.length === 0 ? (
+              {displayedVendors.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
                     <Building2 className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                     <p className="font-semibold">No vendor records found</p>
                     <p className="text-xs mt-1">Click "Add Vendor Record" to create one.</p>
                   </td>
                 </tr>
-              ) : vendors.map((v) => (
-                <tr key={v._id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-900 text-xs">{v.employee_id}</div>
-                    <div className="text-[11px] text-slate-500 truncate max-w-[140px]">{v.employee_name}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-800 text-xs">{v.vendor_name}</div>
-                    {v.vendor_address && <div className="text-[11px] text-slate-400 truncate max-w-[160px]">{v.vendor_address}</div>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-800 text-xs">{v.client_name}</div>
-                    {v.client_address && <div className="text-[11px] text-slate-400 truncate max-w-[160px]">{v.client_address}</div>}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-blue-700 text-xs">{fmt(v.hourly_bill_rate)}</td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold text-slate-700 text-xs">{fmt(v.employee_rate)}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-amber-700 text-xs">{fmt(v.bu_margin)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      v.visa_type === 'H-1B'
-                        ? 'bg-violet-100 text-violet-800 border border-violet-200'
-                        : 'bg-teal-100 text-teal-800 border border-teal-200'
-                    }`}>
-                      {v.visa_type} · {v.tax_percent}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700 text-xs">{fmt(v.net_margin)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Edit">
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setDeleteConfirm(v._id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Delete">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              ) : displayedVendors.map((v) => {
+                const emp = employees.find(e => e.employee_id === v.employee_id);
+                const isIndia = emp?.country === 'India' || v.vendor_address?.includes('India') || (parseFloat(v.hourly_bill_rate) > 500);
+                const cur = isIndia ? 'INR' : 'USD';
+
+                return (
+                  <tr key={v._id || v.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-bold text-slate-900 text-xs">{v.employee_name || v.employee_id}</div>
+                      <div className="font-mono text-[11px] text-blue-700">{v.employee_id}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {isIndia ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-800 border border-orange-200 rounded-md font-semibold text-[11px]">
+                          <span>🇮🇳</span> India
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-md font-semibold text-[11px]">
+                          <span>🌐</span> US / Global
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-800 text-xs">{v.vendor_name}</div>
+                      {v.vendor_address && <div className="text-[11px] text-slate-400 truncate max-w-[160px]">{v.vendor_address}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-800 text-xs">{v.client_name}</div>
+                      {v.client_address && <div className="text-[11px] text-slate-400 truncate max-w-[160px]">{v.client_address}</div>}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-blue-700 text-xs">{formatMoney(v.hourly_bill_rate, cur)}/hr</td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold text-slate-700 text-xs">{formatMoney(v.employee_rate, cur)}/hr</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-amber-700 text-xs">{formatMoney(v.bu_margin, cur)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        v.visa_type === 'H-1B'
+                          ? 'bg-violet-100 text-violet-800 border border-violet-200'
+                          : 'bg-teal-100 text-teal-800 border border-teal-200'
+                      }`}>
+                        {v.visa_type} ({v.tax_percent}%)
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700 text-xs">
+                      {formatMoney(v.net_margin, cur)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Edit">
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setDeleteConfirm(v._id || v.id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Delete">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -274,7 +408,7 @@ export function AdminVendorDetails() {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-bold text-slate-900">Delete Vendor Record?</h3>
-            <p className="text-sm text-slate-600">This action cannot be undone. The vendor billing record will be permanently removed.</p>
+            <p className="text-sm text-slate-600">This action cannot be undone. The vendor detail mapping will be permanently removed.</p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="px-4 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors">Delete</button>
@@ -287,52 +421,128 @@ export function AdminVendorDetails() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-[#0f2b48] text-white">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-blue-400" />
                 {editingVendor ? 'Edit Vendor Detail' : 'Add New Vendor Detail'}
               </h3>
-              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-5">
-              {/* Employee Search Dropdown */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs">
+              {/* Employee Search Combobox Dropdown */}
               <div ref={empDropdownRef} className="relative">
-                <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
-                  <Users className="w-3.5 h-3.5 text-slate-400" />
-                  Employee (Emp ID, Name) <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                    Select Employee (Emp ID, Name) <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {employees.length} employees available
+                  </span>
+                </div>
+
                 <div className="relative">
                   <input
                     type="text"
                     value={empSearch}
-                    onChange={(e) => { setEmpSearch(e.target.value); setShowEmpDropdown(true); }}
+                    onChange={(e) => {
+                      setEmpSearch(e.target.value);
+                      setShowEmpDropdown(true);
+                    }}
                     onFocus={() => setShowEmpDropdown(true)}
-                    placeholder="Search by Employee ID or Name..."
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-8"
+                    placeholder="Click to browse or type Employee ID / Name..."
+                    className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-16"
                   />
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                </div>
-                {showEmpDropdown && filteredEmps.length > 0 && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                    {filteredEmps.map(emp => (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {empSearch && (
                       <button
-                        key={emp.employee_id}
                         type="button"
                         onClick={() => {
-                          setForm(f => ({ ...f, employee_id: emp.employee_id, employee_name: emp.full_name }));
-                          setEmpSearch(`${emp.employee_id} — ${emp.full_name}`);
-                          setShowEmpDropdown(false);
+                          setEmpSearch('');
+                          setShowEmpDropdown(true);
                         }}
-                        className="w-full text-left px-3 py-2.5 hover:bg-blue-50 text-sm border-b border-slate-50 last:border-none transition-colors"
+                        className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                        title="Clear search"
                       >
-                        <span className="font-mono font-bold text-blue-700 text-xs">{emp.employee_id}</span>
-                        <span className="mx-2 text-slate-300">—</span>
-                        <span className="text-slate-700">{emp.full_name}</span>
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                    ))}
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowEmpDropdown(v => !v)}
+                      className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                      title="Toggle dropdown list"
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showEmpDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Selected Employee Chip preview */}
+                {form.employee_id && (
+                  <div className="mt-1.5 flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-[11px] text-blue-900 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span>Selected: <strong>{form.employee_name}</strong> (<span className="font-mono">{form.employee_id}</span>)</span>
+                    <span className="ml-auto text-[10px] px-2 py-0.5 bg-blue-100 rounded-full font-bold">
+                      {form.currency === 'INR' ? '🇮🇳 India (INR ₹)' : '🌐 US (USD $)'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Dropdown Floating Panel */}
+                {showEmpDropdown && (
+                  <div className="absolute z-50 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-50 animate-in fade-in zoom-in duration-150">
+                    {filteredEmps.length === 0 ? (
+                      <div className="p-4 text-center text-slate-400">
+                        <Users className="w-6 h-6 mx-auto mb-1 text-slate-300" />
+                        <p className="text-xs font-semibold">No matching employees found</p>
+                        <button
+                          type="button"
+                          onClick={() => setEmpSearch('')}
+                          className="mt-1.5 text-[11px] text-blue-600 hover:underline font-bold"
+                        >
+                          View all {employees.length} employees
+                        </button>
+                      </div>
+                    ) : (
+                      filteredEmps.map(emp => {
+                        const isIndia = emp.country === 'India';
+                        const isSelected = form.employee_id === emp.employee_id;
+
+                        return (
+                          <button
+                            key={emp.employee_id || emp.id}
+                            type="button"
+                            onClick={() => selectEmployee(emp)}
+                            className={`w-full text-left px-3.5 py-2.5 flex items-center justify-between transition-colors ${
+                              isSelected ? 'bg-blue-50/80 font-bold text-blue-900' : 'hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{isIndia ? '🇮🇳' : '🌐'}</span>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-mono font-bold text-blue-700">{emp.employee_id}</span>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="font-semibold text-slate-800">{emp.full_name}</span>
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {emp.designation || 'Consultant'} • {emp.country || 'United States'}
+                                </div>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              isIndia ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {isIndia ? 'INR ₹' : 'USD $'}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
                   </div>
                 )}
               </div>
@@ -340,87 +550,88 @@ export function AdminVendorDetails() {
               {/* Vendor & Client Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5">
                     <Briefcase className="w-3.5 h-3.5 text-slate-400" /> Vendor Name <span className="text-rose-500">*</span>
                   </label>
                   <input type="text" value={form.vendor_name} onChange={e => setForm(f => ({ ...f, vendor_name: e.target.value }))}
-                    placeholder="e.g. Infosys, TCS, Wipro"
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                    placeholder="e.g. Infosys, TCS, Wipro, Apex Systems"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5">
                     <MapPin className="w-3.5 h-3.5 text-slate-400" /> Vendor Address
                   </label>
                   <input type="text" value={form.vendor_address} onChange={e => setForm(f => ({ ...f, vendor_address: e.target.value }))}
-                    placeholder="Vendor office address"
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
-                </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" /> Client Name <span className="text-rose-500">*</span>
-                  </label>
-                  <input type="text" value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
-                    placeholder="e.g. JPMorgan Chase, Google"
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
-                </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" /> Client Address
-                  </label>
-                  <input type="text" value={form.client_address} onChange={e => setForm(f => ({ ...f, client_address: e.target.value }))}
-                    placeholder="Client office address"
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                    placeholder="Vendor office location / city"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
               </div>
 
-              {/* Billing & Margin Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400" /> Client Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input type="text" value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
+                    placeholder="e.g. Google, JPMorgan Chase, Amazon"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400" /> Client Address
+                  </label>
+                  <input type="text" value={form.client_address} onChange={e => setForm(f => ({ ...f, client_address: e.target.value }))}
+                    placeholder="Client work location"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+              </div>
+
+              {/* Billing & Margin Calculation */}
               <div className="p-4 bg-gradient-to-br from-blue-50/80 via-slate-50 to-emerald-50/50 rounded-2xl border border-blue-200 space-y-4">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-900 border-b border-blue-200/60 pb-2">
                   <Calculator className="w-4 h-4 text-blue-700" />
-                  Billing & Margin Calculation
+                  Billing & Margin Calculation ({form.currency === 'INR' ? '₹ INR' : '$ USD'})
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Hourly Bill Rate ($) <span className="text-rose-500">*</span></label>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">
+                      Hourly Bill Rate ({form.currency === 'INR' ? '₹' : '$'}) <span className="text-rose-500">*</span>
+                    </label>
                     <input type="number" step="0.01" min="0" value={form.hourly_bill_rate}
                       onChange={e => setForm(f => ({ ...f, hourly_bill_rate: e.target.value }))}
-                      placeholder="100"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                      placeholder={form.currency === 'INR' ? '1500' : '95'}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Employee Rate ($) <span className="text-rose-500">*</span></label>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">
+                      Employee Rate ({form.currency === 'INR' ? '₹' : '$'}) <span className="text-rose-500">*</span>
+                    </label>
                     <input type="number" step="0.01" min="0" value={form.employee_rate}
                       onChange={e => setForm(f => ({ ...f, employee_rate: e.target.value }))}
-                      placeholder="80"
-                      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                      placeholder={form.currency === 'INR' ? '1156.25' : '65'}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">BU Margin ($)</label>
-                    <div className="px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-sm font-mono font-bold text-amber-800">
-                      {buMargin.toFixed(2)}
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">BU Margin</label>
+                    <div className="px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs font-mono font-bold text-amber-800">
+                      {formatMoney(buMargin, form.currency)}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Bill Rate − Emp Rate</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Bill Rate - Emp Rate</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
                   <div>
                     <label className="text-xs font-medium text-slate-600 mb-1 block">Visa Type</label>
                     <div className="flex gap-2">
                       {['H-1B', 'OPT'].map(vt => (
-                        <button
-                          key={vt}
-                          type="button"
-                          onClick={() => setForm(f => ({ ...f, visa_type: vt }))}
-                          className={`flex-1 px-3 py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                        <button key={vt} type="button" onClick={() => setForm(f => ({ ...f, visa_type: vt }))}
+                          className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition-all ${
                             form.visa_type === vt
-                              ? vt === 'H-1B'
-                                ? 'bg-violet-600 text-white border-violet-600 shadow-md'
-                                : 'bg-teal-600 text-white border-teal-600 shadow-md'
-                              : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}>
                           {vt}
                         </button>
                       ))}
@@ -428,35 +639,31 @@ export function AdminVendorDetails() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-600 mb-1 block">% Tax</label>
-                    <div className={`px-3 py-2.5 rounded-xl text-sm font-mono font-bold border ${
-                      form.visa_type === 'H-1B'
-                        ? 'bg-violet-50 border-violet-200 text-violet-800'
-                        : 'bg-teal-50 border-teal-200 text-teal-800'
-                    }`}>
+                    <div className="px-3 py-2 bg-violet-50 border border-violet-200 rounded-lg text-xs font-mono font-bold text-violet-800">
                       {taxPct}%
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{form.visa_type === 'H-1B' ? 'H-1B: 8.5%' : 'OPT: 2.5%'}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{form.visa_type}: {taxPct}%</p>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Net Margin ($)</label>
-                    <div className="px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-mono font-bold text-emerald-800">
-                      {netMargin.toFixed(2)}
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">Net Margin</label>
+                    <div className="px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-mono font-bold text-emerald-800">
+                      {formatMoney(netMargin, form.currency)}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">BU Margin × (1 − Tax%)</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">BU Margin × (1 - Tax%)</p>
                   </div>
                 </div>
               </div>
 
               {/* Submit */}
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 <button type="button" onClick={() => { setIsModalOpen(false); resetForm(); }}
-                  className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                  className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={isSubmitting}
-                  className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl shadow-md transition-colors inline-flex items-center gap-2">
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg shadow-sm transition-colors inline-flex items-center gap-2">
                   {isSubmitting ? (
-                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
+                    <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
                   ) : (
                     <>{editingVendor ? 'Update Vendor Detail' : 'Create Vendor Detail'}</>
                   )}
