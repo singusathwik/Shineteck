@@ -251,7 +251,7 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Total Hours */}
+          {/* Total Hours & Live Overtime Breakdown */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-bold text-slate-700">
@@ -259,7 +259,7 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
               </label>
               {autoParsedNote && (
                 <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                  <Calculator className="w-3.5 h-3.5" /> Auto-calculated
+                  <Calculator className="w-3.5 h-3.5" /> Auto-calculated from file
                 </span>
               )}
             </div>
@@ -267,15 +267,39 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
               type="number"
               step="0.5"
               min="0.5"
-              max="240"
+              max="350"
               required
               placeholder="e.g. 80.0"
               value={totalHours}
               onChange={(e) => setTotalHours(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-3 py-2.5 text-xs border border-slate-300 rounded-xl font-mono font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-2xs"
             />
             {autoParsedNote && (
-              <p className="text-[11px] text-emerald-600 mt-1">{autoParsedNote}</p>
+              <p className="text-[11px] text-emerald-600 mt-1 font-medium">{autoParsedNote}</p>
+            )}
+
+            {/* Live Calculation Preview Card */}
+            {parseFloat(totalHours) > 0 && (
+              <div className="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="p-1.5 bg-white rounded-lg border border-slate-200/70 shadow-2xs">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Regular Hrs</span>
+                  <span className="font-mono font-bold text-slate-800 text-xs">
+                    {Math.min(parseFloat(totalHours) || 0, 40).toFixed(1)} hrs
+                  </span>
+                </div>
+                <div className="p-1.5 bg-white rounded-lg border border-slate-200/70 shadow-2xs">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Overtime Hrs</span>
+                  <span className={`font-mono font-bold text-xs ${parseFloat(totalHours) > 40 ? 'text-amber-600' : 'text-slate-500'}`}>
+                    {Math.max(0, (parseFloat(totalHours) || 0) - 40).toFixed(1)} hrs
+                  </span>
+                </div>
+                <div className="p-1.5 bg-white rounded-lg border border-slate-200/70 shadow-2xs">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Status</span>
+                  <span className="font-bold text-emerald-600 text-[11px] inline-flex items-center gap-1 justify-center">
+                    <CheckCircle2 className="w-3 h-3" /> Ready
+                  </span>
+                </div>
+              </div>
             )}
           </div>
 

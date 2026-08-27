@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { exportToCSV } from '../../utils/csvExport.js';
 import {
   Clock,
   Search,
@@ -41,6 +42,21 @@ export function AdminTimesheets() {
     fetchTimesheets();
   }, [search, statusFilter]);
 
+  const handleExportCSV = () => {
+    const formattedData = timesheets.map(ts => ({
+      'Timesheet ID': ts.id,
+      'Employee ID': ts.employee_id,
+      'Employee Name': ts.full_name,
+      'Work Period': `${ts.start_date} to ${ts.end_date}`,
+      'Total Hours': ts.total_hours,
+      'Vendor Name': ts.vendor_name || 'Direct / Shineteck',
+      'Status': ts.status,
+      'Submitted At': ts.submitted_at ? new Date(ts.submitted_at).toLocaleDateString() : 'N/A',
+      'Reviewed By': ts.reviewed_by || 'N/A'
+    }));
+    exportToCSV(formattedData, `Shineteck_Timesheets_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
   const handleReviewAction = async (newStatus) => {
     if (!reviewModalTs) return;
     setIsSubmitting(true);
@@ -71,10 +87,25 @@ export function AdminTimesheets() {
     <div className="space-y-6">
       {/* Header */}
       <div className="enterprise-card p-6 bg-white border-slate-200">
-        <h1 className="text-xl font-bold text-slate-900">Organization Timesheet Approvals</h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Review work periods, verify CSV/Excel timesheet logs, and authorize payroll hours
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
+              Organization Timesheet Approvals
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">
+              Review work periods, verify CSV/Excel timesheet logs, and authorize payroll hours
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="enterprise-btn-secondary"
+            title="Export all filtered timesheets to CSV"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Timesheets CSV</span>
+          </button>
+        </div>
       </div>
 
       {statusMessage && (

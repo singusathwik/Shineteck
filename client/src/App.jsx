@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { Header } from './components/common/Header.jsx';
 import { Sidebar } from './components/common/Sidebar.jsx';
+import { CommandPalette } from './components/common/CommandPalette.jsx';
 
 import { LoginPage } from './pages/LoginPage.jsx';
 import { RegisterWizard } from './pages/RegisterWizard.jsx';
@@ -37,6 +38,19 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global keyboard shortcut listener for Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   if (loading) {
     return (
@@ -85,6 +99,7 @@ function MainApp() {
       {/* Main Corporate Header */}
       <Header
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         activePortal={isAdmin ? 'admin' : 'employee'}
       />
 
@@ -168,6 +183,16 @@ function MainApp() {
           </div>
         </main>
       </div>
+
+      {/* Global Command Palette Modal */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          setSelectedEmployeeId(null);
+        }}
+      />
     </div>
   );
 }

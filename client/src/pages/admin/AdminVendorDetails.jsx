@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.js';
+import { exportToCSV } from '../../utils/csvExport.js';
 import {
   Building2, Search, Plus, X, Edit3, Trash2, DollarSign, Users,
   MapPin, Briefcase, ChevronDown, AlertCircle, CheckCircle2, Calculator,
-  Layers, Globe
+  Layers, Globe, Download
 } from 'lucide-react';
 
 function formatMoney(amount, currency = 'USD') {
@@ -201,6 +202,23 @@ export function AdminVendorDetails() {
 
   const usdVendorsCount = vendors.length - inrVendorsCount;
 
+  const handleExportCSV = () => {
+    const formattedData = filteredVendors.map(v => ({
+      'Employee ID': v.employee_id,
+      'Employee Name': v.employee_name,
+      'Vendor Name': v.vendor_name,
+      'Vendor Address': v.vendor_address || 'N/A',
+      'Client Name': v.client_name,
+      'Client Address': v.client_address || 'N/A',
+      'Hourly Bill Rate': v.hourly_bill_rate,
+      'Employee Pay Rate': v.employee_rate,
+      'BU Margin': v.bu_margin,
+      'Currency': v.currency || 'USD',
+      'Visa Type': v.visa_type || 'N/A'
+    }));
+    exportToCSV(formattedData, `Shineteck_Vendor_Placements_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -214,12 +232,23 @@ export function AdminVendorDetails() {
             Manage vendor-client billing, employee rates, and margin calculations for Indian & Global consultants.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Vendor Record
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="enterprise-btn-secondary"
+            title="Download vendor placements as CSV"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export CSV</span>
+          </button>
+          <button
+            onClick={openCreate}
+            className="enterprise-btn-primary"
+          >
+            <Plus className="w-4 h-4" /> Add Vendor Record
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

@@ -1,18 +1,18 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { NotificationDropdown } from './NotificationDropdown.jsx';
-import { LogOut, Menu, User, ShieldCheck, Sparkles } from 'lucide-react';
+import { LogOut, Menu, User, ShieldCheck, Sparkles, Search, Command } from 'lucide-react';
 import { ShineteckLogo } from './ShineteckLogo.jsx';
 
-export function Header({ onToggleSidebar, activePortal = 'employee' }) {
+export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = 'employee' }) {
   const { user, logout, isAdmin } = useAuth();
 
   return (
     <header className="glass-header sticky top-0 z-40 transition-all">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-4">
           {/* Left: Brand & Mobile Toggle */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
             {onToggleSidebar && (
               <button
                 type="button"
@@ -37,8 +37,38 @@ export function Header({ onToggleSidebar, activePortal = 'employee' }) {
             </div>
           </div>
 
+          {/* Center: Command Palette Trigger */}
+          {onOpenCommandPalette && (
+            <div className="hidden md:flex flex-1 max-w-md mx-auto">
+              <button
+                type="button"
+                onClick={onOpenCommandPalette}
+                className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-100/80 hover:bg-slate-100 border border-slate-200/80 rounded-xl text-xs text-slate-400 transition-all shadow-2xs group cursor-pointer"
+              >
+                <span className="flex items-center gap-2 text-slate-500 group-hover:text-slate-700">
+                  <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                  <span>Search commands, directory, or records...</span>
+                </span>
+                <kbd className="inline-flex items-center gap-0.5 font-mono text-[10.5px] font-bold text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-2xs">
+                  Ctrl K
+                </kbd>
+              </button>
+            </div>
+          )}
+
           {/* Right: Notification & User Profile Actions */}
-          <div className="flex items-center gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+            {onOpenCommandPalette && (
+              <button
+                type="button"
+                onClick={onOpenCommandPalette}
+                className="p-2 md:hidden text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-all border border-slate-200/60"
+                title="Search Command Palette (Ctrl+K)"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            )}
+
             <NotificationDropdown />
 
             {user && (

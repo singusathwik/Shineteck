@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { exportToCSV } from '../../utils/csvExport.js';
+import { SkeletonTable } from '../../components/common/SkeletonLoader.jsx';
 import {
   Users,
   Search,
@@ -23,7 +25,8 @@ import {
   Phone,
   MapPin,
   Lock,
-  Sparkles
+  Sparkles,
+  Download
 } from 'lucide-react';
 
 export function AdminEmployees({ onSelectEmployee }) {
@@ -75,7 +78,10 @@ export function AdminEmployees({ onSelectEmployee }) {
 
   const [addFormData, setAddFormData] = useState(initialAddFormData);
 
+  const [loading, setLoading] = useState(true);
+
   const fetchEmployees = async () => {
+    setLoading(true);
     try {
       const params = {};
       if (search) params.search = search;
@@ -93,6 +99,7 @@ export function AdminEmployees({ onSelectEmployee }) {
     } catch (err) {
       console.error('Failed to load employees:', err);
     } finally {
+      setLoading(false);
       setIsLoading(false);
     }
   };
@@ -194,6 +201,22 @@ export function AdminEmployees({ onSelectEmployee }) {
     }
   };
 
+  const handleExportCSV = () => {
+    const formattedData = employees.map(emp => ({
+      'Employee ID': emp.employee_id,
+      'Full Name': emp.full_name,
+      'Email': emp.email,
+      'Phone': emp.phone || 'N/A',
+      'Designation': emp.designation,
+      'Country': emp.country || 'N/A',
+      'Start Date': emp.start_date || 'N/A',
+      'End Date': emp.end_date || 'N/A',
+      'Employment Status': emp.employment_status || 'Active',
+      'Onboarding Status': emp.registration_status || 'Approved'
+    }));
+    exportToCSV(formattedData, `Shineteck_Employee_Directory_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -209,9 +232,15 @@ export function AdminEmployees({ onSelectEmployee }) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold text-slate-600 bg-slate-100/80 px-3.5 py-2 rounded-xl border border-slate-200">
-              Total Records: <strong className="text-blue-700 font-mono">{counts.all}</strong>
-            </span>
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="enterprise-btn-secondary"
+              title="Download entire directory as CSV"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export CSV</span>
+            </button>
             <button
               type="button"
               onClick={openAddEmployeeModal}
@@ -365,36 +394,39 @@ export function AdminEmployees({ onSelectEmployee }) {
       </div>
 
       {/* Employees Table */}
-      <div className="table-container shadow-sm">
-        <table className="enterprise-table">
-          <thead>
-            <tr>
-              <th>Employee ID</th>
-              <th>Employee Name</th>
-              <th>Designation</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Working Status</th>
-              <th>Onboarding</th>
-              <th className="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {employees.length === 0 ? (
+      {loading ? (
+        <SkeletonTable rows={6} cols={8} />
+      ) : (
+        <div className="table-container shadow-sm">
+          <table className="enterprise-table">
+            <thead>
               <tr>
-                <td colSpan={8} className="py-12 text-center text-slate-400">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Users className="w-8 h-8 text-slate-300 mx-auto opacity-50 stroke-1" />
-                    <p className="font-bold text-slate-700">No employees found in this view.</p>
-                    <p className="text-[11px] text-slate-400">Try adjusting your active/inactive tab or search filters.</p>
-                  </div>
-                </td>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Designation</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Working Status</th>
+                <th>Onboarding</th>
+                <th className="text-right">Actions</th>
               </tr>
-            ) : (
-              employees.map((emp) => {
-                const isActive = emp.employment_status === 'Active' || emp.is_still_working;
-                return (
-                  <tr key={emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
+            </thead>
+            <tbody>
+              {employees.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Users className="w-8 h-8 text-slate-300 mx-auto opacity-50 stroke-1" />
+                      <p className="font-bold text-slate-700">No employees found in this view.</p>
+                      <p className="text-[11px] text-slate-400">Try adjusting your active/inactive tab or search filters.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                employees.map((emp) => {
+                  const isActive = emp.employment_status === 'Active' || emp.is_still_working;
+                  return (
+                    <tr key={emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="font-mono font-bold text-blue-700">
                       {emp.employee_id}
                     </td>
@@ -479,6 +511,7 @@ export function AdminEmployees({ onSelectEmployee }) {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* ── Status Toggle Modal ─────────────────────────────────────────── */}
       {toggleModalEmployee && (

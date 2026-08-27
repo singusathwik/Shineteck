@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.js';
+import { exportToCSV } from '../../utils/csvExport.js';
 import {
   Receipt, Search, Plus, X, Edit3, Trash2, DollarSign, Users,
   ChevronDown, AlertCircle, CheckCircle2, Calendar, Calculator, Clock,
-  Globe, Layers
+  Globe, Layers, Download
 } from 'lucide-react';
 
 function formatMoney(amount, currency = 'USD') {
@@ -202,6 +203,22 @@ export function AdminPayrollEntries() {
     return `${months[parseInt(mo) - 1] || mo} ${y}`;
   };
 
+  const handleExportCSV = () => {
+    const formattedData = entries.map(ent => ({
+      'Employee ID': ent.employee_id,
+      'Employee Name': ent.employee_name,
+      'Payroll Month': ent.payroll_month,
+      'Total Hours': ent.total_hours,
+      'Client Bill Rate': ent.bill_rate,
+      'Employee Bill Rate': ent.emp_bill_rate,
+      'Gross Amount': ent.gross_amount,
+      'Currency': ent.currency,
+      'Vendor Name': ent.vendor_name || 'N/A',
+      'Client Name': ent.client_name || 'N/A'
+    }));
+    exportToCSV(formattedData, `Shineteck_Payroll_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -215,12 +232,23 @@ export function AdminPayrollEntries() {
             Monthly payroll billing records — hours, rates, and gross amount calculations for Indian & Global consultants.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Payroll Entry
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="enterprise-btn-secondary"
+            title="Download payroll entries as CSV"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export CSV</span>
+          </button>
+          <button
+            onClick={openCreate}
+            className="enterprise-btn-primary"
+          >
+            <Plus className="w-4 h-4" /> Add Payroll Entry
+          </button>
+        </div>
       </div>
 
       {/* Summary KPI Cards */}

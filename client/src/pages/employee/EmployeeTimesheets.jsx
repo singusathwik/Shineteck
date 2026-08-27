@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { TimesheetUploadModal } from '../../components/timesheet/TimesheetUploadModal.jsx';
+import { exportToCSV } from '../../utils/csvExport.js';
+import { SkeletonTable } from '../../components/common/SkeletonLoader.jsx';
 import {
   Clock,
   Upload,
@@ -43,6 +45,19 @@ export function EmployeeTimesheets() {
     fetchTimesheets();
   }, [statusFilter, startDateFilter, endDateFilter]);
 
+  const handleExportCSV = () => {
+    const formattedData = timesheets.map(ts => ({
+      'Timesheet ID': ts.id,
+      'Work Period': `${ts.start_date} to ${ts.end_date}`,
+      'Total Hours': ts.total_hours,
+      'Vendor / Client': ts.vendor_name || 'Direct / Shineteck',
+      'Status': ts.status,
+      'Submitted Date': ts.submitted_at ? new Date(ts.submitted_at).toLocaleDateString() : 'N/A',
+      'Admin Feedback': ts.admin_feedback || 'None'
+    }));
+    exportToCSV(formattedData, `My_Shineteck_Timesheets_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
   const handleDownload = (id) => {
     const token = getAuthToken();
     window.open(getTimesheetDownloadUrl(id, token), '_blank');
@@ -62,14 +77,25 @@ export function EmployeeTimesheets() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="enterprise-btn-primary"
-          >
-            <Upload className="w-4 h-4" />
-            <span>Submit New Timesheet</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="enterprise-btn-secondary"
+              title="Download my timesheets as CSV"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="enterprise-btn-primary"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Submit New Timesheet</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -129,8 +155,11 @@ export function EmployeeTimesheets() {
       </div>
 
       {/* Timesheets Table */}
-      <div className="table-container shadow-sm">
-        <table className="enterprise-table">
+      {isLoading ? (
+        <SkeletonTable rows={4} cols={6} />
+      ) : (
+        <div className="table-container shadow-sm">
+          <table className="enterprise-table">
           <thead>
             <tr>
               <th>Period Range</th>
@@ -198,6 +227,7 @@ export function EmployeeTimesheets() {
           </tbody>
         </table>
       </div>
+      )}
 
       <TimesheetUploadModal
         isOpen={isModalOpen}
