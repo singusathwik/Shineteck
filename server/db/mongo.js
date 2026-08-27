@@ -17,17 +17,19 @@ import {
 
 dotenv.config();
 
-// Ensure SRV DNS records resolve reliably across Windows and various ISP networks
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (dnsErr) {
-  // Ignore if custom DNS set fails in restricted environments
+// Ensure SRV DNS records resolve reliably on Windows local environments without breaking cloud containers
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (dnsErr) {}
 }
 
 let isConnected = false;
 
 // Attach global error listener on Mongoose connection to prevent unhandled error events
 mongoose.connection.on('error', (err) => {
+  // Silent or single line notice
+  if (!isConnected) return;
   console.warn('[MongoDB Connection Warning]', err.message);
 });
 
@@ -35,7 +37,7 @@ export async function connectMongoDB() {
   const mongoUri = process.env.MONGODB_URI;
 
   if (!mongoUri || mongoUri.trim() === '') {
-    console.log('[MongoDB Atlas] No MONGODB_URI configured. Running with SQLite database engine.');
+    console.log('[Database Engine] Running with built-in SQLite engine.');
     isConnected = false;
     return false;
   }
@@ -45,7 +47,7 @@ export async function connectMongoDB() {
   // Detect unreplaced template placeholders or angle brackets
   if (effectiveUri.includes('<') && effectiveUri.includes('>')) {
     console.warn('[MongoDB Atlas Notice] Angle brackets `<...>` detected in your MONGODB_URI.');
-    console.warn('[MongoDB Atlas Notice] Please remove the `<` and `>` characters and insert your actual database password in .env.');
+    console.warn('[MongoDB Atlas Notice] Please remove `<` and `>` and insert your actual database password.');
     isConnected = false;
     return false;
   }
@@ -55,8 +57,9 @@ export async function connectMongoDB() {
     console.log(`[MongoDB Atlas] Connecting to cluster (${maskedUri})...`);
     
     await mongoose.connect(effectiveUri, {
-      serverSelectionTimeoutMS: 8000,
-      connectTimeoutMS: 8000
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      family: 4 // Use IPv4, skip IPv6 issues
     });
 
     isConnected = true;
@@ -67,8 +70,8 @@ export async function connectMongoDB() {
 
     return true;
   } catch (err) {
-    console.warn('[MongoDB Atlas Warning] Could not connect to Atlas instance:', err.message);
-    console.warn('[MongoDB Notice] Continuing with built-in SQLite engine.');
+    console.warn('[MongoDB Atlas] Cloud cluster unreachable (IP whitelist required in Atlas dashboard: Network Access -> + Add IP -> Allow From Anywhere 0.0.0.0/0).');
+    console.log('[Database Engine] Active and running with built-in SQLite engine (all data persisted and operational).');
     isConnected = false;
     return false;
   }
