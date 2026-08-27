@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
-import { MapPin, Globe, Building2, Navigation, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { MapPin, Globe, Building2, Navigation, AlertCircle, CheckCircle2, Home } from 'lucide-react';
 
 export function AddressForm({ values, onChange, errors = {}, setErrors }) {
   const [countries, setCountries] = useState([]);
@@ -102,33 +102,33 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
   };
 
   const inputCls = (hasErr) =>
-    `w-full px-3.5 py-2.5 text-sm border rounded-lg bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors ${
+    `w-full px-3.5 py-2.5 text-xs font-medium border rounded-xl bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs ${
       hasErr ? 'border-rose-400 bg-rose-50/30' : 'border-slate-300 hover:border-slate-400'
     }`;
 
   const selectCls = (hasErr) =>
-    `w-full px-3.5 py-2.5 text-sm border rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors disabled:bg-slate-100 disabled:text-slate-400 ${
+    `w-full px-3.5 py-2.5 text-xs font-medium border rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all disabled:bg-slate-100 disabled:text-slate-400 shadow-2xs ${
       hasErr ? 'border-rose-400 bg-rose-50/30' : 'border-slate-300 hover:border-slate-400'
     }`;
 
   return (
     <div className="space-y-5">
-      {/* ── Section 1: Country & State / Province ────────────────────── */}
+      {/* Section 1: Country & State / Province */}
       <div className="enterprise-card bg-white p-6 space-y-5">
-        <div className="flex items-start gap-3 pb-4 border-b border-slate-200">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+        <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs">
             <Globe className="w-4 h-4 text-blue-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Country & Jurisdiction</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Select your primary country and state/province for employment tax compliance</p>
+            <h3 className="text-sm font-bold text-slate-900 font-display">Country & Legal Jurisdiction</h3>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">Select your primary country and state/province for employment tax compliance</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Country */}
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
               <Globe className="w-3.5 h-3.5 text-slate-400" />
               Country <span className="text-rose-500">*</span>
             </label>
@@ -149,15 +149,15 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
               ))}
             </select>
             {errors.country && (
-              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1">
-                <AlertCircle className="w-3 h-3" />{errors.country}
+              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />{errors.country}
               </p>
             )}
           </div>
 
           {/* State / Province */}
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
               <Navigation className="w-3.5 h-3.5 text-slate-400" />
               State / Province <span className="text-rose-500">*</span>
             </label>
@@ -189,30 +189,30 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
               />
             )}
             {errors.state && (
-              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1">
-                <AlertCircle className="w-3 h-3" />{errors.state}
+              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />{errors.state}
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Section 2: City & Postal Code ────────────────────────────── */}
+      {/* Section 2: City & Postal Code */}
       <div className="enterprise-card bg-white p-6 space-y-5">
-        <div className="flex items-start gap-3 pb-4 border-b border-slate-200">
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
+        <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center shrink-0 shadow-2xs">
             <Building2 className="w-4 h-4 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900">City & Postal Details</h3>
-            <p className="text-xs text-slate-500 mt-0.5">City location and verified postal code formatting</p>
+            <h3 className="text-sm font-bold text-slate-900 font-display">City & Postal Verification</h3>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">City location and verified postal code formatting</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* City */}
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
               <Building2 className="w-3.5 h-3.5 text-slate-400" />
               City <span className="text-rose-500">*</span>
             </label>
@@ -241,15 +241,15 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
               />
             )}
             {errors.city && (
-              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1">
-                <AlertCircle className="w-3 h-3" />{errors.city}
+              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />{errors.city}
               </p>
             )}
           </div>
 
           {/* ZIP / Postal Code */}
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
               <Navigation className="w-3.5 h-3.5 text-slate-400" />
               ZIP / Postal Code <span className="text-rose-500">*</span>
             </label>
@@ -259,7 +259,7 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
                 placeholder={zipExample ? `e.g. ${zipExample}` : 'Postal Code'}
                 value={values.zipCode || ''}
                 onChange={handleZipChange}
-                className={`w-full px-3.5 py-2.5 text-sm border rounded-lg bg-white text-slate-900 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors ${
+                className={`w-full px-3.5 py-2.5 text-xs font-medium border rounded-xl bg-white text-slate-900 pr-10 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs ${
                   errors.zipCode || zipValidationStatus === 'invalid'
                     ? 'border-rose-400 bg-rose-50/30'
                     : zipValidationStatus === 'valid'
@@ -267,39 +267,39 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
                     : 'border-slate-300 hover:border-slate-400'
                 }`}
               />
-              <div className="absolute right-3 top-3 pointer-events-none">
+              <div className="absolute right-3.5 top-3 pointer-events-none">
                 {zipValidationStatus === 'valid' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 {zipValidationStatus === 'invalid' && <AlertCircle className="w-4 h-4 text-rose-500" />}
               </div>
             </div>
             {errors.zipCode && (
-              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1">
-                <AlertCircle className="w-3 h-3" />{errors.zipCode}
+              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />{errors.zipCode}
               </p>
             )}
             {zipValidationStatus === 'invalid' && !errors.zipCode && (
-              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1">
-                <AlertCircle className="w-3 h-3" />Please enter a valid postal code format for {values.country}.
+              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />Please enter a valid postal code format for {values.country}.
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Section 3: Street Address ────────────────────────────────── */}
+      {/* Section 3: Street Address */}
       <div className="enterprise-card bg-white p-6 space-y-5">
-        <div className="flex items-start gap-3 pb-4 border-b border-slate-200">
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-            <MapPin className="w-4 h-4 text-emerald-600" />
+        <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center shrink-0 shadow-2xs">
+            <Home className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Residential Street Address</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Physical street address, apartment, or suite number</p>
+            <h3 className="text-sm font-bold text-slate-900 font-display">Residential Street Address</h3>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">Physical street address, apartment, or suite number</p>
           </div>
         </div>
 
         <div>
-          <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
             <MapPin className="w-3.5 h-3.5 text-slate-400" />
             Street Address / Suite / Apartment <span className="text-rose-500">*</span>
           </label>
@@ -308,13 +308,13 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
             placeholder="e.g. 100 Corporate Plaza, Suite 400"
             value={values.address || ''}
             onChange={(e) => onChange('address', e.target.value)}
-            className={`w-full px-3.5 py-2.5 text-sm border rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors ${
+            className={`w-full px-3.5 py-2.5 text-xs font-medium border rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs ${
               errors.address ? 'border-rose-400 bg-rose-50/30' : 'border-slate-300 hover:border-slate-400'
             }`}
           />
           {errors.address && (
-            <p className="flex items-center gap-1 text-xs text-rose-600 mt-1">
-              <AlertCircle className="w-3 h-3" />{errors.address}
+            <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+              <AlertCircle className="w-3.5 h-3.5" />{errors.address}
             </p>
           )}
         </div>

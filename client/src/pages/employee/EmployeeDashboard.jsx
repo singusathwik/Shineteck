@@ -15,7 +15,8 @@ import {
   Upload,
   Eye,
   Building2,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 
 export function EmployeeDashboard({ onNavigateTab }) {
@@ -58,11 +59,11 @@ export function EmployeeDashboard({ onNavigateTab }) {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="enterprise-card p-5 sm:p-6 bg-white">
+      <div className="enterprise-card p-6 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
                 Welcome back, {user?.fullName || 'Employee'}
               </h1>
               <StatusBadge status={regStatus} size="sm" />
@@ -72,11 +73,11 @@ export function EmployeeDashboard({ onNavigateTab }) {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => setIsTimesheetModalOpen(true)}
-              className="enterprise-btn-primary cursor-pointer"
+              className="enterprise-btn-primary"
             >
               <Upload className="w-4 h-4" />
               <span>Submit Timesheet</span>
@@ -84,31 +85,32 @@ export function EmployeeDashboard({ onNavigateTab }) {
           </div>
         </div>
 
-        {/* Status Callout if Pending Review or Needs Correction */}
+        {/* Status Callout if Pending Review */}
         {regStatus === 'Pending Review' && (
-          <div className="mt-4 p-3 bg-amber-50/70 border border-amber-200/80 rounded-lg text-xs text-amber-900 flex items-start gap-2.5">
+          <div className="mt-4 p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-start gap-2.5 shadow-2xs font-medium">
             <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold">Onboarding Verification In Progress</p>
+              <p className="font-bold font-display">Onboarding Verification In Progress</p>
               <p className="text-[11px] text-amber-800 mt-0.5">
-                Your profile and compliance documents have been received and are queued for review by Shinetek HR. You may submit work timesheets normally.
+                Your profile and compliance documents have been received and are queued for review by Shineteck HR. You may submit work timesheets normally.
               </p>
             </div>
           </div>
         )}
 
+        {/* Status Callout if Needs Correction */}
         {regStatus === 'Needs Correction' && (
-          <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-900 flex items-start gap-2.5">
+          <div className="mt-4 p-3.5 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-900 flex items-start gap-2.5 shadow-2xs">
             <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold">Action Required: Compliance Update Needed</p>
-              <p className="text-[11px] text-orange-800 mt-0.5">
+              <p className="font-bold font-display">Action Required: Compliance Update Needed</p>
+              <p className="text-[11px] text-orange-800 mt-0.5 font-medium">
                 {profile?.admin_notes || 'Please check your documents tab to replace requested compliance documents.'}
               </p>
               <button
                 type="button"
                 onClick={() => onNavigateTab('documents')}
-                className="mt-2 text-xs font-bold text-orange-900 underline cursor-pointer"
+                className="mt-2 text-xs font-bold text-orange-950 underline cursor-pointer"
               >
                 Go to Documents &rarr;
               </button>
@@ -121,98 +123,106 @@ export function EmployeeDashboard({ onNavigateTab }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div
           onClick={() => onNavigateTab('timesheets')}
-          className="enterprise-card p-4 bg-white hover:border-slate-400 transition-all cursor-pointer"
+          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Timesheets</span>
-            <Clock className="w-4 h-4 text-blue-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Timesheets</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{timesheets.length}</div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            {pendingTimesheetCount} pending authorization
+          <div className="text-2xl font-black text-slate-900 font-display">{timesheets.length}</div>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">
+            <strong className="text-slate-800 font-mono">{pendingTimesheetCount}</strong> pending authorization
           </p>
         </div>
 
         <div
           onClick={() => onNavigateTab('documents')}
-          className="enterprise-card p-4 bg-white hover:border-slate-400 transition-all cursor-pointer"
+          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Documents</span>
-            <FileText className="w-4 h-4 text-blue-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Documents</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <FileText className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{documents.length}</div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            {approvedDocsCount} verified by HR
+          <div className="text-2xl font-black text-slate-900 font-display">{documents.length}</div>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">
+            <strong className="text-emerald-700 font-mono">{approvedDocsCount}</strong> verified by HR
           </p>
         </div>
 
         <div
           onClick={() => onNavigateTab('payroll')}
-          className="enterprise-card p-4 bg-white hover:border-slate-400 transition-all cursor-pointer"
+          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pay Stubs</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Pay Stubs</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <DollarSign className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{payroll.length}</div>
-          <p className="text-[11px] text-slate-500 mt-0.5">Statements issued</p>
+          <div className="text-2xl font-black text-slate-900 font-display">{payroll.length}</div>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">Statements issued</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('profile')}
-          className="enterprise-card p-4 bg-white hover:border-slate-400 transition-all cursor-pointer"
+          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Account</span>
-            <UserCheck className="w-4 h-4 text-blue-600" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Account</span>
+            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <UserCheck className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="text-sm font-bold text-slate-900 mt-1 truncate">
+          <div className="text-sm font-bold text-slate-900 mt-1 truncate font-display">
             {profile?.employment_status || 'Active'}
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">Managed by Shinetek Inc.</p>
+          <p className="text-[11px] text-slate-500 mt-1 font-medium">Managed by Shineteck Inc.</p>
         </div>
       </div>
 
-      {/* Two Column Section */}
+      {/* Split Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Timesheets */}
-        <div className="enterprise-card p-5 bg-white flex flex-col justify-between">
+        <div className="enterprise-card p-5 sm:p-6 bg-white flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-display">
                   Recent Work Periods
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigateTab('timesheets')}
-                className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer transition-colors"
               >
-                All Timesheets <ArrowRight className="w-3 h-3" />
+                All Timesheets <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
             <div className="space-y-2.5">
               {timesheets.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-400">
-                  <Clock className="w-6 h-6 text-slate-300 mx-auto mb-2 opacity-50" />
-                  No timesheet submissions recorded yet.
+                  <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50 stroke-1" />
+                  <p className="font-medium">No timesheet submissions recorded yet.</p>
                 </div>
               ) : (
                 timesheets.slice(0, 4).map((ts) => (
                   <div
                     key={ts.id || ts._id}
-                    className="p-3 bg-slate-50/70 rounded-lg border border-slate-200/80 flex items-center justify-between gap-3 text-xs"
+                    className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 text-xs shadow-2xs"
                   >
                     <div>
                       <p className="font-bold text-slate-900">
                         {ts.start_date} &rarr; {ts.end_date}
                       </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        <span className="font-semibold text-slate-700">{ts.total_hours} Hours</span>
+                      <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                        <span className="font-bold font-mono text-slate-800">{ts.total_hours} Hours</span>
                         {ts.vendor_name ? ` • Vendor: ${ts.vendor_name}` : ''}
                       </p>
                     </div>
@@ -223,8 +233,8 @@ export function EmployeeDashboard({ onNavigateTab }) {
             </div>
           </div>
 
-          <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Need to report hours?</span>
+          <div className="pt-3.5 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <span>Need to report work hours?</span>
             <button
               type="button"
               onClick={() => setIsTimesheetModalOpen(true)}
@@ -236,29 +246,29 @@ export function EmployeeDashboard({ onNavigateTab }) {
         </div>
 
         {/* Recent Pay Statements */}
-        <div className="enterprise-card p-5 bg-white flex flex-col justify-between">
+        <div className="enterprise-card p-5 sm:p-6 bg-white flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-display">
                   Payment Statements
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigateTab('payroll')}
-                className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer transition-colors"
               >
-                All Statements <ArrowRight className="w-3 h-3" />
+                All Statements <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
             <div className="space-y-2.5">
               {payroll.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-400">
-                  <DollarSign className="w-6 h-6 text-slate-300 mx-auto mb-2 opacity-50" />
-                  No pay stubs generated yet for your account.
+                  <DollarSign className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50 stroke-1" />
+                  <p className="font-medium">No pay stubs generated yet for your account.</p>
                 </div>
               ) : (
                 payroll.slice(0, 4).map((p) => {
@@ -267,14 +277,14 @@ export function EmployeeDashboard({ onNavigateTab }) {
                   return (
                     <div
                       key={p.id || p._id}
-                      className="p-3 bg-slate-50/70 rounded-lg border border-slate-200/80 flex items-center justify-between gap-3 text-xs"
+                      className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 text-xs shadow-2xs"
                     >
                       <div>
                         <p className="font-bold text-slate-900">
                           {p.pay_period_start} &rarr; {p.pay_period_end}
                         </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Net Payout: <span className="font-bold text-slate-800">{symbol}{parseFloat(p.net_pay || 0).toLocaleString()}</span>
+                        <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                          Net Payout: <span className="font-bold font-mono text-slate-900">{symbol}{parseFloat(p.net_pay || 0).toLocaleString()}</span>
                         </p>
                       </div>
                       <StatusBadge status={p.payment_status || 'Paid'} size="sm" />
@@ -285,7 +295,7 @@ export function EmployeeDashboard({ onNavigateTab }) {
             </div>
           </div>
 
-          <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-3.5 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
             <span>Direct Deposit Status: Active</span>
             <button
               type="button"

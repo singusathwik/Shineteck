@@ -30,7 +30,7 @@ import { AdminPayrollEntries } from './pages/admin/AdminPayrollEntries.jsx';
 function MainApp() {
   const { user, loading, isAuthenticated, isAdmin, isEmployee } = useAuth();
 
-  // Default view is login
+  // Public views: 'login' | 'register' | 'forgot-password'
   const [publicView, setPublicView] = useState('login');
 
   // Authenticated Tabs
@@ -40,9 +40,12 @@ function MainApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
-        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-semibold tracking-wide">Loading Shineteck Inc. Portal...</p>
+      <div className="min-h-screen bg-[#071524] flex flex-col items-center justify-center text-white relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="w-12 h-12 border-3 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4 relative z-10"></div>
+        <p className="text-xs font-bold tracking-widest uppercase text-slate-300 font-display relative z-10">
+          Shineteck Inc. Portal
+        </p>
       </div>
     );
   }
@@ -50,7 +53,7 @@ function MainApp() {
   // If user is not authenticated, show Login (or Register / Forgot Password)
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-blue-600 selection:text-white">
         {publicView === 'login' && (
           <LoginPage
             onNavigateRegister={() => setPublicView('register')}
@@ -62,7 +65,7 @@ function MainApp() {
           <RegisterWizard
             onNavigateLogin={() => setPublicView('login')}
             onRegistrationComplete={() => {
-              // Automatically triggers auth context update
+              // Triggered upon successful registration
             }}
           />
         )}
@@ -78,8 +81,8 @@ function MainApp() {
 
   // If authenticated as Employee or Admin
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
-      {/* Main Corporate Header - full width */}
+    <div className="min-h-screen bg-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
+      {/* Main Corporate Header */}
       <Header
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         activePortal={isAdmin ? 'admin' : 'employee'}
@@ -97,71 +100,71 @@ function MainApp() {
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Main Content Area - fills remaining width */}
-        <main className="flex-1 min-w-0 overflow-y-auto bg-slate-100">
-          <div className="page-content mx-auto p-5 sm:p-6 lg:p-8">
-          {/* Employee Views */}
-          {isEmployee && (
-            <>
-              {activeTab === 'dashboard' && <EmployeeDashboard onNavigateTab={setActiveTab} />}
-              {activeTab === 'profile' && <EmployeeProfile />}
-              {activeTab === 'timesheet' && <EmployeeTimesheets />}
-              {activeTab === 'documents' && <EmployeeDocuments />}
-              {activeTab === 'payroll' && <EmployeePayroll />}
-              {activeTab === 'notifications' && <EmployeeNotifications />}
-            </>
-          )}
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 overflow-y-auto bg-slate-100/70 custom-scrollbar">
+          <div className="page-content mx-auto p-4 sm:p-6 lg:p-8">
+            {/* Employee Views */}
+            {isEmployee && (
+              <>
+                {activeTab === 'dashboard' && <EmployeeDashboard onNavigateTab={setActiveTab} />}
+                {activeTab === 'profile' && <EmployeeProfile />}
+                {activeTab === 'timesheet' && <EmployeeTimesheets />}
+                {activeTab === 'documents' && <EmployeeDocuments />}
+                {activeTab === 'payroll' && <EmployeePayroll />}
+                {activeTab === 'notifications' && <EmployeeNotifications />}
+              </>
+            )}
 
-          {/* Admin Views */}
-          {isAdmin && (
-            <>
-              {activeTab === 'dashboard' && (
-                <AdminDashboard
-                  onSelectEmployee={(empId) => {
-                    setSelectedEmployeeId(empId);
-                    setActiveTab('employees');
-                  }}
-                  onNavigateTab={setActiveTab}
-                />
-              )}
-
-              {activeTab === 'approvals' && (
-                selectedEmployeeId ? (
-                  <AdminEmployeeDetail
-                    employeeId={selectedEmployeeId}
-                    onBack={() => setSelectedEmployeeId(null)}
-                  />
-                ) : (
-                  <AdminApprovals
+            {/* Admin Views */}
+            {isAdmin && (
+              <>
+                {activeTab === 'dashboard' && (
+                  <AdminDashboard
                     onSelectEmployee={(empId) => {
                       setSelectedEmployeeId(empId);
                       setActiveTab('employees');
                     }}
+                    onNavigateTab={setActiveTab}
                   />
-                )
-              )}
+                )}
 
-              {activeTab === 'employees' && (
-                selectedEmployeeId ? (
-                  <AdminEmployeeDetail
-                    employeeId={selectedEmployeeId}
-                    onBack={() => setSelectedEmployeeId(null)}
-                  />
-                ) : (
-                  <AdminEmployees
-                    onSelectEmployee={(empId) => setSelectedEmployeeId(empId)}
-                  />
-                )
-              )}
+                {activeTab === 'approvals' && (
+                  selectedEmployeeId ? (
+                    <AdminEmployeeDetail
+                      employeeId={selectedEmployeeId}
+                      onBack={() => setSelectedEmployeeId(null)}
+                    />
+                  ) : (
+                    <AdminApprovals
+                      onSelectEmployee={(empId) => {
+                        setSelectedEmployeeId(empId);
+                        setActiveTab('employees');
+                      }}
+                    />
+                  )
+                )}
 
-              {activeTab === 'timesheets' && <AdminTimesheets />}
-              {activeTab === 'payroll' && <AdminPayroll />}
-              {activeTab === 'vendors' && <AdminVendorDetails />}
-              {activeTab === 'payroll-entries' && <AdminPayrollEntries />}
-              {activeTab === 'settings' && <AdminSettings />}
-              {activeTab === 'audit' && <AdminAuditLogs />}
-            </>
-          )}
+                {activeTab === 'employees' && (
+                  selectedEmployeeId ? (
+                    <AdminEmployeeDetail
+                      employeeId={selectedEmployeeId}
+                      onBack={() => setSelectedEmployeeId(null)}
+                    />
+                  ) : (
+                    <AdminEmployees
+                      onSelectEmployee={(empId) => setSelectedEmployeeId(empId)}
+                    />
+                  )
+                )}
+
+                {activeTab === 'timesheets' && <AdminTimesheets />}
+                {activeTab === 'payroll' && <AdminPayroll />}
+                {activeTab === 'vendors' && <AdminVendorDetails />}
+                {activeTab === 'payroll-entries' && <AdminPayrollEntries />}
+                {activeTab === 'settings' && <AdminSettings />}
+                {activeTab === 'audit' && <AdminAuditLogs />}
+              </>
+            )}
           </div>
         </main>
       </div>

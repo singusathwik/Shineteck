@@ -11,7 +11,8 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
-  Search
+  Search,
+  Plus
 } from 'lucide-react';
 
 export function EmployeeTimesheets() {
@@ -50,19 +51,21 @@ export function EmployeeTimesheets() {
   return (
     <div className="space-y-6">
       {/* Header & Submit CTA */}
-      <div className="enterprise-card p-6 bg-white border-slate-200">
+      <div className="enterprise-card p-6 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Work Timesheets</h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Submit periodic work hours, upload CSV/Excel activity sheets, and track manager approvals
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
+              Work Timesheet Submissions
+            </h1>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Submit periodic work hours, upload CSV/Excel activity sheets, and track HR payroll authorization
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded shadow-xs transition-colors"
+            className="enterprise-btn-primary"
           >
             <Upload className="w-4 h-4" />
             <span>Submit New Timesheet</span>
@@ -71,17 +74,17 @@ export function EmployeeTimesheets() {
       </div>
 
       {/* Filters Bar */}
-      <div className="enterprise-card p-4 bg-white border-slate-200">
+      <div className="enterprise-card p-4 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-slate-500 font-medium flex items-center gap-1">
+            <span className="text-slate-500 font-bold flex items-center gap-1 font-display">
               <Filter className="w-3.5 h-3.5" /> Filter by:
             </span>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-300 rounded bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              className="px-3 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-600/12 shadow-2xs"
             >
               <option value="ALL">All Statuses</option>
               <option value="Pending">Pending</option>
@@ -97,15 +100,15 @@ export function EmployeeTimesheets() {
               placeholder="From Date"
               value={startDateFilter}
               onChange={(e) => setStartDateFilter(e.target.value)}
-              className="px-2 py-1 border border-slate-300 rounded text-slate-700"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-xl text-slate-700 font-medium text-xs shadow-2xs"
             />
-            <span className="text-slate-400">to</span>
+            <span className="text-slate-400 font-medium">to</span>
             <input
               type="date"
               placeholder="To Date"
               value={endDateFilter}
               onChange={(e) => setEndDateFilter(e.target.value)}
-              className="px-2 py-1 border border-slate-300 rounded text-slate-700"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-xl text-slate-700 font-medium text-xs shadow-2xs"
             />
 
             {(statusFilter !== 'ALL' || startDateFilter || endDateFilter) && (
@@ -116,7 +119,7 @@ export function EmployeeTimesheets() {
                   setStartDateFilter('');
                   setEndDateFilter('');
                 }}
-                className="text-xs text-blue-600 hover:underline ml-1"
+                className="text-xs text-blue-600 font-bold hover:underline ml-1 cursor-pointer"
               >
                 Reset
               </button>
@@ -126,75 +129,74 @@ export function EmployeeTimesheets() {
       </div>
 
       {/* Timesheets Table */}
-      <div className="enterprise-card bg-white border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+      <div className="table-container shadow-sm">
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Period Range</th>
+              <th>Vendor Assignment</th>
+              <th>Work Hours</th>
+              <th>Attached File</th>
+              <th>Submitted Date</th>
+              <th>Reviewer Notes</th>
+              <th className="text-right">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {timesheets.length === 0 ? (
               <tr>
-                <th className="py-3 px-4">Period Range</th>
-                <th className="py-3 px-4">Vendor</th>
-                <th className="py-3 px-4">Work Hours</th>
-                <th className="py-3 px-4">Attached File</th>
-                <th className="py-3 px-4">Submitted At</th>
-                <th className="py-3 px-4">Reviewer Feedback</th>
-                <th className="py-3 px-4 text-right">Status</th>
+                <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50 stroke-1" />
+                  <p className="font-bold text-slate-700">No timesheets found matching the selected criteria.</p>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {timesheets.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
-                    No timesheets found matching the selected criteria.
+            ) : (
+              timesheets.map((ts) => (
+                <tr key={ts.id} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="font-bold text-slate-900">
+                    {ts.start_date} <span className="text-slate-400 font-normal">to</span> {ts.end_date}
+                  </td>
+                  <td>
+                    {ts.vendor_name ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-md text-[11px] font-bold">
+                        {ts.vendor_name}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-[11px]">Standard Direct</span>
+                    )}
+                  </td>
+                  <td className="font-mono font-bold text-slate-900">
+                    {ts.total_hours} hrs
+                  </td>
+                  <td>
+                    {ts.file_name ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(ts.id)}
+                        className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-bold truncate max-w-[180px] cursor-pointer"
+                        title="Download timesheet attachment"
+                      >
+                        <FileText className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{ts.file_name}</span>
+                      </button>
+                    ) : (
+                      <span className="text-slate-400">Manual Entry</span>
+                    )}
+                  </td>
+                  <td className="text-slate-500 font-mono text-[11px]">
+                    {new Date(ts.submitted_at).toLocaleDateString()}
+                  </td>
+                  <td className="text-slate-600 max-w-[200px] truncate text-xs">
+                    {ts.admin_feedback || ts.notes || <span className="text-slate-400">—</span>}
+                  </td>
+                  <td className="text-right">
+                    <StatusBadge status={ts.status} size="sm" />
                   </td>
                 </tr>
-              ) : (
-                timesheets.map((ts) => (
-                  <tr key={ts.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      {ts.start_date} <span className="text-slate-400 font-normal">to</span> {ts.end_date}
-                    </td>
-                    <td className="py-3 px-4">
-                      {ts.vendor_name ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded text-[11px] font-bold">
-                          {ts.vendor_name}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">Standard</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 font-bold text-slate-800">
-                      {ts.total_hours} hrs
-                    </td>
-                    <td className="py-3 px-4">
-                      {ts.file_name ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDownload(ts.id)}
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium truncate max-w-[180px]"
-                          title="Download timesheet attachment"
-                        >
-                          <FileText className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{ts.file_name}</span>
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">Manual Entry</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      {new Date(ts.submitted_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate">
-                      {ts.admin_feedback || ts.notes || <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <StatusBadge status={ts.status} size="sm" />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       <TimesheetUploadModal

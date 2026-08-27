@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
-import { DollarSign, FileText, Calendar, CheckCircle2, Download, Eye } from 'lucide-react';
+import { DollarSign, FileText, Calendar, CheckCircle2, Download, Eye, X, Building2, Sparkles } from 'lucide-react';
 
 function formatMoney(amount, currency = 'USD') {
   const num = parseFloat(amount) || 0;
@@ -34,137 +34,150 @@ export function EmployeePayroll() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="enterprise-card p-6 bg-white border-slate-200">
-        <h1 className="text-xl font-bold text-slate-900">Payment & Payroll Statements</h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Review official earnings statements, tax withholdings, and net direct deposits issued by Shinetek Inc. HR
+      <div className="enterprise-card p-6 bg-white">
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
+          Payment & Payroll Statements
+        </h1>
+        <p className="text-xs text-slate-500 mt-1 font-medium">
+          Review official earnings statements, tax withholdings, and net direct deposits issued by Shineteck Inc. HR
         </p>
       </div>
 
       {/* Table of Pay Records */}
-      <div className="enterprise-card bg-white border-slate-200 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+      <div className="table-container shadow-sm">
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Pay Period Range</th>
+              <th>Gross Earnings</th>
+              <th>Taxes & Deductions</th>
+              <th>Net Take-Home</th>
+              <th>Payment Date</th>
+              <th>Status</th>
+              <th className="text-right">Statement</th>
+            </tr>
+          </thead>
+          <tbody>
+            {payrollRecords.length === 0 ? (
               <tr>
-                <th className="py-3.5 px-4">Pay Period</th>
-                <th className="py-3.5 px-4">Gross Earnings</th>
-                <th className="py-3.5 px-4">Taxes & Deductions</th>
-                <th className="py-3.5 px-4 font-bold text-slate-800">Net Take-Home</th>
-                <th className="py-3.5 px-4">Payment Date</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Statement</th>
+                <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <DollarSign className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50 stroke-1" />
+                  <p className="font-bold text-slate-700">No payroll statements issued yet.</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Statements will appear here once authorized by HR.</p>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {payrollRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
-                    No payroll statements issued yet. Statements will appear here once authorized by HR.
-                  </td>
-                </tr>
-              ) : (
-                payrollRecords.map((p) => {
-                  const recCurrency = p.currency || (p.country === 'India' ? 'INR' : 'USD');
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3.5 px-4 font-semibold text-slate-900">
-                        {p.pay_period_start} <span className="text-slate-400 font-normal">to</span> {p.pay_period_end}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-700">
-                        {formatMoney(p.gross_pay, recCurrency)}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-rose-600">
-                        -{formatMoney(p.deductions, recCurrency)}
-                      </td>
-                      <td className="py-3.5 px-4 font-bold font-mono text-emerald-700 text-sm">
-                        {formatMoney(p.net_pay, recCurrency)}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-600">
-                        {p.payment_date}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <StatusBadge status={p.payment_status} size="sm" />
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedStub(p)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>View Stub</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              payrollRecords.map((p) => {
+                const recCurrency = p.currency || (p.country === 'India' ? 'INR' : 'USD');
+                return (
+                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="font-bold text-slate-900">
+                      {p.pay_period_start} <span className="text-slate-400 font-normal">to</span> {p.pay_period_end}
+                    </td>
+                    <td className="font-mono text-slate-700 font-bold">
+                      {formatMoney(p.gross_pay, recCurrency)}
+                    </td>
+                    <td className="font-mono text-rose-600 font-semibold">
+                      -{formatMoney(p.deductions, recCurrency)}
+                    </td>
+                    <td className="font-bold font-mono text-emerald-700 text-sm">
+                      {formatMoney(p.net_pay, recCurrency)}
+                    </td>
+                    <td className="text-slate-500 font-mono text-[11px]">
+                      {p.payment_date || 'Processed'}
+                    </td>
+                    <td>
+                      <StatusBadge status={p.payment_status || 'Paid'} size="sm" />
+                    </td>
+                    <td className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStub(p)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg border border-blue-200 transition-all cursor-pointer shadow-2xs"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Stub</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Pay Stub Detail Modal */}
+      {/* Paystub Detail Modal */}
       {selectedStub && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 bg-[#0f2b48] text-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-bold">Shinetek Inc.</h2>
-                    <span className="px-2 py-0.5 bg-blue-800 text-blue-200 text-[10px] font-bold rounded-full">
-                      {selectedStub.currency === 'INR' ? '🇮🇳 Indian Payroll' : '🌐 US Payroll'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 mt-0.5">Earnings & Statement of Salary Deposit</p>
-                </div>
-                <StatusBadge status={selectedStub.payment_status} size="sm" />
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4 pb-3 border-b border-slate-200">
-                <div>
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase">Pay Period</span>
-                  <p className="font-semibold text-slate-800">{selectedStub.pay_period_start} to {selectedStub.pay_period_end}</p>
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+                  <DollarSign className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase">Disbursement Date</span>
-                  <p className="font-semibold text-slate-800">{selectedStub.payment_date}</p>
+                  <h3 className="text-sm font-bold text-slate-900 font-display">Official Pay Statement</h3>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Period: {selectedStub.pay_period_start} &rarr; {selectedStub.pay_period_end}
+                  </p>
                 </div>
               </div>
-
-              <div className="space-y-2.5">
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-600">Gross Compensation:</span>
-                  <span className="font-mono font-semibold text-slate-800">
-                    {formatMoney(selectedStub.gross_pay, selectedStub.currency)}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-600">
-                    {selectedStub.currency === 'INR' ? 'Statutory TDS, PF & Professional Tax:' : 'Federal/State Tax & Benefit Deductions:'}
-                  </span>
-                  <span className="font-mono font-semibold text-rose-600">
-                    -{formatMoney(selectedStub.deductions, selectedStub.currency)}
-                  </span>
-                </div>
-                <div className="flex justify-between py-2 border-t-2 border-slate-300 text-sm font-bold">
-                  <span className="text-slate-900">Net Take-Home Deposit:</span>
-                  <span className="font-mono text-emerald-700">
-                    {formatMoney(selectedStub.net_pay, selectedStub.currency)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 type="button"
                 onClick={() => setSelectedStub(null)}
-                className="px-5 py-2 text-xs font-bold text-white bg-[#0f2b48] hover:bg-[#1a416b] rounded-lg transition-colors"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Earnings Breakdown */}
+            <div className="space-y-3 text-xs">
+              <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-2">
+                <div className="flex justify-between text-slate-600 font-medium">
+                  <span>Regular Total Hours:</span>
+                  <span className="font-mono font-bold text-slate-800">{selectedStub.hours_worked || 80} hrs</span>
+                </div>
+                <div className="flex justify-between text-slate-600 font-medium">
+                  <span>Base Rate:</span>
+                  <span className="font-mono text-slate-800">
+                    {formatMoney(selectedStub.hourly_rate || (selectedStub.gross_pay / (selectedStub.hours_worked || 80)), selectedStub.currency)} / hr
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-slate-200/80 pt-2 font-bold text-slate-900">
+                  <span>Total Gross Earnings:</span>
+                  <span className="font-mono text-blue-700">{formatMoney(selectedStub.gross_pay, selectedStub.currency)}</span>
+                </div>
+              </div>
+
+              {/* Deductions Breakdown */}
+              <div className="p-4 bg-rose-50/50 rounded-xl border border-rose-100 space-y-2">
+                <div className="flex justify-between text-slate-600 font-medium">
+                  <span>Federal/State Withholding & FICA:</span>
+                  <span className="font-mono text-rose-700">-{formatMoney(selectedStub.deductions, selectedStub.currency)}</span>
+                </div>
+              </div>
+
+              {/* Net Payout Banner */}
+              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[10.5px] font-bold text-emerald-800 uppercase tracking-wider block font-display">Net Direct Deposit Payout</span>
+                  <span className="text-xl font-black font-mono text-emerald-900">
+                    {formatMoney(selectedStub.net_pay, selectedStub.currency)}
+                  </span>
+                </div>
+                <StatusBadge status={selectedStub.payment_status || 'Paid'} size="sm" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-400">
+              <span>Shineteck Inc. Corporate Payroll</span>
+              <button
+                type="button"
+                onClick={() => setSelectedStub(null)}
+                className="enterprise-btn-primary px-4 py-1.5"
               >
                 Close Statement
               </button>

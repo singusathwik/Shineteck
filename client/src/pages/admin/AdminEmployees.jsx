@@ -197,22 +197,25 @@ export function AdminEmployees({ onSelectEmployee }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="enterprise-card p-6 bg-white border-slate-200">
+      {/* Top Banner */}
+      <div className="enterprise-card p-6 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Employee Directory & Employment Lifecycle</h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Track active working status, employment start & end dates, and manage employee records
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
+              Employee Directory & Workforce Lifecycle
+            </h1>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Track active working status, employment start & end dates, and manage consultant personnel records
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200">
+            <span className="text-xs font-semibold text-slate-600 bg-slate-100/80 px-3.5 py-2 rounded-xl border border-slate-200">
               Total Records: <strong className="text-blue-700 font-mono">{counts.all}</strong>
             </span>
             <button
               type="button"
               onClick={openAddEmployeeModal}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded-lg shadow-sm hover:shadow-md transition-all"
+              className="enterprise-btn-primary"
             >
               <UserPlus className="w-4 h-4" />
               <span>Add New Employee</span>
@@ -223,10 +226,10 @@ export function AdminEmployees({ onSelectEmployee }) {
 
       {/* Action feedback banner */}
       {actionFeedback && (
-        <div className={`p-4 rounded-xl text-xs flex items-center justify-between gap-2 ${
+        <div className={`p-4 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs ${
           actionFeedback.type === 'success'
-            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-            : 'bg-rose-50 text-rose-800 border border-rose-200'
+            ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+            : 'bg-rose-50 text-rose-900 border border-rose-200'
         }`}>
           <div className="flex items-center gap-2">
             {actionFeedback.type === 'success' ? (
@@ -239,28 +242,28 @@ export function AdminEmployees({ onSelectEmployee }) {
           <button
             type="button"
             onClick={() => setActionFeedback(null)}
-            className="text-slate-400 hover:text-slate-600 p-1"
+            className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      {/* ── Active / Inactive Tab Navigation ────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-1">
+      {/* Active / Inactive Tab Navigation */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200/80 pb-1">
         <button
           type="button"
           onClick={() => setEmploymentTab('Active')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-b-2 cursor-pointer font-display ${
             employmentTab === 'Active'
-              ? 'border-emerald-600 text-emerald-800 bg-emerald-50/70'
+              ? 'border-emerald-600 text-emerald-900 bg-emerald-50/80'
               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-status-pulse"></span>
           <span>Active Employees</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            employmentTab === 'Active' ? 'bg-emerald-200/80 text-emerald-900' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            employmentTab === 'Active' ? 'bg-emerald-200/80 text-emerald-950' : 'bg-slate-100 text-slate-600'
           }`}>
             {counts.active}
           </span>
@@ -269,16 +272,16 @@ export function AdminEmployees({ onSelectEmployee }) {
         <button
           type="button"
           onClick={() => setEmploymentTab('Inactive')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-b-2 cursor-pointer font-display ${
             employmentTab === 'Inactive'
-              ? 'border-rose-600 text-rose-800 bg-rose-50/70'
+              ? 'border-rose-600 text-rose-900 bg-rose-50/80'
               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-200"></span>
+          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
           <span>Inactive / Ended</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            employmentTab === 'Inactive' ? 'bg-rose-200/80 text-rose-900' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            employmentTab === 'Inactive' ? 'bg-rose-200/80 text-rose-950' : 'bg-slate-100 text-slate-600'
           }`}>
             {counts.inactive}
           </span>
@@ -287,16 +290,16 @@ export function AdminEmployees({ onSelectEmployee }) {
         <button
           type="button"
           onClick={() => setEmploymentTab('ALL')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-semibold text-xs transition-all border-b-2 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-b-2 cursor-pointer font-display ${
             employmentTab === 'ALL'
-              ? 'border-blue-600 text-blue-800 bg-blue-50/70'
+              ? 'border-blue-600 text-blue-900 bg-blue-50/80'
               : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <Users className="w-3.5 h-3.5 text-slate-500" />
           <span>All Employees</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            employmentTab === 'ALL' ? 'bg-blue-200/80 text-blue-900' : 'bg-slate-100 text-slate-600'
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+            employmentTab === 'ALL' ? 'bg-blue-200/80 text-blue-950' : 'bg-slate-100 text-slate-600'
           }`}>
             {counts.all}
           </span>
@@ -362,121 +365,119 @@ export function AdminEmployees({ onSelectEmployee }) {
       </div>
 
       {/* Employees Table */}
-      <div className="enterprise-card bg-white border-slate-200 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+      <div className="table-container shadow-sm">
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Employee ID</th>
+              <th>Employee Name</th>
+              <th>Designation</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Working Status</th>
+              <th>Onboarding</th>
+              <th className="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees.length === 0 ? (
               <tr>
-                <th className="py-3.5 px-4">Employee ID</th>
-                <th className="py-3.5 px-4">Employee Name</th>
-                <th className="py-3.5 px-4">Designation</th>
-                <th className="py-3.5 px-4">Start Date</th>
-                <th className="py-3.5 px-4">End Date</th>
-                <th className="py-3.5 px-4">Working Status</th>
-                <th className="py-3.5 px-4">Onboarding</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+                <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Users className="w-8 h-8 text-slate-300 mx-auto opacity-50 stroke-1" />
+                    <p className="font-bold text-slate-700">No employees found in this view.</p>
+                    <p className="text-[11px] text-slate-400">Try adjusting your active/inactive tab or search filters.</p>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {employees.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Users className="w-8 h-8 text-slate-300" />
-                      <p className="font-medium text-slate-500">No employees found in this view.</p>
-                      <p className="text-[11px] text-slate-400">Try adjusting your active/inactive tab or search filters.</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                employees.map((emp) => {
-                  const isActive = emp.employment_status === 'Active' || emp.is_still_working;
-                  return (
-                    <tr key={emp.employee_id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-700">
-                        {emp.employee_id}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-900">{emp.full_name}</div>
-                        <div className="text-[11px] text-slate-400">{emp.email}</div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-700 font-medium">
-                        {emp.designation}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-700 font-mono">
-                        {emp.start_date ? (
-                          <span>{emp.start_date}</span>
-                        ) : (
-                          <span className="text-slate-400 italic">Not set</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {emp.end_date ? (
-                          <span className="font-mono text-rose-700 font-semibold">{emp.end_date}</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                            Present / Ongoing
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4">
+            ) : (
+              employees.map((emp) => {
+                const isActive = emp.employment_status === 'Active' || emp.is_still_working;
+                return (
+                  <tr key={emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="font-mono font-bold text-blue-700">
+                      {emp.employee_id}
+                    </td>
+                    <td>
+                      <div className="font-bold text-slate-900">{emp.full_name}</div>
+                      <div className="text-[11px] text-slate-500 font-mono">{emp.email}</div>
+                    </td>
+                    <td className="text-slate-700 font-medium">
+                      {emp.designation}
+                    </td>
+                    <td className="text-slate-700 font-mono">
+                      {emp.start_date ? (
+                        <span>{emp.start_date}</span>
+                      ) : (
+                        <span className="text-slate-400 italic">Not set</span>
+                      )}
+                    </td>
+                    <td>
+                      {emp.end_date ? (
+                        <span className="font-mono text-rose-700 font-semibold">{emp.end_date}</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Present / Ongoing
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {isActive ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold text-emerald-900 bg-emerald-100/90 border border-emerald-200 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-status-pulse"></span>
+                          Working (Active)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold text-slate-700 bg-slate-100 border border-slate-300">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                          Inactive / Ended
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <StatusBadge status={emp.registration_status} size="sm" />
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onSelectEmployee(emp.employee_id)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-[#0f2b48] hover:bg-[#173f67] text-white font-bold rounded-lg shadow-2xs text-xs transition-all cursor-pointer active:scale-98"
+                          title="Inspect & Review Profile"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Inspect</span>
+                        </button>
+
                         {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200 shadow-2xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                            Currently Working (Active)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-300">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                            Inactive / Ended
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <StatusBadge status={emp.registration_status} size="sm" />
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => onSelectEmployee(emp.employee_id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#0f2b48] hover:bg-[#1a416b] text-white font-semibold rounded-md shadow-xs text-xs transition-colors"
-                            title="Inspect & Review Profile"
+                            onClick={() => openStatusToggleModal(emp, 'Inactive')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 font-bold rounded-lg text-xs transition-all cursor-pointer"
+                            title="Deactivate this employee"
                           >
-                            <Eye className="w-3 h-3" />
-                            <span>Inspect</span>
+                            <UserX className="w-3 h-3" />
+                            <span>Deactivate</span>
                           </button>
-
-                          {isActive ? (
-                            <button
-                              type="button"
-                              onClick={() => openStatusToggleModal(emp, 'Inactive')}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 font-semibold rounded-md text-xs transition-colors"
-                              title="Deactivate this employee"
-                            >
-                              <UserX className="w-3 h-3" />
-                              <span>Deactivate</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openStatusToggleModal(emp, 'Active')}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-semibold rounded-md text-xs transition-colors"
-                              title="Reactivate this employee"
-                            >
-                              <UserCheck className="w-3 h-3" />
-                              <span>Reactivate</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openStatusToggleModal(emp, 'Active')}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-bold rounded-lg text-xs transition-all cursor-pointer"
+                            title="Reactivate this employee"
+                          >
+                            <UserCheck className="w-3 h-3" />
+                            <span>Reactivate</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* ── Status Toggle Modal ─────────────────────────────────────────── */}

@@ -14,7 +14,8 @@ import {
   Building2,
   Receipt,
   X,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from 'lucide-react';
 
 export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
@@ -33,7 +34,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
       groupTitle: 'WORK & COMPLIANCE',
       items: [
         { id: 'timesheet', label: 'Timesheets', icon: Clock },
-        { id: 'documents', label: 'Documents', icon: FileText },
+        { id: 'documents', label: 'Document Vault', icon: FileText },
         { id: 'payroll', label: 'Pay Stubs & Statements', icon: DollarSign }
       ]
     }
@@ -78,20 +79,20 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 lg:hidden transition-opacity"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-0 ${
-          isOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-white/95 backdrop-blur-xl border-r border-slate-200/85 transition-transform duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] lg:translate-x-0 lg:static lg:z-0 ${
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         } flex flex-col`}
       >
         {/* Mobile Header in Sidebar */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 lg:hidden bg-slate-50">
-          <span className="font-bold text-xs text-slate-800 uppercase tracking-wider">Navigation Menu</span>
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 lg:hidden bg-slate-50/70">
+          <span className="font-bold text-xs text-slate-800 uppercase tracking-wider font-display">Navigation Menu</span>
           <button
             type="button"
             onClick={onClose}
@@ -102,16 +103,16 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
         </div>
 
         {/* User Context Banner */}
-        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-[#0f2b48] text-white flex items-center justify-center font-bold text-xs shrink-0">
+        <div className="px-4 py-3.5 border-b border-slate-100 bg-slate-50/80">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-linear-to-br from-[#0f2b48] to-[#071524] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs border border-white/20 font-display">
               {isAdmin ? 'A' : (user?.firstName ? user.firstName.charAt(0) : 'E')}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-bold text-slate-900 truncate">
                 {user?.fullName || 'User Profile'}
               </div>
-              <div className="text-[11px] text-slate-500 font-mono truncate">
+              <div className="text-[10.5px] text-slate-500 font-mono truncate font-semibold">
                 {isAdmin ? 'System Administrator' : user?.employeeId || 'Consultant'}
               </div>
             </div>
@@ -119,10 +120,10 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
         </div>
 
         {/* Grouped Navigation List */}
-        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto custom-scrollbar">
           {navGroups.map((group, idx) => (
             <div key={idx} className="space-y-1">
-              <div className="px-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="px-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider font-display">
                 {group.groupTitle}
               </div>
               {group.items.map((item) => {
@@ -136,17 +137,17 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
                       onSelectTab(item.id);
                       if (onClose) onClose();
                     }}
-                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
                       isActive
-                        ? 'bg-[#0f2b48] text-white font-semibold shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        ? 'bg-linear-to-r from-[#0f2b48] to-[#173f67] text-white shadow-xs border border-[#071524]'
+                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 hover:translate-x-0.5'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-700'}`} />
                       <span className="truncate">{item.label}</span>
                     </div>
-                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-blue-200 shrink-0" />}
                   </button>
                 );
               })}
@@ -154,13 +155,13 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
           ))}
         </nav>
 
-        {/* Footer info */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/50 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Shinetek Cloud v2.4</span>
+        {/* Footer System Status */}
+        <div className="p-3.5 border-t border-slate-100 bg-slate-50/70 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[10.5px] font-bold text-slate-600 font-display">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-status-pulse" />
+            <span>Shineteck Cloud v2.4</span>
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5">Enterprise Security & Compliance</p>
+          <p className="text-[10px] text-slate-400 mt-0.5 font-mono">SOC-2 & E-Verify Compliant</p>
         </div>
       </aside>
     </>
