@@ -132,61 +132,61 @@ export function EmployeeDashboard({ onNavigateTab }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div
           onClick={() => onNavigateTab('timesheets')}
-          className="enterprise-card p-4.5 bg-blue-50/60 border-blue-200/90 hover:border-blue-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-[#e3effa] border-[#b4d3f2] hover:border-[#6fa9e4] hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-blue-900 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 font-display">Timesheets</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200">
+          <div className="flex items-center justify-between text-[#0c3660] mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0c3660] font-display">Timesheets</span>
+            <div className="w-7 h-7 rounded-lg bg-[#0c3660] text-white flex items-center justify-center shadow-2xs">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-display">{timesheets.length}</div>
-          <p className="text-[11px] text-blue-900 font-semibold mt-1">
+          <div className="text-2xl font-black text-[#0c3660] font-display">{timesheets.length}</div>
+          <p className="text-[11px] text-[#0c3660] font-semibold mt-1">
             <strong className="text-blue-950 font-mono font-bold">{pendingTimesheetCount}</strong> pending authorization
           </p>
         </div>
 
         <div
           onClick={() => onNavigateTab('documents')}
-          className="enterprise-card p-4.5 bg-purple-50/60 border-purple-200/90 hover:border-purple-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-[#f0eafb] border-[#cebcf7] hover:border-[#9f7ff0] hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-purple-900 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 font-display">Documents</span>
-            <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center border border-purple-200">
+          <div className="flex items-center justify-between text-[#3b1778] mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#3b1778] font-display">Documents</span>
+            <div className="w-7 h-7 rounded-lg bg-[#6d28d9] text-white flex items-center justify-center shadow-2xs">
               <FileText className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-display">{documents.length}</div>
-          <p className="text-[11px] text-purple-900 font-semibold mt-1">
+          <div className="text-2xl font-black text-[#2c105b] font-display">{documents.length}</div>
+          <p className="text-[11px] text-[#3b1778] font-semibold mt-1">
             <strong className="text-emerald-700 font-mono font-bold">{approvedDocsCount}</strong> verified by HR
           </p>
         </div>
 
         <div
           onClick={() => onNavigateTab('payroll')}
-          className="enterprise-card p-4.5 bg-emerald-50/60 border-emerald-200/90 hover:border-emerald-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-[#e2f6eb] border-[#9ee3bc] hover:border-[#52c283] hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-emerald-900 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 font-display">Pay Stubs</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
+          <div className="flex items-center justify-between text-[#084824] mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#084824] font-display">Pay Stubs</span>
+            <div className="w-7 h-7 rounded-lg bg-[#047857] text-white flex items-center justify-center shadow-2xs">
               <DollarSign className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-display">{payroll.length}</div>
-          <p className="text-[11px] text-emerald-900 font-semibold mt-1">Statements issued</p>
+          <div className="text-2xl font-black text-[#05351a] font-display">{payroll.length}</div>
+          <p className="text-[11px] text-[#084824] font-semibold mt-1">Statements issued</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('profile')}
-          className="enterprise-card p-4.5 bg-indigo-50/60 border-indigo-200/90 hover:border-indigo-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-[#eaeffc] border-[#bac8f8] hover:border-[#7a93ef] hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-indigo-900 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 font-display">Account</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center border border-indigo-200">
+          <div className="flex items-center justify-between text-[#1c296d] mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1c296d] font-display">Account</span>
+            <div className="w-7 h-7 rounded-lg bg-[#4338ca] text-white flex items-center justify-center shadow-2xs">
               <UserCheck className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-sm font-bold text-indigo-950 mt-1 truncate font-display">
+          <div className="text-sm font-bold text-[#141e52] mt-1 truncate font-display">
             {profile?.employment_status || 'Active'}
           </div>
           <p className="text-[11px] text-slate-500 mt-1 font-medium">Managed by Shineteck Inc.</p>

@@ -18,7 +18,7 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
               <button
                 type="button"
                 onClick={onToggleSidebar}
-                className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 lg:hidden focus:outline-none transition-all cursor-pointer border border-transparent hover:border-slate-200"
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 lg:hidden focus:outline-none transition-all cursor-pointer border border-transparent hover:border-slate-700"
                 aria-label="Toggle navigation menu"
               >
                 <Menu className="w-5 h-5" />
@@ -26,12 +26,12 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
             )}
 
             <div className="flex items-center gap-3">
-              <ShineteckLogo size="sm" />
-              <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200/80">
-                <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase font-display">
+              <ShineteckLogo size="sm" textColor="white" />
+              <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-700/80">
+                <span className="text-[11px] font-bold tracking-wider text-slate-300 uppercase font-display">
                   {isAdmin ? 'Operations Hub' : 'Employee Portal'}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-50/80 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200/60 font-mono">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-blue-950/80 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/60 font-mono">
                   <Sparkles className="w-2.5 h-2.5" /> v2.4
                 </span>
               </div>
@@ -44,13 +44,13 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
               <button
                 type="button"
                 onClick={onOpenCommandPalette}
-                className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-100/80 hover:bg-slate-100 border border-slate-200/80 rounded-xl text-xs text-slate-400 transition-all shadow-2xs group cursor-pointer"
+                className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs text-slate-400 transition-all shadow-2xs group cursor-pointer"
               >
-                <span className="flex items-center gap-2 text-slate-500 group-hover:text-slate-700">
-                  <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                <span className="flex items-center gap-2 text-slate-300 group-hover:text-white">
+                  <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 transition-colors" />
                   <span>Search commands, directory, or records...</span>
                 </span>
-                <kbd className="inline-flex items-center gap-0.5 font-mono text-[10.5px] font-bold text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-2xs">
+                <kbd className="inline-flex items-center gap-0.5 font-mono text-[10.5px] font-bold text-slate-300 bg-slate-700 border border-slate-600 px-1.5 py-0.5 rounded shadow-2xs">
                   Ctrl K
                 </kbd>
               </button>
@@ -63,7 +63,7 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
               <button
                 type="button"
                 onClick={onOpenCommandPalette}
-                className="p-2 md:hidden text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-all border border-slate-200/60"
+                className="p-2 md:hidden text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-all border border-slate-700/60"
                 title="Search Command Palette (Ctrl+K)"
               >
                 <Search className="w-4 h-4" />
@@ -73,8 +73,8 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
             <NotificationDropdown />
 
             {user && (
-              <div className="flex items-center gap-3 pl-2.5 sm:pl-3.5 border-l border-slate-200/80">
-                <div className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-slate-100/80 border border-slate-200 shadow-2xs hover:bg-slate-200/60 transition-colors">
+              <div className="flex items-center gap-3 pl-2.5 sm:pl-3.5 border-l border-slate-700/80">
+                <div className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-slate-800/90 border border-slate-700 shadow-2xs hover:bg-slate-800 transition-colors">
                   <EmployeeAvatar
                     name={user.fullName}
                     imageUrl={user.profileImageUrl}
@@ -83,7 +83,7 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
 
                   <div className="hidden md:block text-left">
                     <div className="flex items-center gap-1.5 leading-tight">
-                      <span className="font-bold text-xs text-slate-900 truncate max-w-[130px]">
+                      <span className="font-bold text-xs text-white truncate max-w-[130px]">
                         {user.fullName}
                       </span>
                       {user.role === 'admin' ? (
@@ -91,12 +91,12 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
                           <ShieldCheck className="w-2.5 h-2.5" /> Admin
                         </span>
                       ) : (
-                        <span className="bg-slate-200 text-slate-800 text-[10px] px-1.5 py-0.2 rounded font-semibold font-mono">
+                        <span className="bg-slate-700 text-slate-200 text-[10px] px-1.5 py-0.2 rounded font-semibold font-mono border border-slate-600">
                           {user.employeeId}
                         </span>
                       )}
                     </div>
-                    <span className="text-[10.5px] text-slate-500 block truncate max-w-[160px] font-medium">
+                    <span className="text-[10.5px] text-slate-300 block truncate max-w-[160px] font-medium">
                       {user.designation || (user.role === 'admin' ? 'System Administrator' : 'Staff Consultant')}
                     </span>
                   </div>
@@ -105,7 +105,7 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
                 <button
                   type="button"
                   onClick={logout}
-                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50/80 rounded-xl border border-transparent hover:border-rose-200 transition-all cursor-pointer shadow-2xs"
+                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl border border-transparent hover:border-rose-900/60 transition-all cursor-pointer shadow-2xs"
                   title="Sign out from portal"
                   aria-label="Sign out"
                 >
