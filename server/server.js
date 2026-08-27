@@ -114,6 +114,7 @@ app.get('/api/admin/dashboard', requireAdmin, empCtrl.getDashboardStats);
 
 // Admin Employee Management
 app.get('/api/admin/employees', requireAdmin, empCtrl.getAllEmployees);
+app.post('/api/admin/employees', requireAdmin, empCtrl.createEmployeeByAdmin);
 app.get('/api/admin/employees/:employeeId', requireAdmin, empCtrl.getEmployeeDetail);
 app.put('/api/admin/employees/:employeeId', requireAdmin, empCtrl.updateEmployeeProfile);
 app.patch('/api/admin/employees/:employeeId/status', requireAdmin, empCtrl.reviewEmployeeStatus);

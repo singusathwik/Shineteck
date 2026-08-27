@@ -9,6 +9,7 @@ import {
   Eye,
   UserCheck,
   UserX,
+  UserPlus,
   CheckCircle2,
   AlertTriangle,
   Clock,
@@ -16,7 +17,13 @@ import {
   Briefcase,
   X,
   ShieldAlert,
-  Power
+  Power,
+  Plus,
+  Mail,
+  Phone,
+  MapPin,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 
 export function AdminEmployees({ onSelectEmployee }) {
@@ -38,6 +45,35 @@ export function AdminEmployees({ onSelectEmployee }) {
   const [modalReason, setModalReason] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [actionFeedback, setActionFeedback] = useState(null);
+
+  // Add Employee Modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [nextIdPreview, setNextIdPreview] = useState('');
+  const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
+  const [addFormError, setAddFormError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const initialAddFormData = {
+    firstName: '',
+    lastName: '',
+    middleInitial: '',
+    email: '',
+    phone: '',
+    designation: '',
+    dateOfBirth: '1995-01-01',
+    country: 'United States',
+    state: 'California',
+    city: 'Los Angeles',
+    zipCode: '90001',
+    address: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    employmentStatus: 'Active',
+    password: 'Password@123',
+    registrationStatus: 'Approved'
+  };
+
+  const [addFormData, setAddFormData] = useState(initialAddFormData);
 
   const fetchEmployees = async () => {
     try {
@@ -64,6 +100,58 @@ export function AdminEmployees({ onSelectEmployee }) {
   useEffect(() => {
     fetchEmployees();
   }, [search, statusFilter, employmentTab, countryFilter, sortBy, sortOrder]);
+
+  const openAddEmployeeModal = async () => {
+    setAddFormData({
+      ...initialAddFormData,
+      startDate: new Date().toISOString().split('T')[0]
+    });
+    setAddFormError(null);
+    setIsAddModalOpen(true);
+    try {
+      const preview = await api.getNextIdPreview();
+      if (preview && preview.nextId) {
+        setNextIdPreview(preview.nextId);
+      }
+    } catch (err) {
+      console.warn('Could not fetch next ID preview:', err.message);
+    }
+  };
+
+  const handleAddEmployeeSubmit = async (e) => {
+    e.preventDefault();
+    setAddFormError(null);
+
+    if (!addFormData.firstName.trim() || !addFormData.lastName.trim()) {
+      setAddFormError('First Name and Last Name are required.');
+      return;
+    }
+
+    if (!addFormData.email.trim()) {
+      setAddFormError('Corporate email is required.');
+      return;
+    }
+
+    if (!addFormData.designation.trim()) {
+      setAddFormError('Designation is required.');
+      return;
+    }
+
+    setIsCreatingEmployee(true);
+    try {
+      const res = await api.createEmployeeByAdmin(addFormData);
+      setActionFeedback({
+        type: 'success',
+        message: res.message || 'Employee created successfully!'
+      });
+      setIsAddModalOpen(false);
+      await fetchEmployees();
+    } catch (err) {
+      setAddFormError(err.message || 'Failed to create employee record.');
+    } finally {
+      setIsCreatingEmployee(false);
+    }
+  };
 
   const openStatusToggleModal = (emp, targetStatus) => {
     setToggleModalEmployee(emp);
@@ -117,10 +205,18 @@ export function AdminEmployees({ onSelectEmployee }) {
               Track active working status, employment start & end dates, and manage employee records
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200">
               Total Records: <strong className="text-blue-700 font-mono">{counts.all}</strong>
             </span>
+            <button
+              type="button"
+              onClick={openAddEmployeeModal}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded-lg shadow-sm hover:shadow-md transition-all"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Add New Employee</span>
+            </button>
           </div>
         </div>
       </div>
@@ -480,6 +576,315 @@ export function AdminEmployees({ onSelectEmployee }) {
                 {isUpdatingStatus ? 'Updating...' : `Confirm Set ${toggleTargetStatus}`}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add New Employee Modal ────────────────────────────────────── */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 my-8 animate-in fade-in zoom-in duration-150">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Add New Employee</h3>
+                  <p className="text-xs text-slate-500">
+                    Create employee profile, set working status, and generate login access
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Error Banner */}
+            {addFormError && (
+              <div className="flex items-center gap-2.5 p-3.5 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{addFormError}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleAddEmployeeSubmit} className="space-y-6 text-xs">
+              {/* Section 1: Personal Info */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-blue-700">
+                    <span>1. Personal Information</span>
+                  </h4>
+                  {nextIdPreview && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full font-mono text-[10px] font-bold">
+                      <Sparkles className="w-3 h-3 text-blue-600" />
+                      Auto ID: {nextIdPreview}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">First Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Sarah"
+                      value={addFormData.firstName}
+                      onChange={(e) => setAddFormData({ ...addFormData, firstName: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Middle Initial</label>
+                    <input
+                      type="text"
+                      maxLength="10"
+                      placeholder="e.g. M."
+                      value={addFormData.middleInitial}
+                      onChange={(e) => setAddFormData({ ...addFormData, middleInitial: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Last Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Jenkins"
+                      value={addFormData.lastName}
+                      onChange={(e) => setAddFormData({ ...addFormData, lastName: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Corporate Email *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="sarah.jenkins@shinetek.com"
+                      value={addFormData.email}
+                      onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="+1 (555) 019-2831"
+                      value={addFormData.phone}
+                      onChange={(e) => setAddFormData({ ...addFormData, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={addFormData.dateOfBirth}
+                      onChange={(e) => setAddFormData({ ...addFormData, dateOfBirth: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Job & Role */}
+              <div className="border-t border-slate-100 pt-4">
+                <h4 className="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[11px] text-blue-700">
+                  2. Role & Employment Lifecycle
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Designation / Role *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Senior Software Engineer"
+                      value={addFormData.designation}
+                      onChange={(e) => setAddFormData({ ...addFormData, designation: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Employment Status</label>
+                    <select
+                      value={addFormData.employmentStatus}
+                      onChange={(e) => setAddFormData({ ...addFormData, employmentStatus: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    >
+                      <option value="Active">Active (Currently Working)</option>
+                      <option value="Inactive">Inactive / On Leave</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Onboarding Status</label>
+                    <select
+                      value={addFormData.registrationStatus}
+                      onChange={(e) => setAddFormData({ ...addFormData, registrationStatus: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    >
+                      <option value="Approved">Approved (Immediate Portal Access)</option>
+                      <option value="Pending Review">Pending Review</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Employment Start Date</label>
+                    <input
+                      type="date"
+                      value={addFormData.startDate}
+                      onChange={(e) => setAddFormData({ ...addFormData, startDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Employment End Date (Optional)
+                    </label>
+                    <input
+                      type="date"
+                      value={addFormData.endDate}
+                      onChange={(e) => setAddFormData({ ...addFormData, endDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Location & Address */}
+              <div className="border-t border-slate-100 pt-4">
+                <h4 className="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[11px] text-blue-700">
+                  3. Location & Address
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Country</label>
+                    <select
+                      value={addFormData.country}
+                      onChange={(e) => setAddFormData({ ...addFormData, country: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    >
+                      <option value="United States">United States</option>
+                      <option value="Canada">Canada</option>
+                      <option value="India">India</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Australia">Australia</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">State / Province</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. California"
+                      value={addFormData.state}
+                      onChange={(e) => setAddFormData({ ...addFormData, state: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">City</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Los Angeles"
+                      value={addFormData.city}
+                      onChange={(e) => setAddFormData({ ...addFormData, city: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Zip / Postal Code</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 90001"
+                      value={addFormData.zipCode}
+                      onChange={(e) => setAddFormData({ ...addFormData, zipCode: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <label className="block font-semibold text-slate-700 mb-1">Street Address</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 100 Corporate Plaza, Suite 400"
+                    value={addFormData.address}
+                    onChange={(e) => setAddFormData({ ...addFormData, address: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Section 4: Initial Login Credentials */}
+              <div className="border-t border-slate-100 pt-4">
+                <h4 className="font-bold text-slate-900 mb-2 uppercase tracking-wider text-[11px] text-blue-700 flex items-center justify-between">
+                  <span>4. Initial Portal Credentials</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-blue-600 hover:text-blue-800 font-normal lowercase tracking-normal text-[11px]"
+                  >
+                    {showPassword ? 'Hide password' : 'Show password'}
+                  </button>
+                </h4>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={addFormData.password}
+                      onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 font-mono bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Default temporary password is <strong>Password@123</strong>. The employee will use this password along with their email or Employee ID to log in.
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingEmployee}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {isCreatingEmployee ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Creating Employee...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      <span>Create Employee Record</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

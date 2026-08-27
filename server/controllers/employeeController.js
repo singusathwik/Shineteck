@@ -1,8 +1,206 @@
+import bcrypt from 'bcryptjs';
 import { db } from '../db/schema.js';
 import { logAudit } from '../middleware/audit.js';
 import { validateAddressInfo } from '../data/addressData.js';
-import { Employee as MongoEmployee, User as MongoUser } from '../models/index.js';
+import { Employee as MongoEmployee, User as MongoUser, Notification as MongoNotif } from '../models/index.js';
 import { isMongoConnected } from '../db/mongo.js';
+import { generateNextEmployeeIdSync } from './settingsController.js';
+
+// Admin: Create new employee directly
+export async function createEmployeeByAdmin(req, res) {
+  try {
+    const {
+      firstName,
+      lastName,
+      middleInitial,
+      email,
+      phone,
+      designation,
+      dateOfBirth,
+      country,
+      state,
+      city,
+      zipCode,
+      address,
+      startDate,
+      endDate,
+      employmentStatus = 'Active',
+      password = 'Password@123',
+      registrationStatus = 'Approved'
+    } = req.body;
+
+    const trimmedFirstName = firstName ? firstName.trim() : '';
+    const trimmedLastName = lastName ? lastName.trim() : '';
+    const trimmedMiddleInitial = middleInitial ? middleInitial.trim() : '';
+    const trimmedEmail = email ? email.trim().toLowerCase() : '';
+    const trimmedPhone = phone ? phone.trim() : '';
+    const trimmedDesignation = designation ? designation.trim() : '';
+    const trimmedDob = dateOfBirth ? dateOfBirth.trim() : '';
+
+    if (!trimmedFirstName || !trimmedLastName || !trimmedEmail || !trimmedDesignation) {
+      return res.status(400).json({ error: 'First Name, Last Name, Email, and Designation are required.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ error: 'Please provide a valid email address.' });
+    }
+
+    // Check duplicate email in users
+    const existingUser = db.prepare('SELECT id FROM users WHERE LOWER(email) = ?').get(trimmedEmail);
+    if (existingUser) {
+      return res.status(400).json({ error: 'An account with this email address already exists.' });
+    }
+
+    const fullName = [trimmedFirstName, trimmedMiddleInitial, trimmedLastName].filter(Boolean).join(' ');
+
+    // Address validation if country is specified
+    if (country) {
+      const addressValidation = validateAddressInfo(country, state || '', city || '', zipCode || '');
+      if (!addressValidation.isValid) {
+        return res.status(400).json({ error: addressValidation.errors.join(' ') });
+      }
+    }
+
+    // Hash password
+    const finalPassword = password && password.trim() ? password.trim() : 'Password@123';
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(finalPassword, salt);
+
+    let newEmployeeId = null;
+    let userId = null;
+
+    const createTx = db.transaction(() => {
+      newEmployeeId = generateNextEmployeeIdSync();
+
+      const userInsert = db.prepare(`
+        INSERT INTO users (employee_id, email, password_hash, role, status)
+        VALUES (?, ?, ?, 'employee', ?)
+      `);
+      const userResult = userInsert.run(
+        newEmployeeId,
+        trimmedEmail,
+        passwordHash,
+        employmentStatus === 'Active' ? 'active' : 'suspended'
+      );
+      userId = userResult.lastInsertRowid;
+
+      const effectiveStartDate = startDate && startDate.trim() ? startDate.trim() : new Date().toISOString().split('T')[0];
+      const effectiveEndDate = endDate && endDate.trim() ? endDate.trim() : null;
+
+      const employeeInsert = db.prepare(`
+        INSERT INTO employees (
+          user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
+          date_of_birth, country, state, city, zip_code, address,
+          start_date, end_date, employment_status, registration_status,
+          submitted_at, reviewed_at, reviewed_by
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?
+        )
+      `);
+
+      employeeInsert.run(
+        userId,
+        newEmployeeId,
+        trimmedFirstName,
+        trimmedLastName,
+        trimmedMiddleInitial,
+        fullName,
+        trimmedEmail,
+        trimmedPhone || '+1 (555) 000-0000',
+        trimmedDesignation,
+        trimmedDob || '1995-01-01',
+        country || 'United States',
+        state || 'California',
+        city || 'Los Angeles',
+        zipCode || '90001',
+        address || '100 Corporate Plaza',
+        effectiveStartDate,
+        effectiveEndDate,
+        employmentStatus,
+        registrationStatus,
+        req.user?.email || 'Admin'
+      );
+
+      // Create welcome notification
+      db.prepare(`
+        INSERT INTO notifications (employee_id, title, message, type)
+        VALUES (?, ?, ?, ?)
+      `).run(
+        newEmployeeId,
+        'Welcome to Shinetek Inc.',
+        `Your employee account (${newEmployeeId}) has been created by HR Administrator ${req.user?.email || 'Admin'}.`,
+        'success'
+      );
+    });
+
+    createTx();
+
+    // Sync to MongoDB Atlas if connected
+    if (isMongoConnected()) {
+      (async () => {
+        try {
+          const mUser = await MongoUser.create({
+            employee_id: newEmployeeId,
+            email: trimmedEmail,
+            password_hash: passwordHash,
+            role: 'employee',
+            status: employmentStatus === 'Active' ? 'active' : 'suspended'
+          });
+
+          await MongoEmployee.create({
+            user_id: mUser._id,
+            employee_id: newEmployeeId,
+            first_name: trimmedFirstName,
+            last_name: trimmedLastName,
+            middle_initial: trimmedMiddleInitial,
+            full_name: fullName,
+            email: trimmedEmail,
+            phone: trimmedPhone || '+1 (555) 000-0000',
+            designation: trimmedDesignation,
+            date_of_birth: trimmedDob || '1995-01-01',
+            country: country || 'United States',
+            state: state || 'California',
+            city: city || 'Los Angeles',
+            zip_code: zipCode || '90001',
+            address: address || '100 Corporate Plaza',
+            start_date: startDate || new Date().toISOString().split('T')[0],
+            end_date: endDate || null,
+            employment_status: employmentStatus,
+            registration_status: registrationStatus,
+            reviewed_by: req.user?.email || 'Admin'
+          });
+        } catch (mErr) {
+          console.error('[MongoDB Create Employee Sync Error]', mErr.message);
+        }
+      })();
+    }
+
+    logAudit({
+      userId: req.user?.employeeId || 'ADMIN',
+      userName: req.user?.email || 'Admin',
+      userRole: 'admin',
+      action: 'ADMIN_CREATED_EMPLOYEE',
+      entityType: 'employee',
+      entityId: newEmployeeId,
+      details: `Admin ${req.user?.email || 'Admin'} created new employee ${fullName} (${newEmployeeId}, ${trimmedDesignation})`,
+      ipAddress: req.ip
+    });
+
+    const newEmp = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(newEmployeeId);
+
+    res.status(201).json({
+      message: `Employee ${fullName} (${newEmployeeId}) created successfully.`,
+      employee: newEmp
+    });
+  } catch (err) {
+    console.error('[createEmployeeByAdmin Error]', err);
+    res.status(500).json({ error: err.message || 'Failed to create employee.' });
+  }
+}
 
 // Get profile of employee (self or admin)
 export function getEmployeeProfile(req, res) {

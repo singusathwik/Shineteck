@@ -101,6 +101,7 @@ export const api = {
     const query = new URLSearchParams(params).toString();
     return request(`/admin/employees${query ? `?${query}` : ''}`);
   },
+  createEmployeeByAdmin: (data) => request('/admin/employees', { method: 'POST', body: data }),
   getEmployeeDetail: (id) => request(`/admin/employees/${id}`),
   updateEmployeeByAdmin: (id, data) => request(`/admin/employees/${id}`, { method: 'PUT', body: data }),
   reviewEmployeeStatus: (id, data) => request(`/admin/employees/${id}/status`, { method: 'PATCH', body: data }),
