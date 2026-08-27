@@ -115,6 +115,7 @@ export function initSchema() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       employee_id TEXT NOT NULL,
       employee_name TEXT,
+      vendor_name TEXT DEFAULT '',
       start_date TEXT NOT NULL,
       end_date TEXT NOT NULL,
       total_hours REAL NOT NULL,
@@ -246,6 +247,11 @@ export function initSchema() {
     const payColumns = db.prepare("PRAGMA table_info(payroll_records)").all().map(c => c.name);
     if (!payColumns.includes('currency')) {
       db.exec("ALTER TABLE payroll_records ADD COLUMN currency TEXT DEFAULT 'USD';");
+    }
+
+    const tsColumns = db.prepare("PRAGMA table_info(timesheets)").all().map(c => c.name);
+    if (!tsColumns.includes('vendor_name')) {
+      db.exec("ALTER TABLE timesheets ADD COLUMN vendor_name TEXT DEFAULT '';");
     }
   } catch (migErr) {
     console.warn('[DB Migration Warning]', migErr.message);

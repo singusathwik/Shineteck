@@ -91,7 +91,7 @@ export function AdminTimesheets() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by Employee Name or ID..."
+              placeholder="Search by Employee Name, ID, or Vendor..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
@@ -122,6 +122,7 @@ export function AdminTimesheets() {
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">Employee</th>
+                <th className="py-3.5 px-4">Vendor</th>
                 <th className="py-3.5 px-4">Period</th>
                 <th className="py-3.5 px-4">Work Hours</th>
                 <th className="py-3.5 px-4">Attached Log</th>
@@ -134,7 +135,7 @@ export function AdminTimesheets() {
             <tbody className="divide-y divide-slate-100">
               {timesheets.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                  <td colSpan={9} className="py-8 text-center text-slate-400">
                     No timesheets matching the selected filter.
                   </td>
                 </tr>
@@ -144,6 +145,15 @@ export function AdminTimesheets() {
                     <td className="py-3.5 px-4">
                       <span className="font-bold text-slate-900 block">{ts.employee_full_name || ts.employee_name || ts.employee_id}</span>
                       <span className="font-mono text-[11px] text-blue-700 font-semibold">{ts.employee_id}</span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {ts.vendor_name ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-900 border border-blue-200 rounded-md font-bold text-[11px]">
+                          {ts.vendor_name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">Standard</span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4 text-slate-800 font-medium">
                       {ts.start_date} → {ts.end_date}
@@ -225,12 +235,18 @@ export function AdminTimesheets() {
 
               <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded border border-slate-200">
                 <div>
-                  <span className="text-[10px] text-slate-400 font-semibold uppercase">PERIOD RANGE</span>
-                  <p className="font-semibold text-slate-900">{reviewModalTs.start_date} to {reviewModalTs.end_date}</p>
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase">VENDOR / PLACEMENT</span>
+                  <p className="font-bold text-blue-900 text-xs">
+                    {reviewModalTs.vendor_name || 'Standard / Direct Placement'}
+                  </p>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-semibold uppercase">TOTAL WORK HOURS</span>
                   <p className="font-bold text-slate-900 text-sm">{reviewModalTs.total_hours} hrs</p>
+                </div>
+                <div className="col-span-2 pt-1 border-t border-slate-200/80">
+                  <span className="text-[10px] text-slate-400 font-semibold uppercase">PERIOD RANGE</span>
+                  <p className="font-semibold text-slate-900">{reviewModalTs.start_date} to {reviewModalTs.end_date}</p>
                 </div>
                 {reviewModalTs.file_name && (
                   <div className="col-span-2 pt-2 border-t border-slate-200 flex items-center justify-between">

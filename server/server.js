@@ -94,10 +94,11 @@ app.get('/api/documents', docCtrl.getEmployeeDocuments);
 app.post('/api/documents/upload', uploadDocument.single('document'), docCtrl.uploadEmployeeDocument);
 app.get('/api/documents/stream/:id', docCtrl.streamDocument);
 
-// Timesheets (self)
+// Timesheets & Vendors (self)
 app.get('/api/timesheets/my', timeCtrl.getMyTimesheets);
 app.post('/api/timesheets/submit', uploadTimesheet.single('timesheetFile'), timeCtrl.submitTimesheet);
 app.get('/api/timesheets/download/:id', timeCtrl.downloadTimesheetFile);
+app.get('/api/vendors/my', vendorCtrl.getMyVendors);
 
 // Payroll (self)
 app.get('/api/payroll/my', payCtrl.getMyPayroll);

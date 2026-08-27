@@ -90,6 +90,7 @@ export const api = {
     return request(`/timesheets/my${query ? `?${query}` : ''}`);
   },
   submitTimesheet: (formData) => request('/timesheets/submit', { method: 'POST', body: formData }),
+  getMyVendors: () => request('/vendors/my'),
   getMyPayroll: () => request('/payroll/my'),
   getNotifications: () => request('/notifications'),
   markNotificationRead: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),

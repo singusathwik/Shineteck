@@ -52,10 +52,13 @@ function parseHoursFromFile(filePath, mimeType) {
   return null;
 }
 
+import { Timesheet as MongoTimesheet } from '../models/index.js';
+import { isMongoConnected } from '../db/mongo.js';
+
 // Submit a new timesheet (Employee)
-export function submitTimesheet(req, res) {
+export async function submitTimesheet(req, res) {
   try {
-    const { startDate, endDate, totalHours, notes } = req.body;
+    const { startDate, endDate, totalHours, notes, vendorName, vendor_name } = req.body;
     const employeeId = req.user.employeeId;
 
     if (!startDate || !endDate) {
@@ -87,16 +90,26 @@ export function submitTimesheet(req, res) {
     const employee = db.prepare('SELECT full_name FROM employees WHERE employee_id = ?').get(employeeId);
     const employeeName = employee ? employee.full_name : req.user.email;
 
+    // Resolve vendor name: prioritize explicit user input, fallback to employee's assigned vendor
+    let finalVendorName = (vendorName || vendor_name || '').trim();
+    if (!finalVendorName) {
+      const assignedVendor = db.prepare('SELECT vendor_name FROM vendor_details WHERE employee_id = ? LIMIT 1').get(employeeId);
+      if (assignedVendor?.vendor_name) {
+        finalVendorName = assignedVendor.vendor_name;
+      }
+    }
+
     const insertStmt = db.prepare(`
       INSERT INTO timesheets (
-        employee_id, employee_name, start_date, end_date, total_hours,
+        employee_id, employee_name, vendor_name, start_date, end_date, total_hours,
         file_name, file_path, notes, status, submitted_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', CURRENT_TIMESTAMP)
     `);
 
     const result = insertStmt.run(
       employeeId,
       employeeName,
+      finalVendorName,
       startDate,
       endDate,
       parsedHours,
@@ -105,6 +118,26 @@ export function submitTimesheet(req, res) {
       notes ? notes.trim() : null
     );
 
+    // Also sync to MongoDB if connected
+    if (isMongoConnected()) {
+      try {
+        await MongoTimesheet.create({
+          employee_id: employeeId,
+          employee_name: employeeName,
+          vendor_name: finalVendorName,
+          start_date: startDate,
+          end_date: endDate,
+          total_hours: parsedHours,
+          file_name: fileName,
+          file_path: filePath,
+          notes: notes ? notes.trim() : null,
+          status: 'Pending'
+        });
+      } catch (mErr) {
+        console.warn('[MongoDB Timesheet Sync Warning]', mErr.message);
+      }
+    }
+
     // Notify employee of submission
     db.prepare(`
       INSERT INTO notifications (employee_id, title, message, type)
@@ -112,7 +145,7 @@ export function submitTimesheet(req, res) {
     `).run(
       employeeId,
       'Timesheet Submitted',
-      `Your timesheet for period ${startDate} to ${endDate} (${parsedHours} hrs) has been submitted for manager approval.`,
+      `Your timesheet for period ${startDate} to ${endDate} (${parsedHours} hrs${finalVendorName ? ` under ${finalVendorName}` : ''}) has been submitted for manager approval.`,
       'info'
     );
 
@@ -123,7 +156,7 @@ export function submitTimesheet(req, res) {
       action: 'TIMESHEET_SUBMITTED',
       entityType: 'timesheet',
       entityId: result.lastInsertRowid,
-      details: `Timesheet submitted for period ${startDate} - ${endDate} (${parsedHours} hrs)`,
+      details: `Timesheet submitted for period ${startDate} - ${endDate} (${parsedHours} hrs, Vendor: ${finalVendorName || 'Standard'})`,
       ipAddress: req.ip
     });
 
@@ -185,9 +218,9 @@ export function getAllTimesheets(req, res) {
     const params = [];
 
     if (search.trim()) {
-      query += ` AND (LOWER(t.employee_id) LIKE ? OR LOWER(e.full_name) LIKE ?)`;
+      query += ` AND (LOWER(t.employee_id) LIKE ? OR LOWER(e.full_name) LIKE ? OR LOWER(t.vendor_name) LIKE ?)`;
       const term = `%${search.trim().toLowerCase()}%`;
-      params.push(term, term);
+      params.push(term, term, term);
     }
 
     if (status && status !== 'ALL') {
@@ -216,7 +249,7 @@ export function getAllTimesheets(req, res) {
 }
 
 // Admin: Review timesheet (Approve, Reject, Request Correction)
-export function reviewTimesheet(req, res) {
+export async function reviewTimesheet(req, res) {
   try {
     const { id } = req.params;
     const { status, adminFeedback } = req.body;
@@ -239,9 +272,19 @@ export function reviewTimesheet(req, res) {
       WHERE id = ?
     `).run(status, adminFeedback || null, req.user.email, id);
 
+    // Also sync to MongoDB if connected
+    if (isMongoConnected()) {
+      try {
+        await MongoTimesheet.findOneAndUpdate(
+          { employee_id: timesheet.employee_id, start_date: timesheet.start_date, end_date: timesheet.end_date },
+          { status, admin_feedback: adminFeedback || null, reviewed_at: new Date(), reviewed_by: req.user.email }
+        );
+      } catch (mErr) {}
+    }
+
     // Notify employee
     let notifTitle = `Timesheet ${status}`;
-    let notifMsg = `Your timesheet for period ${timesheet.start_date} to ${timesheet.end_date} has been marked as: ${status}.`;
+    let notifMsg = `Your timesheet for period ${timesheet.start_date} to ${timesheet.end_date}${timesheet.vendor_name ? ` (${timesheet.vendor_name})` : ''} has been marked as: ${status}.`;
     if (adminFeedback) {
       notifMsg += ` Admin feedback: ${adminFeedback}`;
     }

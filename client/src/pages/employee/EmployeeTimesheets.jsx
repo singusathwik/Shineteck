@@ -132,6 +132,7 @@ export function EmployeeTimesheets() {
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Period Range</th>
+                <th className="py-3 px-4">Vendor</th>
                 <th className="py-3 px-4">Work Hours</th>
                 <th className="py-3 px-4">Attached File</th>
                 <th className="py-3 px-4">Submitted At</th>
@@ -142,7 +143,7 @@ export function EmployeeTimesheets() {
             <tbody className="divide-y divide-slate-100">
               {timesheets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
                     No timesheets found matching the selected criteria.
                   </td>
                 </tr>
@@ -151,6 +152,15 @@ export function EmployeeTimesheets() {
                   <tr key={ts.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-4 font-semibold text-slate-900">
                       {ts.start_date} <span className="text-slate-400 font-normal">to</span> {ts.end_date}
+                    </td>
+                    <td className="py-3 px-4">
+                      {ts.vendor_name ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded text-[11px] font-bold">
+                          {ts.vendor_name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">Standard</span>
+                      )}
                     </td>
                     <td className="py-3 px-4 font-bold text-slate-800">
                       {ts.total_hours} hrs

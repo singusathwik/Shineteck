@@ -84,6 +84,7 @@ export const Document = mongoose.models.Document || mongoose.model('Document', D
 const TimesheetSchema = new mongoose.Schema({
   employee_id: { type: String, required: true, index: true },
   employee_name: { type: String },
+  vendor_name: { type: String, default: '' },
   start_date: { type: String, required: true },
   end_date: { type: String, required: true },
   total_hours: { type: Number, required: true },
