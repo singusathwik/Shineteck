@@ -271,13 +271,67 @@ export async function login(req, res) {
     const cleanIdentifier = identifier.trim().toLowerCase();
 
     // Query user by employee_id or email
-    const user = db.prepare(`
+    let user = db.prepare(`
       SELECT u.id, u.employee_id, u.email, u.password_hash, u.role, u.status,
              e.full_name, e.designation, e.profile_image_url, e.registration_status
       FROM users u
       LEFT JOIN employees e ON e.employee_id = u.employee_id
       WHERE LOWER(u.employee_id) = ? OR LOWER(u.email) = ?
     `).get(cleanIdentifier, cleanIdentifier);
+
+    // If not found in SQLite, check MongoDB Atlas as fallback
+    if (!user && isMongoConnected()) {
+      try {
+        const mUser = await MongoUser.findOne({
+          $or: [
+            { email: cleanIdentifier },
+            { employee_id: cleanIdentifier.toUpperCase() }
+          ]
+        });
+
+        if (mUser) {
+          const mEmp = await MongoEmployee.findOne({ employee_id: mUser.employee_id });
+          // Sync to local SQLite
+          try {
+            const insRes = db.prepare(`
+              INSERT OR REPLACE INTO users (employee_id, email, password_hash, role, status)
+              VALUES (?, ?, ?, ?, ?)
+            `).run(mUser.employee_id, mUser.email, mUser.password_hash, mUser.role, mUser.status || 'active');
+
+            if (mEmp) {
+              db.prepare(`
+                INSERT OR REPLACE INTO employees (
+                  user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
+                  date_of_birth, country, state, city, zip_code, address, start_date, end_date, employment_status, registration_status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `).run(
+                insRes.lastInsertRowid, mEmp.employee_id, mEmp.first_name || '', mEmp.last_name || '', mEmp.middle_initial || '',
+                mEmp.full_name || '', mEmp.email || '', mEmp.phone || '', mEmp.designation || '', mEmp.date_of_birth || '',
+                mEmp.country || '', mEmp.state || '', mEmp.city || '', mEmp.zip_code || '', mEmp.address || '',
+                mEmp.start_date || '', mEmp.end_date || null, mEmp.employment_status || 'Active', mEmp.registration_status || 'Approved'
+              );
+            }
+          } catch (syncErr) {
+            console.warn('[Sync SQLite Warning]', syncErr.message);
+          }
+
+          user = {
+            id: mUser._id.toString(),
+            employee_id: mUser.employee_id,
+            email: mUser.email,
+            password_hash: mUser.password_hash,
+            role: mUser.role,
+            status: mUser.status || 'active',
+            full_name: mEmp ? mEmp.full_name : 'User',
+            designation: mEmp ? mEmp.designation : 'Staff',
+            profile_image_url: mEmp ? mEmp.profile_image_url : null,
+            registration_status: mEmp ? mEmp.registration_status : 'Approved'
+          };
+        }
+      } catch (mErr) {
+        console.warn('[MongoDB Atlas Lookup Warning]', mErr.message);
+      }
+    }
 
     if (!user) {
       logAudit({
