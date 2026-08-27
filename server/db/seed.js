@@ -81,268 +81,173 @@ export async function seedDatabase() {
     console.log('[DB] Admin user created (admin@shinetek.com / Admin@1234)');
   }
 
-  // Check if sample employees exist
-  const existingEmp = db.prepare("SELECT id FROM employees WHERE employee_id = 'SH-2005'").get();
-  if (!existingEmp) {
-    const salt = await bcrypt.genSalt(10);
-    const empPassHash = await bcrypt.hash('Password@123', salt);
+  const salt = await bcrypt.genSalt(10);
+  const empPassHash = await bcrypt.hash('Password@123', salt);
 
-    // Employee 1: SH-2005 (Approved & Active)
-    const emp1User = db.prepare(`
-      INSERT INTO users (employee_id, email, password_hash, role, status)
-      VALUES ('SH-2005', 'johnathan.vance@shinetek.com', ?, 'employee', 'active')
-    `).run(empPassHash);
+  // List of all employees to ensure exist in SQLite
+  const allEmployeesToSeed = [
+    {
+      id: 'SH-2005', email: 'johnathan.vance@shinetek.com',
+      first: 'Johnathan', last: 'Vance', mid: 'E.', full: 'Johnathan E. Vance', phone: '+1 (555) 234-5678',
+      role: 'Senior Software Engineer', dob: '1992-06-15',
+      country: 'United States', state: 'California', city: 'Los Angeles', zip: '90001', address: '742 Evergreen Terrace, Apt 4B',
+      startDate: '2026-01-01', status: 'Active', regStatus: 'Approved'
+    },
+    {
+      id: 'SH-2006', email: 'emily.chen@shinetek.com',
+      first: 'Emily', last: 'Chen', mid: '', full: 'Emily Chen', phone: '+1 (555) 456-7890',
+      role: 'Senior UX/UI Designer', dob: '1995-11-20',
+      country: 'United States', state: 'California', city: 'San Francisco', zip: '94105', address: '500 Howard Street, Suite 300',
+      startDate: '2026-02-01', status: 'Active', regStatus: 'Approved'
+    },
+    {
+      id: 'SH-2007', email: 'marcus.brody@shinetek.com',
+      first: 'Marcus', last: 'Brody', mid: '', full: 'Marcus Brody', phone: '+1 (555) 789-0123',
+      role: 'Cloud Solutions Architect', dob: '1990-03-08',
+      country: 'United States', state: 'Texas', city: 'Austin', zip: '78701', address: '1200 Congress Ave',
+      startDate: '2025-06-01', status: 'Active', regStatus: 'Approved'
+    },
+    {
+      id: 'SH-2008', email: 'rajesh.sharma@shinetek.com',
+      first: 'Rajesh', last: 'Sharma', mid: '', full: 'Rajesh Sharma', phone: '+91 98765 43210',
+      role: 'Lead Full Stack Engineer', dob: '1993-04-18',
+      country: 'India', state: 'Karnataka', city: 'Bengaluru', zip: '560001', address: '12 MG Road, Indiranagar',
+      startDate: '2025-08-01', status: 'Active', regStatus: 'Approved'
+    },
+    {
+      id: 'SH-2009', email: 'priya.patel@shinetek.com',
+      first: 'Priya', last: 'Patel', mid: '', full: 'Priya Patel', phone: '+91 91234 56789',
+      role: 'Senior QA Automation Engineer', dob: '1996-09-24',
+      country: 'India', state: 'Maharashtra', city: 'Pune', zip: '411001', address: '45 Koregaon Park',
+      startDate: '2025-11-15', status: 'Active', regStatus: 'Approved'
+    },
+    {
+      id: 'SH-2010', email: 'ananya.reddy@shinetek.com',
+      first: 'Ananya', last: 'Reddy', mid: '', full: 'Ananya Reddy', phone: '+91 99887 76655',
+      role: 'DevOps & Cloud Engineer', dob: '1994-12-05',
+      country: 'India', state: 'Telangana', city: 'Hyderabad', zip: '500081', address: '88 HITEC City, Madhapur',
+      startDate: '2026-01-10', status: 'Active', regStatus: 'Approved'
+    },
+    {
+      id: 'SH-2011', email: 'vikram.verma@shinetek.com',
+      first: 'Vikram', last: 'Verma', mid: '', full: 'Vikram Verma', phone: '+91 98450 11223',
+      role: 'Staff Data Engineer', dob: '1991-08-14',
+      country: 'India', state: 'Delhi NCR', city: 'Gurugram', zip: '122002', address: 'DLF Cyber City, Tower B',
+      startDate: '2025-05-01', status: 'Active', regStatus: 'Approved'
+    }
+  ];
 
-    db.prepare(`
-      INSERT INTO employees (
-        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-        date_of_birth, country, state, city, zip_code, address,
-        start_date, end_date, employment_status,
-        registration_status, submitted_at, reviewed_at, reviewed_by
-      ) VALUES (?, 'SH-2005', 'Johnathan', 'Vance', 'E.', 'Johnathan E. Vance', 'johnathan.vance@shinetek.com', '+1 (555) 234-5678', 'Senior Software Engineer',
-        '1992-06-15', 'United States', 'California', 'Los Angeles', '90001', '742 Evergreen Terrace, Apt 4B',
-        '2026-01-01', null, 'Active',
-        'Approved', '2026-01-05 09:30:00', '2026-01-06 14:20:00', 'admin@shinetek.com')
-    `).run(emp1User.lastInsertRowid);
+  // 1. Ensure all employees and user accounts exist
+  for (const emp of allEmployeesToSeed) {
+    let userRow = db.prepare('SELECT id FROM users WHERE employee_id = ?').get(emp.id);
+    if (!userRow) {
+      const res = db.prepare(`
+        INSERT INTO users (employee_id, email, password_hash, role, status)
+        VALUES (?, ?, ?, 'employee', 'active')
+      `).run(emp.id, emp.email, empPassHash);
+      userRow = { id: res.lastInsertRowid };
+    }
 
-    // Documents for Johnathan
-    db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status, reviewed_at, reviewed_by) VALUES (?, 'w4', 'Form_W4_Vance.pdf', 'sample_w4_johnathan.pdf', 245120, 'application/pdf', 'Approved', CURRENT_TIMESTAMP, 'admin@shinetek.com')").run('SH-2005');
-    db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status, reviewed_at, reviewed_by) VALUES (?, 'i9', 'Form_I9_Vance.pdf', 'sample_i9_johnathan.pdf', 312450, 'application/pdf', 'Approved', CURRENT_TIMESTAMP, 'admin@shinetek.com')").run('SH-2005');
-    db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status, reviewed_at, reviewed_by) VALUES (?, 'passport', 'US_Passport_Vance.jpg', 'sample_passport_johnathan.jpg', 1845000, 'image/jpeg', 'Approved', CURRENT_TIMESTAMP, 'admin@shinetek.com')").run('SH-2005');
-    db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status, reviewed_at, reviewed_by) VALUES (?, 'visa', 'US_Work_Auth_Vance.pdf', 'sample_visa_johnathan.pdf', 450120, 'application/pdf', 'Approved', CURRENT_TIMESTAMP, 'admin@shinetek.com')").run('SH-2005');
-
-    // Timesheets for Johnathan
-    db.prepare(`
-      INSERT INTO timesheets (employee_id, employee_name, start_date, end_date, total_hours, file_name, file_path, notes, status, submitted_at, reviewed_at, reviewed_by)
-      VALUES ('SH-2005', 'Johnathan E. Vance', '2026-01-01', '2026-01-15', 80.0, 'timesheet_jan1.csv', 'timesheet_johnathan_jan1.csv', 'Completed sprint deliverables', 'Approved', '2026-01-16 10:35:00', '2026-01-17 11:00:00', 'admin@shinetek.com')
-    `).run();
-    db.prepare(`
-      INSERT INTO timesheets (employee_id, employee_name, start_date, end_date, total_hours, file_name, file_path, notes, status, submitted_at)
-      VALUES ('SH-2005', 'Johnathan E. Vance', '2026-01-16', '2026-01-31', 76.0, 'timesheet_jan2.csv', 'timesheet_johnathan_jan1.csv', 'Architecture refactoring', 'Pending', '2026-02-01 09:15:00')
-    `).run();
-
-    // Payroll for Johnathan
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, payment_date, payment_status)
-      VALUES ('SH-2005', '2026-01-01', '2026-01-15', 5200.00, 1150.00, 4050.00, '2026-01-20', 'Paid')
-    `).run();
-
-    // Employee 2: SH-2006 (Pending Review & Active)
-    const emp2User = db.prepare(`
-      INSERT INTO users (employee_id, email, password_hash, role, status)
-      VALUES ('SH-2006', 'emily.chen@shinetek.com', ?, 'employee', 'active')
-    `).run(empPassHash);
-
-    db.prepare(`
-      INSERT INTO employees (
-        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-        date_of_birth, country, state, city, zip_code, address,
-        start_date, end_date, employment_status,
-        registration_status, submitted_at
-      ) VALUES (?, 'SH-2006', 'Emily', 'Chen', null, 'Emily Chen', 'emily.chen@shinetek.com', '+1 (555) 456-7890', 'Senior UX/UI Designer',
-        '1995-11-20', 'United States', 'California', 'San Francisco', '94105', '500 Howard Street, Suite 300',
-        '2026-02-01', null, 'Active',
-        'Pending Review', '2026-02-10 16:45:00')
-    `).run(emp2User.lastInsertRowid);
-
-    db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status) VALUES (?, 'w4', 'Chen_W4_2026.pdf', 'sample_w4_emily.pdf', 210000, 'application/pdf', 'Uploaded')").run('SH-2006');
-    db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status) VALUES (?, 'i9', 'Chen_I9_Form.pdf', 'sample_i9_emily.pdf', 290000, 'application/pdf', 'Uploaded')").run('SH-2006');
-
-    // Employee 3: SH-2007 (Inactive / Ended Sample)
-    const emp3User = db.prepare(`
-      INSERT INTO users (employee_id, email, password_hash, role, status)
-      VALUES ('SH-2007', 'marcus.brody@shinetek.com', ?, 'employee', 'suspended')
-    `).run(empPassHash);
-
-    db.prepare(`
-      INSERT INTO employees (
-        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-        date_of_birth, country, state, city, zip_code, address,
-        start_date, end_date, employment_status,
-        registration_status, admin_notes, submitted_at, reviewed_at, reviewed_by
-      ) VALUES (?, 'SH-2007', 'Marcus', 'Brody', null, 'Marcus Brody', 'marcus.brody@shinetek.com', '+1 (555) 789-0123', 'Cloud Solutions Architect',
-        '1990-03-08', 'United States', 'Texas', 'Austin', '78701', '1200 Congress Ave',
-        '2025-06-01', '2026-02-15', 'Inactive',
-        'Needs Correction', 'Please re-upload your W-4 form as page 2 was missing the signature.', '2026-02-08 11:20:00', '2026-02-09 10:15:00', 'admin@shinetek.com')
-    `).run(emp3User.lastInsertRowid);
-
-    db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status, review_notes, reviewed_at, reviewed_by) VALUES (?, 'w4', 'Marcus_W4.pdf', 'sample_w4_marcus.pdf', 195000, 'application/pdf', 'Needs Replacement', 'Page 2 is missing signature. Please re-upload with clear signature.', CURRENT_TIMESTAMP, 'admin@shinetek.com')").run('SH-2007');
-
-    // Employee 4 (India): SH-2008 (Rajesh Sharma - Lead Full Stack Engineer)
-    const emp4User = db.prepare(`
-      INSERT INTO users (employee_id, email, password_hash, role, status)
-      VALUES ('SH-2008', 'rajesh.sharma@shinetek.com', ?, 'employee', 'active')
-    `).run(empPassHash);
-
-    db.prepare(`
-      INSERT INTO employees (
-        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-        date_of_birth, country, state, city, zip_code, address,
-        start_date, end_date, employment_status,
-        registration_status, submitted_at, reviewed_at, reviewed_by
-      ) VALUES (?, 'SH-2008', 'Rajesh', 'Sharma', null, 'Rajesh Sharma', 'rajesh.sharma@shinetek.com', '+91 98765 43210', 'Lead Full Stack Engineer',
-        '1993-04-18', 'India', 'Karnataka', 'Bengaluru', '560001', '12 MG Road, Indiranagar',
-        '2025-08-01', null, 'Active',
-        'Approved', '2025-08-01 09:00:00', '2025-08-02 11:00:00', 'admin@shinetek.com')
-    `).run(emp4User.lastInsertRowid);
-
-    // Indian Payroll Records for Rajesh Sharma (INR)
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2008', '2026-01-01', '2026-01-31', 185000.00, 28500.00, 156500.00, 'INR', '2026-01-31', 'Paid')
-    `).run();
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2008', '2026-02-01', '2026-02-28', 185000.00, 28500.00, 156500.00, 'INR', '2026-02-28', 'Paid')
-    `).run();
-
-    // Employee 5 (India): SH-2009 (Priya Patel - Senior QA Automation Engineer)
-    const emp5User = db.prepare(`
-      INSERT INTO users (employee_id, email, password_hash, role, status)
-      VALUES ('SH-2009', 'priya.patel@shinetek.com', ?, 'employee', 'active')
-    `).run(empPassHash);
-
-    db.prepare(`
-      INSERT INTO employees (
-        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-        date_of_birth, country, state, city, zip_code, address,
-        start_date, end_date, employment_status,
-        registration_status, submitted_at, reviewed_at, reviewed_by
-      ) VALUES (?, 'SH-2009', 'Priya', 'Patel', null, 'Priya Patel', 'priya.patel@shinetek.com', '+91 91234 56789', 'Senior QA Automation Engineer',
-        '1996-09-24', 'India', 'Maharashtra', 'Pune', '411001', '45 Koregaon Park',
-        '2025-11-15', null, 'Active',
-        'Approved', '2025-11-15 10:00:00', '2025-11-16 14:30:00', 'admin@shinetek.com')
-    `).run(emp5User.lastInsertRowid);
-
-    // Indian Payroll Records for Priya Patel (INR)
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2009', '2026-01-01', '2026-01-31', 135000.00, 19200.00, 115800.00, 'INR', '2026-01-31', 'Paid')
-    `).run();
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2009', '2026-02-01', '2026-02-28', 135000.00, 19200.00, 115800.00, 'INR', '2026-02-28', 'Paid')
-    `).run();
-
-    // Employee 6 (India): SH-2010 (Ananya Reddy - DevOps & Cloud Engineer)
-    const emp6User = db.prepare(`
-      INSERT INTO users (employee_id, email, password_hash, role, status)
-      VALUES ('SH-2010', 'ananya.reddy@shinetek.com', ?, 'employee', 'active')
-    `).run(empPassHash);
-
-    db.prepare(`
-      INSERT INTO employees (
-        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-        date_of_birth, country, state, city, zip_code, address,
-        start_date, end_date, employment_status,
-        registration_status, submitted_at, reviewed_at, reviewed_by
-      ) VALUES (?, 'SH-2010', 'Ananya', 'Reddy', null, 'Ananya Reddy', 'ananya.reddy@shinetek.com', '+91 99887 76655', 'DevOps & Cloud Engineer',
-        '1994-12-05', 'India', 'Telangana', 'Hyderabad', '500081', '88 HITEC City, Madhapur',
-        '2026-01-10', null, 'Active',
-        'Approved', '2026-01-10 11:15:00', '2026-01-11 16:00:00', 'admin@shinetek.com')
-    `).run(emp6User.lastInsertRowid);
-
-    // Indian Payroll Record for Ananya Reddy (INR)
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2010', '2026-02-01', '2026-02-28', 160000.00, 24000.00, 136000.00, 'INR', '2026-03-05', 'Processing')
-    `).run();
-
-    // Employee 7 (India): SH-2011 (Vikram Verma - Staff Data Engineer)
-    const emp7User = db.prepare(`
-      INSERT INTO users (employee_id, email, password_hash, role, status)
-      VALUES ('SH-2011', 'vikram.verma@shinetek.com', ?, 'employee', 'active')
-    `).run(empPassHash);
-
-    db.prepare(`
-      INSERT INTO employees (
-        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-        date_of_birth, country, state, city, zip_code, address,
-        start_date, end_date, employment_status,
-        registration_status, submitted_at, reviewed_at, reviewed_by
-      ) VALUES (?, 'SH-2011', 'Vikram', 'Verma', null, 'Vikram Verma', 'vikram.verma@shinetek.com', '+91 98450 11223', 'Staff Data Engineer',
-        '1991-08-14', 'India', 'Delhi NCR', 'Gurugram', '122002', 'DLF Cyber City, Tower B',
-        '2025-05-01', null, 'Active',
-        'Approved', '2025-05-01 10:00:00', '2025-05-02 14:00:00', 'admin@shinetek.com')
-    `).run(emp7User.lastInsertRowid);
-
-    // Indian Payroll Records for Vikram Verma (INR)
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2011', '2026-01-01', '2026-01-31', 210000.00, 32000.00, 178000.00, 'INR', '2026-01-31', 'Paid')
-    `).run();
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2011', '2026-02-01', '2026-02-28', 210000.00, 32000.00, 178000.00, 'INR', '2026-02-28', 'Paid')
-    `).run();
-
-    // US Payroll Records for Emily Chen and Marcus Brody
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2006', '2026-01-01', '2026-01-15', 4800.00, 980.00, 3820.00, 'USD', '2026-01-20', 'Paid')
-    `).run();
-    db.prepare(`
-      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
-      VALUES ('SH-2007', '2026-01-01', '2026-01-15', 6100.00, 1400.00, 4700.00, 'USD', '2026-01-20', 'Paid')
-    `).run();
-
-    // Initial sequence update
-    db.prepare("UPDATE system_settings SET value = '2012' WHERE key = 'id_current_seq'").run();
-
-    console.log('[DB] Sample employees and Indian payroll seeded (SH-2005 to SH-2011). Next ID set to SH-2012.');
+    const empRow = db.prepare('SELECT id FROM employees WHERE employee_id = ?').get(emp.id);
+    if (!empRow) {
+      db.prepare(`
+        INSERT INTO employees (
+          user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
+          date_of_birth, country, state, city, zip_code, address,
+          start_date, employment_status, registration_status, submitted_at, reviewed_at, reviewed_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', 'Approved', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'admin@shinetek.com')
+      `).run(
+        userRow.id, emp.id, emp.first, emp.last, emp.mid, emp.full, emp.email, emp.phone, emp.role,
+        emp.dob, emp.country, emp.state, emp.city, emp.zip, emp.address, emp.startDate
+      );
+    } else {
+      db.prepare('UPDATE employees SET country = ?, designation = ? WHERE employee_id = ?').run(emp.country, emp.role, emp.id);
+    }
   }
 
-  // Ensure Payroll Billing Entries (Payroll Information) exist in SQLite
-  try {
-    const existingEntriesCount = db.prepare('SELECT count(*) as c FROM payroll_entries').get().c;
-    if (existingEntriesCount === 0) {
-      const sampleEntries = [
-        // Indian Employee Billing Entries (INR)
-        { emp_id: 'SH-2008', name: 'Rajesh Sharma', month: '2026-02', vendor: 'Tata Consultancy Services (TCS)', client: 'Shinetek Cloud Platform', hours: 160, bill_rate: 1500, emp_rate: 1156.25, gross: 185000.00, cur: 'INR', country: 'India' },
-        { emp_id: 'SH-2008', name: 'Rajesh Sharma', month: '2026-01', vendor: 'Tata Consultancy Services (TCS)', client: 'Shinetek Cloud Platform', hours: 160, bill_rate: 1500, emp_rate: 1156.25, gross: 185000.00, cur: 'INR', country: 'India' },
-        { emp_id: 'SH-2009', name: 'Priya Patel', month: '2026-02', vendor: 'Infosys Technologies', client: 'FinTech Global Corp', hours: 160, bill_rate: 1200, emp_rate: 843.75, gross: 135000.00, cur: 'INR', country: 'India' },
-        { emp_id: 'SH-2009', name: 'Priya Patel', month: '2026-01', vendor: 'Infosys Technologies', client: 'FinTech Global Corp', hours: 160, bill_rate: 1200, emp_rate: 843.75, gross: 135000.00, cur: 'INR', country: 'India' },
-        { emp_id: 'SH-2010', name: 'Ananya Reddy', month: '2026-02', vendor: 'Wipro Digital', client: 'Healthcare Nexus Platform', hours: 160, bill_rate: 1400, emp_rate: 1000, gross: 160000.00, cur: 'INR', country: 'India' },
-        { emp_id: 'SH-2011', name: 'Vikram Verma', month: '2026-02', vendor: 'HCL Technologies', client: 'Retail Logistics AI', hours: 168, bill_rate: 1800, emp_rate: 1250, gross: 210000.00, cur: 'INR', country: 'India' },
-        // US / Foreign Employee Billing Entries (USD)
-        { emp_id: 'SH-2005', name: 'Johnathan Vance', month: '2026-02', vendor: 'Apex Systems', client: 'Google Cloud Services', hours: 160, bill_rate: 95, emp_rate: 65, gross: 10400.00, cur: 'USD', country: 'United States' },
-        { emp_id: 'SH-2005', name: 'Johnathan Vance', month: '2026-01', vendor: 'Apex Systems', client: 'Google Cloud Services', hours: 160, bill_rate: 95, emp_rate: 65, gross: 10400.00, cur: 'USD', country: 'United States' },
-        { emp_id: 'SH-2006', name: 'Emily Chen', month: '2026-02', vendor: 'Insight Global', client: 'Meta Platforms', hours: 160, bill_rate: 85, emp_rate: 60, gross: 9600.00, cur: 'USD', country: 'United States' },
-        { emp_id: 'SH-2007', name: 'Marcus Brody', month: '2026-02', vendor: 'TEKsystems', client: 'Amazon Web Services', hours: 160, bill_rate: 110, emp_rate: 75, gross: 12000.00, cur: 'USD', country: 'United States' }
-      ];
+  // 2. Ensure sample Payroll Statements (Payroll Management) exist
+  const sampleStatements = [
+    // Indian Statements (INR)
+    { empId: 'SH-2008', start: '2026-01-01', end: '2026-01-31', gross: 185000.00, ded: 28500.00, net: 156500.00, cur: 'INR', date: '2026-01-31', status: 'Paid' },
+    { empId: 'SH-2008', start: '2026-02-01', end: '2026-02-28', gross: 185000.00, ded: 28500.00, net: 156500.00, cur: 'INR', date: '2026-02-28', status: 'Paid' },
+    { empId: 'SH-2009', start: '2026-01-01', end: '2026-01-31', gross: 135000.00, ded: 19200.00, net: 115800.00, cur: 'INR', date: '2026-01-31', status: 'Paid' },
+    { empId: 'SH-2009', start: '2026-02-01', end: '2026-02-28', gross: 135000.00, ded: 19200.00, net: 115800.00, cur: 'INR', date: '2026-02-28', status: 'Paid' },
+    { empId: 'SH-2010', start: '2026-02-01', end: '2026-02-28', gross: 160000.00, ded: 24000.00, net: 136000.00, cur: 'INR', date: '2026-03-05', status: 'Processing' },
+    { empId: 'SH-2011', start: '2026-01-01', end: '2026-01-31', gross: 210000.00, ded: 32000.00, net: 178000.00, cur: 'INR', date: '2026-01-31', status: 'Paid' },
+    { empId: 'SH-2011', start: '2026-02-01', end: '2026-02-28', gross: 210000.00, ded: 32000.00, net: 178000.00, cur: 'INR', date: '2026-02-28', status: 'Paid' },
+    // US Statements (USD)
+    { empId: 'SH-2005', start: '2026-01-01', end: '2026-01-15', gross: 5200.00, ded: 1150.00, net: 4050.00, cur: 'USD', date: '2026-01-20', status: 'Paid' },
+    { empId: 'SH-2005', start: '2026-01-16', end: '2026-01-31', gross: 5200.00, ded: 1150.00, net: 4050.00, cur: 'USD', date: '2026-02-05', status: 'Paid' },
+    { empId: 'SH-2005', start: '2026-02-01', end: '2026-02-15', gross: 5200.00, ded: 1150.00, net: 4050.00, cur: 'USD', date: '2026-02-20', status: 'Paid' },
+    { empId: 'SH-2006', start: '2026-01-01', end: '2026-01-31', gross: 4800.00, ded: 980.00, net: 3820.00, cur: 'USD', date: '2026-02-05', status: 'Paid' },
+    { empId: 'SH-2006', start: '2026-02-01', end: '2026-02-28', gross: 4800.00, ded: 980.00, net: 3820.00, cur: 'USD', date: '2026-03-05', status: 'Paid' },
+    { empId: 'SH-2007', start: '2026-01-01', end: '2026-01-31', gross: 6100.00, ded: 1400.00, net: 4700.00, cur: 'USD', date: '2026-02-05', status: 'Paid' },
+    { empId: 'SH-2007', start: '2026-02-01', end: '2026-02-28', gross: 6100.00, ded: 1400.00, net: 4700.00, cur: 'USD', date: '2026-03-05', status: 'Paid' }
+  ];
 
-      const stmt = db.prepare(`
+  for (const st of sampleStatements) {
+    const exists = db.prepare('SELECT id FROM payroll_records WHERE employee_id = ? AND pay_period_start = ? AND pay_period_end = ?').get(st.empId, st.start, st.end);
+    if (!exists) {
+      db.prepare(`
+        INSERT INTO payroll_records (
+          employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(st.empId, st.start, st.end, st.gross, st.ded, st.net, st.cur, st.date, st.status);
+    }
+  }
+
+  // 3. Ensure sample Payroll Billing Entries (Payroll Information) exist
+  const sampleBillingEntries = [
+    // Indian Billing Entries (INR)
+    { emp_id: 'SH-2008', name: 'Rajesh Sharma', month: '2026-02', vendor: 'Tata Consultancy Services (TCS)', client: 'Shinetek Cloud Platform', hours: 160, bill: 1500, empRate: 1156.25, gross: 185000.00, cur: 'INR', country: 'India' },
+    { emp_id: 'SH-2008', name: 'Rajesh Sharma', month: '2026-01', vendor: 'Tata Consultancy Services (TCS)', client: 'Shinetek Cloud Platform', hours: 160, bill: 1500, empRate: 1156.25, gross: 185000.00, cur: 'INR', country: 'India' },
+    { emp_id: 'SH-2009', name: 'Priya Patel', month: '2026-02', vendor: 'Infosys Technologies', client: 'FinTech Global Corp', hours: 160, bill: 1200, empRate: 843.75, gross: 135000.00, cur: 'INR', country: 'India' },
+    { emp_id: 'SH-2009', name: 'Priya Patel', month: '2026-01', vendor: 'Infosys Technologies', client: 'FinTech Global Corp', hours: 160, bill: 1200, empRate: 843.75, gross: 135000.00, cur: 'INR', country: 'India' },
+    { emp_id: 'SH-2010', name: 'Ananya Reddy', month: '2026-02', vendor: 'Wipro Digital', client: 'Healthcare Nexus Platform', hours: 160, bill: 1400, empRate: 1000, gross: 160000.00, cur: 'INR', country: 'India' },
+    { emp_id: 'SH-2011', name: 'Vikram Verma', month: '2026-02', vendor: 'HCL Technologies', client: 'Retail Logistics AI', hours: 168, bill: 1800, empRate: 1250, gross: 210000.00, cur: 'INR', country: 'India' },
+    { emp_id: 'SH-2011', name: 'Vikram Verma', month: '2026-01', vendor: 'HCL Technologies', client: 'Retail Logistics AI', hours: 160, bill: 1800, empRate: 1250, gross: 200000.00, cur: 'INR', country: 'India' },
+    // US Billing Entries (USD)
+    { emp_id: 'SH-2005', name: 'Johnathan Vance', month: '2026-02', vendor: 'Apex Systems', client: 'Google Cloud Services', hours: 160, bill: 95, empRate: 65, gross: 10400.00, cur: 'USD', country: 'United States' },
+    { emp_id: 'SH-2005', name: 'Johnathan Vance', month: '2026-01', vendor: 'Apex Systems', client: 'Google Cloud Services', hours: 160, bill: 95, empRate: 65, gross: 10400.00, cur: 'USD', country: 'United States' },
+    { emp_id: 'SH-2006', name: 'Emily Chen', month: '2026-02', vendor: 'Insight Global', client: 'Meta Platforms', hours: 160, bill: 85, empRate: 60, gross: 9600.00, cur: 'USD', country: 'United States' },
+    { emp_id: 'SH-2007', name: 'Marcus Brody', month: '2026-02', vendor: 'TEKsystems', client: 'Amazon Web Services', hours: 160, bill: 110, empRate: 75, gross: 12000.00, cur: 'USD', country: 'United States' }
+  ];
+
+  for (const b of sampleBillingEntries) {
+    const exists = db.prepare('SELECT id FROM payroll_entries WHERE employee_id = ? AND payroll_month = ?').get(b.emp_id, b.month);
+    if (!exists) {
+      db.prepare(`
         INSERT INTO payroll_entries (
           employee_id, employee_name, payroll_month, vendor_name, client_name,
           total_hours, bill_rate, emp_bill_rate, gross_amount, currency, country
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      sampleEntries.forEach(s => {
-        stmt.run(s.emp_id, s.name, s.month, s.vendor, s.client, s.hours, s.bill_rate, s.emp_rate, s.gross, s.cur, s.country);
-      });
-      console.log('[DB] Sample Payroll Billing Entries seeded into SQLite.');
+      `).run(b.emp_id, b.name, b.month, b.vendor, b.client, b.hours, b.bill, b.empRate, b.gross, b.cur, b.country);
     }
-  } catch (peErr) {
-    console.warn('[DB] payroll_entries seeding notice:', peErr.message);
   }
 
-  // Ensure Vendor Details exist in SQLite
-  try {
-    const existingVendorsCount = db.prepare('SELECT count(*) as c FROM vendor_details').get().c;
-    if (existingVendorsCount === 0) {
+  // 4. Ensure sample Vendor Details exist
+  const sampleVendors = [
+    { empId: 'SH-2005', name: 'Johnathan Vance', vendor: 'Apex Systems', vAddr: 'Richmond, VA', client: 'Google Cloud Services', cAddr: 'Mountain View, CA', bill: 95, empRate: 65, bu: 30, visa: 'H-1B', tax: 8.5, net: 27.45 },
+    { empId: 'SH-2008', name: 'Rajesh Sharma', vendor: 'Tata Consultancy Services (TCS)', vAddr: 'Mumbai, MH, India', client: 'Shinetek Cloud Platform', cAddr: 'Bengaluru, KA, India', bill: 1500, empRate: 1156.25, bu: 343.75, visa: 'H-1B', tax: 8.5, net: 314.53 },
+    { empId: 'SH-2009', name: 'Priya Patel', vendor: 'Infosys Technologies', vAddr: 'Electronic City, Bengaluru, India', client: 'FinTech Global Corp', cAddr: 'Pune, MH, India', bill: 1200, empRate: 843.75, bu: 356.25, visa: 'OPT', tax: 2.5, net: 347.34 },
+    { empId: 'SH-2010', name: 'Ananya Reddy', vendor: 'Wipro Digital', vAddr: 'Bengaluru, India', client: 'Healthcare Nexus Platform', cAddr: 'Hyderabad, India', bill: 1400, empRate: 1000, bu: 400, visa: 'H-1B', tax: 8.5, net: 366.00 },
+    { empId: 'SH-2011', name: 'Vikram Verma', vendor: 'HCL Technologies', vAddr: 'Noida, India', client: 'Retail Logistics AI', cAddr: 'Gurugram, India', bill: 1800, empRate: 1250, bu: 550, visa: 'H-1B', tax: 8.5, net: 503.25 }
+  ];
+
+  for (const v of sampleVendors) {
+    const exists = db.prepare('SELECT id FROM vendor_details WHERE employee_id = ?').get(v.empId);
+    if (!exists) {
       db.prepare(`
         INSERT INTO vendor_details (
           employee_id, employee_name, vendor_name, vendor_address, client_name, client_address,
           hourly_bill_rate, employee_rate, bu_margin, visa_type, tax_percent, net_margin
-        ) VALUES
-        ('SH-2005', 'Johnathan Vance', 'Apex Systems', 'Richmond, VA', 'Google Cloud Services', 'Mountain View, CA', 95.0, 65.0, 30.0, 'H-1B', 8.5, 27.45),
-        ('SH-2008', 'Rajesh Sharma', 'Tata Consultancy Services (TCS)', 'Mumbai, India', 'Shinetek Cloud Platform', 'Bengaluru, India', 1500.0, 1156.25, 343.75, 'H-1B', 8.5, 314.53),
-        ('SH-2009', 'Priya Patel', 'Infosys Technologies', 'Bengaluru, India', 'FinTech Global Corp', 'Pune, India', 1200.0, 843.75, 356.25, 'OPT', 2.5, 347.34)
-      `).run();
-      console.log('[DB] Sample Vendor Details seeded into SQLite.');
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(v.empId, v.name, v.vendor, v.vAddr, v.client, v.cAddr, v.bill, v.empRate, v.bu, v.visa, v.tax, v.net);
     }
-  } catch (vdErr) {
-    console.warn('[DB] vendor_details seeding notice:', vdErr.message);
   }
+
+  // Update sequence counter
+  db.prepare("UPDATE system_settings SET value = '2012' WHERE key = 'id_current_seq'").run();
+
+  console.log('[DB] Individual seed checks complete. All multi-national records verified in SQLite.');
 }
