@@ -9,7 +9,8 @@
 
 Shineteck Inc. is an elite IT Consulting, Workforce Governance, and Enterprise Solutions provider. The visual language conveys:
 - **Executive Trust & Precision**: Crisp, high-contrast, structured enterprise density (comparable to Linear, Deel, Stripe, and Workday).
-- **Modern Elegance (Anti-Slop)**: Restrained specular highlights, double-bezel cards, micro-tooltips, subtle depth shadows, and fluid 60fps ambient motion.
+- **Eye-Comfortable Warm Slate Palette (Anti-Glare / Anti-Fatigue)**: Uses rich tonal contrast with a warm slate-mist background (`#eef2f6`), deep executive navy sidebar (`#071524`), crisp porcelain cards (`#ffffff`), and distinct table striping so users never experience blinding white fatigue.
+- **Human-Centric Visual Anchors (Avatars & Monograms)**: Every personnel row features a prominent, high-contrast Employee Avatar / Monogram badge so faces and personnel are instantly recognizable at a glance.
 - **Dual Mode Coherence**: Clean, executive Light Mode for daylight operational workflows and deep Navy/Obsidian for high-focus identity terminals.
 
 ---
@@ -17,20 +18,20 @@ Shineteck Inc. is an elite IT Consulting, Workforce Governance, and Enterprise S
 ## 2. Color Palette & Semantic Tokens
 
 ### Brand Core
+- **Deep Executive Frame**: `#071524` (`--brand-obsidian`) — Sidebar navigation, auth backdrops, terminal framing.
 - **Primary Navy**: `#0f2b48` (`--brand-navy`) — Header accents, executive buttons, primary titles.
-- **Deep Obsidian**: `#071524` (`--brand-obsidian`) — Root background for terminals and badge cards.
-- **Electric Corporate Blue**: `#2563eb` (`--brand-blue`) — Primary focus rings, active tabs, interactive links.
+- **Corporate Accent Blue**: `#2563eb` (`--brand-blue`) — Primary focus rings, active tabs, interactive links.
 - **Energy Amber**: `#e27a3f` (`--brand-amber`) — Secondary logo mark accent, overtime warnings, pending status.
 - **Emerald Growth**: `#439b61` (`--brand-emerald`) — Approved status, SOC-2 verification badges, positive margins.
 
-### Neutrals (Light Workspace)
-- **Canvas Base**: `#f8fafc` (`slate-50`)
-- **Card Background**: `#ffffff` (`white`)
-- **Bezel Frame**: `#f1f5f9` (`slate-100`)
-- **Hairline Borders**: `#e2e8f0` (`slate-200`) & `#cbd5e1` (`slate-300`)
+### Neutrals (Eye-Friendly Layering)
+- **Canvas Base**: `#eef2f6` (Warm Slate Mist with subtle top radial gradient — never stark #ffffff)
+- **Card Background**: `#ffffff` (`white` with `#d9e2ec` defined borders)
+- **Bezel Frame**: `#f1f5f9` (`slate-100` double-bezel wrapper)
+- **Table Header**: `#eaf0f7` (Distinct slate-blue header tone)
+- **Zebra Rows**: Alternating `#ffffff` and `#f8fafc` with `#e3effa` hover highlight
 - **Primary Text**: `#0f172a` (`slate-900`)
-- **Muted Text**: `#64748b` (`slate-500`)
-- **Subtle Captions**: `#94a3b8` (`slate-400`)
+- **Muted Text**: `#475569` (`slate-600`) & `#64748b` (`slate-500`)
 
 ---
 
@@ -55,38 +56,25 @@ font-weight: 500 | 700;
 
 ## 4. Component Anatomy & Tokens
 
+### Employee Avatar & Visual Face Anchors (`<EmployeeAvatar />`)
+- Prominent 32px-48px avatar badge in all table rows, directory cards, approvals, and headers.
+- Displays employee photo with fallback to color-coded monogram initials (Blue, Indigo, Purple, Emerald, Amber, Teal, Rose).
+- Displays status ring badge (Active = Emerald, Pending = Amber, Inactive = Rose).
+
+### High-Density Table System (`.table-container` & `.enterprise-table`)
+- Wrap in `.table-container` with border `#cbd5e1` and soft depth shadow.
+- Header: `#eaf0f7` with bold slate labels and 2px `#cbd5e1` separator.
+- Zebra Rows: Alternating `#ffffff` and `#f8fafc` with soothing `#e3effa` hover.
+
 ### Double-Bezel Card (`.enterprise-card`)
-- Outer shell: `rounded-2xl p-1 bg-slate-100/90 border border-slate-200/80 shadow-xl shadow-slate-200/60`
-- Inner core: `bg-white rounded-xl p-6 sm:p-8 border border-slate-200/70`
-
-### Interactive Button Tokens
-- **Primary CTA (`.enterprise-btn-primary`)**:
-  `px-4 py-2.5 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-98 flex items-center gap-2 cursor-pointer`
-- **Secondary Action (`.enterprise-btn-secondary`)**:
-  `px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all active:scale-98 flex items-center gap-1.5 cursor-pointer`
-
-### Form Controls
-- Inputs: `bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs`
-
-### Enterprise Table (`.enterprise-table`)
-- Wrap in `.table-container` with horizontal overflow protection.
-- Header: `bg-slate-50 text-[10.5px] uppercase font-bold text-slate-500 tracking-wider font-display py-3 px-4`
-- Rows: `hover:bg-slate-50/80 transition-colors border-b border-slate-100 py-3.5 px-4 text-xs`
+- Outer shell: `rounded-2xl p-1 bg-slate-100 border border-slate-300 shadow-md`
+- Inner core: `bg-white rounded-xl p-6 border border-slate-200`
 
 ---
 
-## 5. Interaction Patterns & Motion
+## 5. Anti-Patterns & Banned Implementations
 
-- **Keyboard First**: Global Command Palette accessible via `Ctrl+K` (Windows/Linux) or `Cmd+K` (macOS).
-- **Perceived Speed**: Always use `SkeletonTable` or `SkeletonCard` during asynchronous data fetches.
-- **GPU Acceleration**: Interactive canvas particles rendered via `requestAnimationFrame` with mouse interaction repelling physics.
-- **Exporting & Reporting**: High-density tables must include an **"Export CSV"** trigger with clean header sanitization.
-
----
-
-## 6. Anti-Patterns & Banned Implementations
-
-❌ **NEVER** use default unstyled browser alert dialogs — use tailored in-card or toast notification banners.  
-❌ **NEVER** use default monospace browser fonts — always use `font-mono` mapped to `JetBrains Mono`.  
-❌ **NEVER** build flat borderless cards with harsh black dropshadows.  
-❌ **NEVER** leave long data loading states with empty screens or raw spinners — always provide skeleton loaders.  
+❌ **NEVER** build flat 100% all-white pages without background contrast (causes blinding user fatigue).  
+❌ **NEVER** render tabular employee names without visual face/monogram avatar anchors.  
+❌ **NEVER** use default unstyled browser alerts or raw empty states without skeleton loaders.  
+❌ **NEVER** use harsh neon glare colors — use calibrated, eye-friendly executive tones.  

@@ -40,7 +40,8 @@
   }
 
   body {
-    background-color: #f8fafc;
+    background-color: #eef2f6;
+    background-image: radial-gradient(ellipse at 50% 0%, #e8edf5 0%, #edf2f7 55%, #e2e8f0 100%);
     color: #0f172a;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -50,6 +51,7 @@
     font-size: 13.5px;
     line-height: 1.55;
     letter-spacing: -0.01em;
+    min-height: 100vh;
   }
 
   h1, h2, h3, h4, .font-display {
@@ -65,30 +67,30 @@
 /* Outer Shell with Hairline Ring and Inner Concentric Core */
 .enterprise-card {
   background-color: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.85);
+  border: 1px solid #d9e2ec;
   border-radius: 1rem;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  box-shadow: 0 1px 4px 0 rgba(15, 23, 42, 0.05), 0 2px 8px -2px rgba(15, 23, 42, 0.03);
   position: relative;
   transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .enterprise-card:hover {
-  border-color: rgba(203, 213, 225, 0.95);
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
 }
 
 /* Elevated Double-Bezel Nested Card (Machine-Machined Look) */
 .enterprise-card-nested {
-  background-color: #f8fafc;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
   border-radius: 1.25rem;
   padding: 0.375rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .enterprise-card-nested > .card-core {
   background-color: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  border: 1px solid #e2e8f0;
   border-radius: calc(1.25rem - 0.375rem);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(15, 23, 42, 0.02);
   padding: 1.25rem;
@@ -96,11 +98,11 @@
 
 /* Glass Panels with Inner Refraction Highlight */
 .glass-header {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .glass-panel-dark {
@@ -157,22 +159,22 @@
   gap: 0.5rem;
   padding: 0.5625rem 1.125rem;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-sans);
   color: #ffffff;
-  background: linear-gradient(180deg, #13365b 0%, #0a1e34 100%);
+  background: linear-gradient(180deg, #173f67 0%, #0f2b48 100%);
   border: 1px solid #071524;
   border-radius: 0.625rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 3px rgba(15, 43, 72, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
   user-select: none;
 }
 
 .enterprise-btn-primary:hover {
-  background: linear-gradient(180deg, #1a4777 0%, #0f2b48 100%);
-  border-color: #0b1f36;
-  box-shadow: 0 4px 12px -1px rgba(15, 43, 72, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #1e5285 0%, #173f67 100%);
+  border-color: #0f2b48;
+  box-shadow: 0 4px 12px -1px rgba(15, 43, 72, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transform: translateY(-0.5px);
 }
 
@@ -195,23 +197,23 @@
   gap: 0.5rem;
   padding: 0.5625rem 1rem;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-sans);
   color: #334155;
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 0.625rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
   user-select: none;
 }
 
 .enterprise-btn-secondary:hover {
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   color: #0f172a;
   border-color: #94a3b8;
-  box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.08);
   transform: translateY(-0.5px);
 }
 
@@ -235,13 +237,13 @@ button:hover .btn-icon-bubble {
   transform: translateX(2px) translateY(-1px);
 }
 
-/* Modern High-Density Table System */
+/* Modern High-Density Table System with High Contrast & Zebra Rows */
 .table-container {
   overflow-x: auto;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid #cbd5e1;
   border-radius: 0.875rem;
   background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
 }
 
 .enterprise-table {
@@ -253,29 +255,37 @@ button:hover .btn-icon-bubble {
 }
 
 .enterprise-table thead {
-  background-color: #f8fafc;
+  background-color: #eaf0f7;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .enterprise-table th {
-  padding: 0.75rem 1rem;
-  font-weight: 700;
-  color: #475569;
+  padding: 0.875rem 1rem;
+  font-weight: 800;
+  color: #1e293b;
   text-transform: uppercase;
   font-size: 0.6875rem;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e2e8f0;
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid #cbd5e1;
   white-space: nowrap;
 }
 
 .enterprise-table td {
-  padding: 0.8125rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
   color: #1e293b;
   vertical-align: middle;
   transition: background-color 0.15s ease;
+}
+
+.enterprise-table tbody tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+
+.enterprise-table tbody tr:nth-child(odd) td {
+  background-color: #ffffff;
 }
 
 .enterprise-table tbody tr:last-child td {
@@ -283,7 +293,7 @@ button:hover .btn-icon-bubble {
 }
 
 .enterprise-table tbody tr:hover td {
-  background-color: #f8fafc;
+  background-color: #e3effa !important;
 }
 
 /* Page Container Scale */

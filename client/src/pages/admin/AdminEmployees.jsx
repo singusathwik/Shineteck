@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import { exportToCSV } from '../../utils/csvExport.js';
 import { SkeletonTable } from '../../components/common/SkeletonLoader.jsx';
 import {
@@ -426,15 +427,34 @@ export function AdminEmployees({ onSelectEmployee }) {
                 employees.map((emp) => {
                   const isActive = emp.employment_status === 'Active' || emp.is_still_working;
                   return (
-                    <tr key={emp.employee_id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={emp.employee_id} className="hover:bg-blue-50/70 transition-colors">
                     <td className="font-mono font-bold text-blue-700">
-                      {emp.employee_id}
+                      <span className="px-2 py-1 bg-blue-50 border border-blue-200 rounded-lg text-xs font-bold text-blue-900 shadow-2xs">
+                        {emp.employee_id}
+                      </span>
                     </td>
                     <td>
-                      <div className="font-bold text-slate-900">{emp.full_name}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">{emp.email}</div>
+                      <div className="flex items-center gap-3">
+                        <EmployeeAvatar
+                          name={emp.full_name}
+                          imageUrl={emp.profile_image_url}
+                          size="md"
+                          status={emp.employment_status || 'Active'}
+                        />
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 text-xs font-display flex items-center gap-1.5">
+                            <span>{emp.full_name}</span>
+                            {emp.country === 'India' ? (
+                              <span className="text-[10px]" title="India Operations">🇮🇳</span>
+                            ) : (
+                              <span className="text-[10px]" title="US / Global Operations">🇺🇸</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono truncate">{emp.email}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="text-slate-700 font-medium">
+                    <td className="text-slate-800 font-semibold text-xs">
                       {emp.designation}
                     </td>
                     <td className="text-slate-700 font-mono">

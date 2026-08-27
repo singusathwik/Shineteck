@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.js';
 import { exportToCSV } from '../../utils/csvExport.js';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import {
   Building2, Search, Plus, X, Edit3, Trash2, DollarSign, Users,
   MapPin, Briefcase, ChevronDown, AlertCircle, CheckCircle2, Calculator,
@@ -343,43 +344,51 @@ export function AdminVendorDetails() {
       </div>
 
       {/* Vendor Records Table */}
-      <div className="enterprise-card bg-white overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Employee</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Region</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Vendor</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Client</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Bill Rate</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Emp Rate</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">BU Margin</th>
-                <th className="text-center px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Visa / Tax%</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Net Margin</th>
-                <th className="text-center px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Actions</th>
+      <div className="table-container shadow-sm">
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Region</th>
+              <th>Vendor</th>
+              <th>Client</th>
+              <th className="text-right">Bill Rate</th>
+              <th className="text-right">Emp Rate</th>
+              <th className="text-right">BU Margin</th>
+              <th className="text-center">Visa / Tax%</th>
+              <th className="text-right">Net Margin</th>
+              <th className="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayedVendors.length === 0 ? (
+              <tr>
+                <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
+                  <Building2 className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                  <p className="font-semibold">No vendor records found</p>
+                  <p className="text-xs mt-1">Click "Add Vendor Record" to create one.</p>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {displayedVendors.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
-                    <Building2 className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    <p className="font-semibold">No vendor records found</p>
-                    <p className="text-xs mt-1">Click "Add Vendor Record" to create one.</p>
-                  </td>
-                </tr>
-              ) : displayedVendors.map((v) => {
-                const emp = employees.find(e => e.employee_id === v.employee_id);
-                const isIndia = emp?.country === 'India' || v.vendor_address?.includes('India') || (parseFloat(v.hourly_bill_rate) > 500);
-                const cur = isIndia ? 'INR' : 'USD';
+            ) : displayedVendors.map((v) => {
+              const emp = employees.find(e => e.employee_id === v.employee_id);
+              const isIndia = emp?.country === 'India' || v.vendor_address?.includes('India') || (parseFloat(v.hourly_bill_rate) > 500);
+              const cur = isIndia ? 'INR' : 'USD';
 
-                return (
-                  <tr key={v._id || v.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-slate-900 text-xs">{v.employee_name || v.employee_id}</div>
-                      <div className="font-mono text-[11px] text-blue-700">{v.employee_id}</div>
-                    </td>
+              return (
+                <tr key={v._id || v.id} className="hover:bg-blue-50/70 transition-colors">
+                  <td>
+                    <div className="flex items-center gap-2.5">
+                      <EmployeeAvatar
+                        name={v.employee_name || v.employee_id}
+                        imageUrl={emp?.profile_image_url}
+                        size="md"
+                      />
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs font-display">{v.employee_name || v.employee_id}</div>
+                        <div className="font-mono text-[10.5px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 inline-block mt-0.5">{v.employee_id}</div>
+                      </div>
+                    </div>
+                  </td>
                     <td className="px-4 py-3">
                       {isIndia ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-800 border border-orange-200 rounded-md font-semibold text-[11px]">
@@ -429,7 +438,6 @@ export function AdminVendorDetails() {
               })}
             </tbody>
           </table>
-        </div>
       </div>
 
       {/* Delete Confirmation Modal */}

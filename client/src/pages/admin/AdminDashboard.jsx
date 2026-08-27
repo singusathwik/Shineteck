@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import {
   Users,
   Clock,
@@ -189,17 +190,25 @@ export function AdminDashboard({ onSelectEmployee, onNavigateTab }) {
                 </div>
               ) : (
                 recentEmployees.map((emp) => (
-                  <div key={emp.employee_id} className="py-3.5 flex items-center justify-between text-xs gap-3 hover:bg-slate-50/60 rounded-xl px-2 transition-colors">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 truncate">{emp.full_name}</span>
-                        <span className="font-mono text-[10px] text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded-md border border-slate-200 font-bold shrink-0">
-                          {emp.employee_id}
-                        </span>
+                  <div key={emp.employee_id} className="py-3.5 flex items-center justify-between text-xs gap-3 hover:bg-blue-50/50 rounded-xl px-2 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <EmployeeAvatar
+                        name={emp.full_name}
+                        imageUrl={emp.profile_image_url}
+                        size="md"
+                        status={emp.registration_status}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 truncate">{emp.full_name}</span>
+                          <span className="font-mono text-[10px] text-blue-900 bg-blue-50 px-1.5 py-0.2 rounded-md border border-blue-200 font-bold shrink-0">
+                            {emp.employee_id}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5 font-medium">
+                          {emp.designation || 'Consultant'} • {emp.country || 'Global'}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5 font-medium">
-                        {emp.designation || 'Consultant'} • {emp.country || 'Global'} • {emp.submitted_at ? new Date(emp.submitted_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
-                      </p>
                     </div>
 
                     <div className="flex items-center gap-2.5 shrink-0">
@@ -259,20 +268,26 @@ export function AdminDashboard({ onSelectEmployee, onNavigateTab }) {
                 recentTimesheets.map((ts) => (
                   <div
                     key={ts.id || ts._id}
-                    className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 transition-colors shadow-2xs"
+                    className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 text-xs hover:bg-blue-50/40 transition-colors shadow-2xs"
                   >
-                    <div className="min-w-0">
-                      <p className="font-bold text-slate-900 truncate">
-                        {ts.full_name || ts.employee_name || ts.employee_id}
-                      </p>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5 font-medium">
-                        {ts.start_date} &rarr; {ts.end_date} <span className="font-bold font-mono text-slate-800">({ts.total_hours} hrs)</span>
-                      </p>
-                      {ts.vendor_name && (
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.2 rounded-md border border-blue-100 inline-block mt-1">
-                          {ts.vendor_name}
-                        </span>
-                      )}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <EmployeeAvatar
+                        name={ts.full_name || ts.employee_name || 'Consultant'}
+                        size="sm"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 truncate">
+                          {ts.full_name || ts.employee_name || ts.employee_id}
+                        </p>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5 font-medium">
+                          {ts.start_date} &rarr; {ts.end_date} <span className="font-bold font-mono text-slate-800">({ts.total_hours} hrs)</span>
+                        </p>
+                        {ts.vendor_name && (
+                          <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.2 rounded-md border border-blue-100 inline-block mt-1">
+                            {ts.vendor_name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <StatusBadge status={ts.status} size="sm" />
                   </div>

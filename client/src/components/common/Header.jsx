@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { NotificationDropdown } from './NotificationDropdown.jsx';
+import { EmployeeAvatar } from './EmployeeAvatar.jsx';
 import { LogOut, Menu, User, ShieldCheck, Sparkles, Search, Command } from 'lucide-react';
 import { ShineteckLogo } from './ShineteckLogo.jsx';
 
@@ -73,14 +74,12 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
 
             {user && (
               <div className="flex items-center gap-3 pl-2.5 sm:pl-3.5 border-l border-slate-200/80">
-                <div className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-slate-100/60 border border-slate-200/70 shadow-2xs hover:bg-slate-100 transition-colors">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
-                    {user.profileImageUrl ? (
-                      <img src={user.profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-4 h-4 text-slate-600" />
-                    )}
-                  </div>
+                <div className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-slate-100/80 border border-slate-200 shadow-2xs hover:bg-slate-200/60 transition-colors">
+                  <EmployeeAvatar
+                    name={user.fullName}
+                    imageUrl={user.profileImageUrl}
+                    size="sm"
+                  />
 
                   <div className="hidden md:block text-left">
                     <div className="flex items-center gap-1.5 leading-tight">

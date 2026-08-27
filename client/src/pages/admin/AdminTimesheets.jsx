@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import { exportToCSV } from '../../utils/csvExport.js';
 import {
   Clock,
@@ -147,36 +148,44 @@ export function AdminTimesheets() {
       </div>
 
       {/* Timesheet List Table */}
-      <div className="enterprise-card bg-white border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+      <div className="table-container shadow-sm">
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Vendor</th>
+              <th>Period</th>
+              <th>Work Hours</th>
+              <th>Attached Log</th>
+              <th>Submitted At</th>
+              <th>Feedback / Notes</th>
+              <th>Status</th>
+              <th className="text-right">Review Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {timesheets.length === 0 ? (
               <tr>
-                <th className="py-3.5 px-4">Employee</th>
-                <th className="py-3.5 px-4">Vendor</th>
-                <th className="py-3.5 px-4">Period</th>
-                <th className="py-3.5 px-4">Work Hours</th>
-                <th className="py-3.5 px-4">Attached Log</th>
-                <th className="py-3.5 px-4">Submitted At</th>
-                <th className="py-3.5 px-4">Feedback / Notes</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Review Action</th>
+                <td colSpan={9} className="py-8 text-center text-slate-400">
+                  No timesheets matching the selected filter.
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {timesheets.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-400">
-                    No timesheets matching the selected filter.
+            ) : (
+              timesheets.map((ts) => (
+                <tr key={ts.id} className="hover:bg-blue-50/70 transition-colors">
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <EmployeeAvatar
+                        name={ts.employee_full_name || ts.employee_name || ts.employee_id}
+                        size="md"
+                        status={ts.status}
+                      />
+                      <div>
+                        <span className="font-bold text-slate-900 block font-display">{ts.employee_full_name || ts.employee_name || ts.employee_id}</span>
+                        <span className="font-mono text-[10.5px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 inline-block mt-0.5">{ts.employee_id}</span>
+                      </div>
+                    </div>
                   </td>
-                </tr>
-              ) : (
-                timesheets.map((ts) => (
-                  <tr key={ts.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <span className="font-bold text-slate-900 block">{ts.employee_full_name || ts.employee_name || ts.employee_id}</span>
-                      <span className="font-mono text-[11px] text-blue-700 font-semibold">{ts.employee_id}</span>
-                    </td>
                     <td className="py-3.5 px-4">
                       {ts.vendor_name ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-900 border border-blue-200 rounded-md font-bold text-[11px]">
@@ -233,7 +242,6 @@ export function AdminTimesheets() {
               )}
             </tbody>
           </table>
-        </div>
       </div>
 
       {/* Timesheet Review Action Modal */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import { DocumentViewerModal } from '../../components/admin/DocumentViewerModal.jsx';
 import {
   UserCheck,
@@ -294,13 +295,12 @@ export function AdminApprovals({ onSelectEmployee }) {
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 {/* Left: Applicant identity summary */}
                 <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-                    {emp.profile_image_url ? (
-                      <img src={emp.profile_image_url} alt={emp.full_name} className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-6 h-6 text-slate-400" />
-                    )}
-                  </div>
+                  <EmployeeAvatar
+                    name={emp.full_name}
+                    imageUrl={emp.profile_image_url}
+                    size="lg"
+                    status={emp.registration_status}
+                  />
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-bold text-slate-900">{emp.full_name}</h3>

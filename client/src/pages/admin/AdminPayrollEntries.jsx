@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.js';
 import { exportToCSV } from '../../utils/csvExport.js';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import {
   Receipt, Search, Plus, X, Edit3, Trash2, DollarSign, Users,
   ChevronDown, AlertCircle, CheckCircle2, Calendar, Calculator, Clock,
@@ -424,42 +425,49 @@ export function AdminPayrollEntries() {
       </div>
 
       {/* Payroll Entries Table */}
-      <div className="enterprise-card bg-white overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Employee</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Region / Currency</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Month</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Vendor</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Client</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Hours</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Bill Rate</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Emp Rate</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Gross Amount</th>
-                <th className="text-center px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wider">Actions</th>
+      <div className="table-container shadow-sm">
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Region / Currency</th>
+              <th>Month</th>
+              <th>Vendor</th>
+              <th>Client</th>
+              <th className="text-right">Hours</th>
+              <th className="text-right">Bill Rate</th>
+              <th className="text-right">Emp Rate</th>
+              <th className="text-right">Gross Amount</th>
+              <th className="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.length === 0 ? (
+              <tr>
+                <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
+                  <Receipt className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                  <p className="font-semibold">No payroll billing entries found</p>
+                  <p className="text-xs mt-1">Click "Add Payroll Entry" to create one.</p>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {entries.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
-                    <Receipt className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    <p className="font-semibold">No payroll billing entries found</p>
-                    <p className="text-xs mt-1">Click "Add Payroll Entry" to create one.</p>
-                  </td>
-                </tr>
-              ) : entries.map((entry) => {
-                const recCur = entry.currency || (entry.country === 'India' ? 'INR' : 'USD');
-                const isIndia = recCur === 'INR' || entry.country === 'India';
+            ) : entries.map((entry) => {
+              const recCur = entry.currency || (entry.country === 'India' ? 'INR' : 'USD');
+              const isIndia = recCur === 'INR' || entry.country === 'India';
 
-                return (
-                  <tr key={entry._id || entry.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-slate-900 text-xs">{entry.employee_name || entry.employee_id}</div>
-                      <div className="font-mono text-[11px] text-blue-700">{entry.employee_id}</div>
-                    </td>
+              return (
+                <tr key={entry._id || entry.id} className="hover:bg-blue-50/70 transition-colors">
+                  <td>
+                    <div className="flex items-center gap-2.5">
+                      <EmployeeAvatar
+                        name={entry.employee_name || entry.employee_id}
+                        size="md"
+                      />
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs font-display">{entry.employee_name || entry.employee_id}</div>
+                        <div className="font-mono text-[10.5px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 inline-block mt-0.5">{entry.employee_id}</div>
+                      </div>
+                    </div>
+                  </td>
                     <td className="px-4 py-3">
                       {isIndia ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-800 border border-orange-200 rounded-md font-semibold text-[11px]">
@@ -500,7 +508,6 @@ export function AdminPayrollEntries() {
               })}
             </tbody>
           </table>
-        </div>
       </div>
 
       {/* Delete Confirmation Modal */}
