@@ -498,38 +498,56 @@ async function seedMongoDefaults() {
           bu_margin: 30,
           visa_type: 'H-1B',
           tax_percent: 8.5,
-          net_margin: 27.45
-        },
-        {
-          employee_id: 'SH-2008',
-          employee_name: 'Rajesh Sharma',
-          vendor_name: 'Tata Consultancy Services (TCS)',
-          vendor_address: 'Mumbai, MH, India',
-          client_name: 'Shinetek Cloud Platform',
-          client_address: 'Bengaluru, KA, India',
-          hourly_bill_rate: 1500,
-          employee_rate: 1156.25,
-          bu_margin: 343.75,
-          visa_type: 'H-1B',
-          tax_percent: 8.5,
-          net_margin: 314.53
-        },
-        {
-          employee_id: 'SH-2009',
-          employee_name: 'Priya Patel',
-          vendor_name: 'Infosys Technologies',
-          vendor_address: 'Electronic City, Bengaluru, India',
-          client_name: 'FinTech Global Corp',
-          client_address: 'Pune, MH, India',
-          hourly_bill_rate: 1200,
-          employee_rate: 843.75,
-          bu_margin: 356.25,
-          visa_type: 'OPT',
-          tax_percent: 2.5,
-          net_margin: 347.34
+          net_margin: 503.25
         }
       ]);
       console.log('[MongoDB] Sample Vendor Details seeded into MongoDB.');
+    }
+
+    // 8. Seed Pending Review Applicants & Timesheets into MongoDB if empty
+    const pendingCount = await Employee.countDocuments({ registration_status: 'Pending Review' });
+    if (pendingCount === 0) {
+      const salt = await bcrypt.genSalt(10);
+      const empPassHash = await bcrypt.hash('Password@123', salt);
+
+      const u12 = await User.create({ employee_id: 'SH-2012', email: 'amitabh.banerjee@shinetek.com', password_hash: empPassHash, role: 'employee', status: 'active' });
+      await Employee.create({
+        user_id: u12._id, employee_id: 'SH-2012', first_name: 'Amitabh', last_name: 'Banerjee', middle_initial: 'K.', full_name: 'Amitabh K. Banerjee',
+        email: 'amitabh.banerjee@shinetek.com', phone: '+91 98300 45678', designation: 'Cloud Security Specialist', date_of_birth: '1991-03-12',
+        country: 'India', state: 'West Bengal', city: 'Kolkata', zip_code: '700091', address: 'Salt Lake Sector V, Block EP',
+        start_date: '2026-03-01', employment_status: 'Active', registration_status: 'Pending Review', submitted_at: new Date()
+      });
+      await Document.create([
+        { employee_id: 'SH-2012', document_type: 'passport', file_name: 'India_Passport_Amitabh.pdf', file_path: 'sample_passport_johnathan.jpg', file_size: 1450000, mime_type: 'application/pdf', status: 'Pending Review' },
+        { employee_id: 'SH-2012', document_type: 'w4', file_name: 'Form16_Tax_Amitabh.pdf', file_path: 'sample_w4_johnathan.pdf', file_size: 245000, mime_type: 'application/pdf', status: 'Pending Review' }
+      ]);
+
+      const u13 = await User.create({ employee_id: 'SH-2013', email: 'sarah.jenkins@shinetek.com', password_hash: empPassHash, role: 'employee', status: 'active' });
+      await Employee.create({
+        user_id: u13._id, employee_id: 'SH-2013', first_name: 'Sarah', last_name: 'Jenkins', middle_initial: 'M.', full_name: 'Sarah M. Jenkins',
+        email: 'sarah.jenkins@shinetek.com', phone: '+1 (555) 678-9012', designation: 'DevSecOps Consultant', date_of_birth: '1994-07-22',
+        country: 'United States', state: 'Washington', city: 'Seattle', zip_code: '98101', address: '1400 4th Ave, Suite 500',
+        start_date: '2026-03-01', employment_status: 'Active', registration_status: 'Pending Review', submitted_at: new Date()
+      });
+      await Document.create([
+        { employee_id: 'SH-2013', document_type: 'i9', file_name: 'Form_I9_Sarah.pdf', file_path: 'sample_i9_johnathan.pdf', file_size: 310000, mime_type: 'application/pdf', status: 'Pending Review' },
+        { employee_id: 'SH-2013', document_type: 'visa', file_name: 'Work_Authorization_Sarah.pdf', file_path: 'sample_visa_johnathan.pdf', file_size: 420000, mime_type: 'application/pdf', status: 'Pending Review' }
+      ]);
+
+      console.log('[MongoDB] Pending applicant approvals & compliance documents seeded into MongoDB.');
+    }
+
+    // 9. Seed Timesheets into MongoDB if empty
+    const tsCount = await Timesheet.countDocuments();
+    if (tsCount <= 1) {
+      await Timesheet.create([
+        { employee_id: 'SH-2005', employee_name: 'Johnathan Vance', vendor_name: 'Apex Systems', start_date: '2026-02-01', end_date: '2026-02-15', total_hours: 80.0, file_name: 'timesheet_johnathan_jan1.csv', file_path: 'timesheet_johnathan_jan1.csv', notes: 'Completed cloud feature sprint', status: 'Pending' },
+        { employee_id: 'SH-2008', employee_name: 'Rajesh Sharma', vendor_name: 'Tata Consultancy Services (TCS)', start_date: '2026-02-01', end_date: '2026-02-15', total_hours: 80.0, file_name: 'timesheet_johnathan_jan1.csv', file_path: 'timesheet_johnathan_jan1.csv', notes: 'Platform core microservices', status: 'Approved' },
+        { employee_id: 'SH-2009', employee_name: 'Priya Patel', vendor_name: 'Infosys Technologies', start_date: '2026-02-01', end_date: '2026-02-15', total_hours: 80.0, file_name: 'timesheet_emily_feb1.csv', file_path: 'timesheet_emily_feb1.csv', notes: 'Automated test suite execution', status: 'Pending' },
+        { employee_id: 'SH-2010', employee_name: 'Ananya Reddy', vendor_name: 'Wipro Digital', start_date: '2026-02-01', end_date: '2026-02-15', total_hours: 80.0, file_name: 'timesheet_johnathan_jan1.csv', file_path: 'timesheet_johnathan_jan1.csv', notes: 'CI/CD pipeline configuration', status: 'Pending' },
+        { employee_id: 'SH-2011', employee_name: 'Vikram Verma', vendor_name: 'HCL Technologies', start_date: '2026-02-01', end_date: '2026-02-15', total_hours: 84.0, file_name: 'timesheet_emily_feb1.csv', file_path: 'timesheet_emily_feb1.csv', notes: 'Data ingestion pipeline', status: 'Pending' }
+      ]);
+      console.log('[MongoDB] Multi-vendor Timesheets seeded into MongoDB.');
     }
   } catch (err) {
     console.error('[MongoDB Seed Error]', err.message);

@@ -173,30 +173,57 @@ export async function submitTimesheet(req, res) {
 }
 
 // Get timesheets for logged in employee
-export function getMyTimesheets(req, res) {
+export async function getMyTimesheets(req, res) {
   try {
     const employeeId = req.user.employeeId;
     const { status, startDate, endDate } = req.query;
+    let timesheets = [];
 
-    let query = 'SELECT * FROM timesheets WHERE employee_id = ?';
-    const params = [employeeId];
+    if (isMongoConnected()) {
+      try {
+        let query = { employee_id: employeeId };
+        if (status && status !== 'ALL') query.status = status;
+        if (startDate) query.start_date = { $gte: startDate };
+        if (endDate) query.end_date = { $lte: endDate };
 
-    if (status && status !== 'ALL') {
-      query += ' AND status = ?';
-      params.push(status);
+        const mongoTs = await MongoTimesheet.find(query).sort({ submitted_at: -1 }).lean();
+        if (mongoTs && mongoTs.length > 0) {
+          timesheets = mongoTs.map(t => ({
+            ...t,
+            id: t._id,
+            total_hours: t.total_hours,
+            start_date: t.start_date,
+            end_date: t.end_date,
+            vendor_name: t.vendor_name || '',
+            status: t.status || 'Pending'
+          }));
+        }
+      } catch (mErr) {
+        console.warn('[MongoDB getMyTimesheets fallback]', mErr.message);
+      }
     }
-    if (startDate) {
-      query += ' AND start_date >= ?';
-      params.push(startDate);
-    }
-    if (endDate) {
-      query += ' AND end_date <= ?';
-      params.push(endDate);
+
+    if (!timesheets || timesheets.length === 0) {
+      let query = 'SELECT * FROM timesheets WHERE employee_id = ?';
+      const params = [employeeId];
+
+      if (status && status !== 'ALL') {
+        query += ' AND status = ?';
+        params.push(status);
+      }
+      if (startDate) {
+        query += ' AND start_date >= ?';
+        params.push(startDate);
+      }
+      if (endDate) {
+        query += ' AND end_date <= ?';
+        params.push(endDate);
+      }
+
+      query += ' ORDER BY submitted_at DESC';
+      timesheets = db.prepare(query).all(...params);
     }
 
-    query += ' ORDER BY submitted_at DESC';
-
-    const timesheets = db.prepare(query).all(...params);
     res.json({ timesheets });
   } catch (err) {
     console.error('[getMyTimesheets Error]', err);
@@ -205,42 +232,79 @@ export function getMyTimesheets(req, res) {
 }
 
 // Admin: Get all timesheets across the organization
-export function getAllTimesheets(req, res) {
+export async function getAllTimesheets(req, res) {
   try {
     const { search = '', status = '', startDate, endDate } = req.query;
+    let timesheets = [];
 
-    let query = `
-      SELECT t.*, e.full_name as employee_full_name, e.designation
-      FROM timesheets t
-      LEFT JOIN employees e ON e.employee_id = t.employee_id
-      WHERE 1=1
-    `;
-    const params = [];
+    if (isMongoConnected()) {
+      try {
+        let query = {};
+        if (status && status !== 'ALL') query.status = status;
+        if (startDate) query.start_date = { $gte: startDate };
+        if (endDate) query.end_date = { $lte: endDate };
+        if (search.trim()) {
+          const regex = new RegExp(search.trim(), 'i');
+          query.$or = [
+            { employee_id: regex },
+            { employee_name: regex },
+            { vendor_name: regex }
+          ];
+        }
 
-    if (search.trim()) {
-      query += ` AND (LOWER(t.employee_id) LIKE ? OR LOWER(e.full_name) LIKE ? OR LOWER(t.vendor_name) LIKE ?)`;
-      const term = `%${search.trim().toLowerCase()}%`;
-      params.push(term, term, term);
+        const mongoTs = await MongoTimesheet.find(query).sort({ submitted_at: -1 }).lean();
+        if (mongoTs && mongoTs.length > 0) {
+          timesheets = mongoTs.map(t => ({
+            ...t,
+            id: t._id,
+            employee_full_name: t.employee_name,
+            total_hours: t.total_hours,
+            start_date: t.start_date,
+            end_date: t.end_date,
+            vendor_name: t.vendor_name || '',
+            status: t.status || 'Pending'
+          }));
+        }
+      } catch (mErr) {
+        console.warn('[MongoDB getAllTimesheets fallback]', mErr.message);
+      }
     }
 
-    if (status && status !== 'ALL') {
-      query += ` AND t.status = ?`;
-      params.push(status);
+    if (!timesheets || timesheets.length === 0) {
+      let query = `
+        SELECT t.*, e.full_name as employee_full_name, e.designation
+        FROM timesheets t
+        LEFT JOIN employees e ON e.employee_id = t.employee_id
+        WHERE 1=1
+      `;
+      const params = [];
+
+      if (search.trim()) {
+        query += ` AND (LOWER(t.employee_id) LIKE ? OR LOWER(e.full_name) LIKE ? OR LOWER(t.vendor_name) LIKE ?)`;
+        const term = `%${search.trim().toLowerCase()}%`;
+        params.push(term, term, term);
+      }
+
+      if (status && status !== 'ALL') {
+        query += ` AND t.status = ?`;
+        params.push(status);
+      }
+
+      if (startDate) {
+        query += ` AND t.start_date >= ?`;
+        params.push(startDate);
+      }
+
+      if (endDate) {
+        query += ` AND t.end_date <= ?`;
+        params.push(endDate);
+      }
+
+      query += ` ORDER BY t.submitted_at DESC`;
+
+      timesheets = db.prepare(query).all(...params);
     }
 
-    if (startDate) {
-      query += ` AND t.start_date >= ?`;
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      query += ` AND t.end_date <= ?`;
-      params.push(endDate);
-    }
-
-    query += ` ORDER BY t.submitted_at DESC`;
-
-    const timesheets = db.prepare(query).all(...params);
     res.json({ timesheets });
   } catch (err) {
     console.error('[getAllTimesheets Error]', err);

@@ -4,16 +4,42 @@ import { Payroll as MongoPayroll } from '../models/index.js';
 import { isMongoConnected } from '../db/mongo.js';
 
 // Get payroll records for current employee
-export function getMyPayroll(req, res) {
+export async function getMyPayroll(req, res) {
   try {
     const employeeId = req.user.employeeId;
-    const records = db.prepare(`
-      SELECT p.*, e.country, e.full_name as employee_name, e.designation
-      FROM payroll_records p
-      LEFT JOIN employees e ON e.employee_id = p.employee_id
-      WHERE p.employee_id = ?
-      ORDER BY p.payment_date DESC
-    `).all(employeeId);
+    let records = [];
+
+    if (isMongoConnected()) {
+      try {
+        const mongoRecords = await MongoPayroll.find({ employee_id: employeeId }).sort({ payment_date: -1 }).lean();
+        if (mongoRecords && mongoRecords.length > 0) {
+          records = mongoRecords.map(r => ({
+            ...r,
+            id: r._id,
+            pay_period_start: r.pay_period_start,
+            pay_period_end: r.pay_period_end,
+            gross_pay: r.gross_pay,
+            deductions: r.deductions,
+            net_pay: r.net_pay,
+            currency: r.currency || 'USD',
+            payment_date: r.payment_date,
+            payment_status: r.payment_status
+          }));
+        }
+      } catch (mErr) {
+        console.warn('[MongoDB getMyPayroll fallback]', mErr.message);
+      }
+    }
+
+    if (!records || records.length === 0) {
+      records = db.prepare(`
+        SELECT p.*, e.country, e.full_name as employee_name, e.designation
+        FROM payroll_records p
+        LEFT JOIN employees e ON e.employee_id = p.employee_id
+        WHERE p.employee_id = ?
+        ORDER BY p.payment_date DESC
+      `).all(employeeId);
+    }
 
     res.json({ payrollRecords: records });
   } catch (err) {
@@ -23,30 +49,68 @@ export function getMyPayroll(req, res) {
 }
 
 // Admin: Get all payroll records across employees
-export function getAllPayroll(req, res) {
+export async function getAllPayroll(req, res) {
   try {
     const { employeeId, currency } = req.query;
-    let query = `
-      SELECT p.*, e.full_name as employee_name, e.designation, e.country
-      FROM payroll_records p
-      LEFT JOIN employees e ON e.employee_id = p.employee_id
-      WHERE 1=1
-    `;
-    const params = [];
+    let records = [];
+    let allRecords = [];
 
-    if (employeeId) {
-      query += ` AND p.employee_id = ?`;
-      params.push(employeeId);
+    if (isMongoConnected()) {
+      try {
+        let query = {};
+        if (employeeId) query.employee_id = employeeId;
+        if (currency && currency !== 'ALL') query.currency = currency;
+
+        const mongoRecords = await MongoPayroll.find(query).sort({ payment_date: -1 }).lean();
+        allRecords = await MongoPayroll.find({}).lean();
+
+        if (mongoRecords && mongoRecords.length > 0) {
+          records = mongoRecords.map(r => ({
+            ...r,
+            id: r._id,
+            pay_period_start: r.pay_period_start,
+            pay_period_end: r.pay_period_end,
+            gross_pay: r.gross_pay,
+            deductions: r.deductions,
+            net_pay: r.net_pay,
+            currency: r.currency || 'USD',
+            payment_date: r.payment_date,
+            payment_status: r.payment_status
+          }));
+        }
+      } catch (mErr) {
+        console.warn('[MongoDB getAllPayroll fallback]', mErr.message);
+      }
     }
 
-    if (currency && currency !== 'ALL') {
-      query += ` AND (p.currency = ? OR (p.currency IS NULL AND ? = 'USD'))`;
-      params.push(currency, currency);
+    if (!records || records.length === 0) {
+      let query = `
+        SELECT p.*, e.full_name as employee_name, e.designation, e.country
+        FROM payroll_records p
+        LEFT JOIN employees e ON e.employee_id = p.employee_id
+        WHERE 1=1
+      `;
+      const params = [];
+
+      if (employeeId) {
+        query += ` AND p.employee_id = ?`;
+        params.push(employeeId);
+      }
+
+      if (currency && currency !== 'ALL') {
+        query += ` AND (p.currency = ? OR (p.currency IS NULL AND ? = 'USD'))`;
+        params.push(currency, currency);
+      }
+
+      query += ` ORDER BY p.payment_date DESC`;
+
+      records = db.prepare(query).all(...params);
+      allRecords = db.prepare(`
+        SELECT p.*, e.country
+        FROM payroll_records p
+        LEFT JOIN employees e ON e.employee_id = p.employee_id
+      `).all();
     }
-
-    query += ` ORDER BY p.payment_date DESC`;
-
-    const records = db.prepare(query).all(...params);
 
     // Calculate USD and INR totals
     let usdGross = 0;
@@ -55,12 +119,6 @@ export function getAllPayroll(req, res) {
     let inrNet = 0;
     let usdCount = 0;
     let inrCount = 0;
-
-    const allRecords = db.prepare(`
-      SELECT p.*, e.country
-      FROM payroll_records p
-      LEFT JOIN employees e ON e.employee_id = p.employee_id
-    `).all();
 
     allRecords.forEach(r => {
       const cur = r.currency || (r.country === 'India' ? 'INR' : 'USD');
