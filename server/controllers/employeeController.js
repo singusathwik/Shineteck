@@ -491,61 +491,14 @@ export async function getAllEmployees(req, res) {
       status = '',
       employmentStatus = 'ALL',
       country = '',
-      sortBy = 'created_at',
+      sortBy = 'submitted_at',
       sortOrder = 'DESC'
     } = req.query;
 
-    let employees = [];
+    const empMap = new Map();
 
-    // 1. Try MongoDB Atlas if connected
-    if (isMongoConnected()) {
-      try {
-        const filter = {};
-        if (search.trim()) {
-          const term = search.trim();
-          filter.$or = [
-            { full_name: { $regex: term, $options: 'i' } },
-            { first_name: { $regex: term, $options: 'i' } },
-            { last_name: { $regex: term, $options: 'i' } },
-            { employee_id: { $regex: term, $options: 'i' } },
-            { email: { $regex: term, $options: 'i' } },
-            { designation: { $regex: term, $options: 'i' } }
-          ];
-        }
-
-        if (status && status !== 'ALL') {
-          filter.registration_status = status;
-        }
-
-        if (employmentStatus && employmentStatus !== 'ALL') {
-          if (employmentStatus === 'Active') {
-            filter.$or = [{ employment_status: 'Active' }, { employment_status: null }, { employment_status: { $exists: false } }];
-          } else if (employmentStatus === 'Inactive') {
-            filter.employment_status = 'Inactive';
-          }
-        }
-
-        if (country && country !== 'ALL') {
-          filter.country = country;
-        }
-
-        const mEmps = await MongoEmployee.find(filter).sort({ employee_id: 1 }).lean();
-        if (mEmps && mEmps.length > 0) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          employees = mEmps.map(emp => ({
-            ...emp,
-            id: emp._id.toString(),
-            employment_status: emp.employment_status || 'Active',
-            is_still_working: (emp.employment_status !== 'Inactive') && (!emp.end_date || emp.end_date >= todayStr)
-          }));
-        }
-      } catch (mErr) {
-        console.warn('[getAllEmployees Mongo Notice]', mErr.message);
-      }
-    }
-
-    // 2. Fallback to SQLite if MongoDB returned 0 or is disconnected
-    if (employees.length === 0) {
+    // 1. Fetch from SQLite
+    try {
       let query = `
         SELECT e.id, e.employee_id, e.first_name, e.last_name, e.middle_initial, e.full_name, e.email, e.phone, e.designation,
                e.date_of_birth, e.country, e.state, e.city, e.registration_status,
@@ -557,62 +510,117 @@ export async function getAllEmployees(req, res) {
         FROM employees e
         WHERE 1=1
       `;
-
-      const params = [];
-
-      if (search.trim()) {
-        query += ` AND (LOWER(e.full_name) LIKE ? OR LOWER(e.first_name) LIKE ? OR LOWER(e.last_name) LIKE ? OR LOWER(e.employee_id) LIKE ? OR LOWER(e.email) LIKE ? OR LOWER(e.designation) LIKE ?)`;
-        const term = `%${search.trim().toLowerCase()}%`;
-        params.push(term, term, term, term, term, term);
+      const rawSqlite = db.prepare(query).all();
+      for (const emp of rawSqlite) {
+        empMap.set(emp.employee_id, {
+          ...emp,
+          id: String(emp.id),
+          employment_status: emp.employment_status || 'Active',
+          source: 'sqlite'
+        });
       }
-
-      if (status && status !== 'ALL') {
-        query += ` AND e.registration_status = ?`;
-        params.push(status);
-      }
-
-      if (employmentStatus && employmentStatus !== 'ALL') {
-        if (employmentStatus === 'Active') {
-          query += ` AND (e.employment_status = 'Active' OR e.employment_status IS NULL)`;
-        } else if (employmentStatus === 'Inactive') {
-          query += ` AND e.employment_status = 'Inactive'`;
-        }
-      }
-
-      if (country && country !== 'ALL') {
-        query += ` AND e.country = ?`;
-        params.push(country);
-      }
-
-      const validSortCols = ['created_at', 'submitted_at', 'full_name', 'employee_id', 'registration_status', 'start_date', 'employment_status'];
-      const col = validSortCols.includes(sortBy) ? sortBy : 'employee_id';
-      const order = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-
-      query += ` ORDER BY e.${col} ${order}`;
-
-      const rawEmployees = db.prepare(query).all(...params);
-
-      const todayStr = new Date().toISOString().split('T')[0];
-      employees = rawEmployees.map(emp => ({
-        ...emp,
-        employment_status: emp.employment_status || 'Active',
-        is_still_working: (emp.employment_status !== 'Inactive') && (!emp.end_date || emp.end_date >= todayStr)
-      }));
+    } catch (sqErr) {
+      console.warn('[getAllEmployees SQLite Warning]', sqErr.message);
     }
 
-    // Quick counts for tabs
-    const activeCount = employees.filter(e => e.employment_status !== 'Inactive').length;
-    const inactiveCount = employees.filter(e => e.employment_status === 'Inactive').length;
-    const totalCount = employees.length;
+    // 2. Fetch from MongoDB Atlas and merge
+    if (isMongoConnected()) {
+      try {
+        const mEmps = await MongoEmployee.find({}).lean();
+        for (const mEmp of mEmps) {
+          const empId = mEmp.employee_id;
+          const existing = empMap.get(empId);
+
+          if (!existing) {
+            empMap.set(empId, {
+              ...mEmp,
+              id: mEmp._id.toString(),
+              employment_status: mEmp.employment_status || 'Active',
+              total_docs: 0,
+              approved_docs: 0,
+              pending_timesheets: 0,
+              source: 'mongo'
+            });
+          } else {
+            // Merge properties, prioritizing the more recent registration status
+            empMap.set(empId, {
+              ...existing,
+              ...mEmp,
+              id: existing.id || mEmp._id.toString(),
+              registration_status: existing.registration_status || mEmp.registration_status,
+              employment_status: existing.employment_status || mEmp.employment_status || 'Active',
+              total_docs: existing.total_docs || 0,
+              approved_docs: existing.approved_docs || 0,
+              pending_timesheets: existing.pending_timesheets || 0
+            });
+          }
+        }
+      } catch (mErr) {
+        console.warn('[getAllEmployees Mongo Notice]', mErr.message);
+      }
+    }
+
+    let allList = Array.from(empMap.values());
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Compute working status
+    allList = allList.map(emp => ({
+      ...emp,
+      is_still_working: (emp.employment_status !== 'Inactive') && (!emp.end_date || emp.end_date >= todayStr)
+    }));
+
+    // Apply In-Memory Filters
+    if (search.trim()) {
+      const term = search.trim().toLowerCase();
+      allList = allList.filter(e =>
+        (e.full_name && e.full_name.toLowerCase().includes(term)) ||
+        (e.first_name && e.first_name.toLowerCase().includes(term)) ||
+        (e.last_name && e.last_name.toLowerCase().includes(term)) ||
+        (e.employee_id && e.employee_id.toLowerCase().includes(term)) ||
+        (e.email && e.email.toLowerCase().includes(term)) ||
+        (e.designation && e.designation.toLowerCase().includes(term))
+      );
+    }
+
+    if (status && status !== 'ALL') {
+      allList = allList.filter(e => e.registration_status === status);
+    }
+
+    if (employmentStatus && employmentStatus !== 'ALL') {
+      if (employmentStatus === 'Active') {
+        allList = allList.filter(e => e.employment_status !== 'Inactive');
+      } else if (employmentStatus === 'Inactive') {
+        allList = allList.filter(e => e.employment_status === 'Inactive');
+      }
+    }
+
+    if (country && country !== 'ALL') {
+      allList = allList.filter(e => e.country === country);
+    }
+
+    // Sorting
+    const isDesc = sortOrder.toUpperCase() === 'DESC';
+    allList.sort((a, b) => {
+      let valA = a[sortBy] || '';
+      let valB = b[sortBy] || '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      if (valA < valB) return isDesc ? 1 : -1;
+      if (valA > valB) return isDesc ? -1 : 1;
+      return 0;
+    });
+
+    const activeCount = allList.filter(e => e.employment_status !== 'Inactive').length;
+    const inactiveCount = allList.filter(e => e.employment_status === 'Inactive').length;
 
     res.json({
-      total: employees.length,
+      total: allList.length,
       counts: {
-        all: totalCount,
+        all: allList.length,
         active: activeCount,
         inactive: inactiveCount
       },
-      employees
+      employees: allList
     });
   } catch (err) {
     console.error('[getAllEmployees Error]', err);
@@ -621,16 +629,32 @@ export async function getAllEmployees(req, res) {
 }
 
 // Admin: Get complete details for an employee
-export function getEmployeeDetail(req, res) {
+export async function getEmployeeDetail(req, res) {
   try {
     const { employeeId } = req.params;
 
-    const rawEmployee = db.prepare(`
-      SELECT e.*, u.role, u.status as user_account_status, u.created_at as user_created_at
-      FROM employees e
-      LEFT JOIN users u ON u.employee_id = e.employee_id
-      WHERE e.employee_id = ?
-    `).get(employeeId);
+    let rawEmployee = null;
+    try {
+      rawEmployee = db.prepare(`
+        SELECT e.*, u.role, u.status as user_account_status, u.created_at as user_created_at
+        FROM employees e
+        LEFT JOIN users u ON u.employee_id = e.employee_id
+        WHERE e.employee_id = ?
+      `).get(employeeId);
+    } catch (e) {}
+
+    if (!rawEmployee && isMongoConnected()) {
+      try {
+        const mEmp = await MongoEmployee.findOne({ employee_id: employeeId }).lean();
+        if (mEmp) {
+          rawEmployee = {
+            ...mEmp,
+            id: mEmp._id.toString(),
+            user_account_status: 'active'
+          };
+        }
+      } catch (e) {}
+    }
 
     if (!rawEmployee) {
       return res.status(404).json({ error: 'Employee not found.' });
@@ -643,31 +667,43 @@ export function getEmployeeDetail(req, res) {
       is_still_working: (rawEmployee.employment_status !== 'Inactive') && (!rawEmployee.end_date || rawEmployee.end_date >= todayStr)
     };
 
-    const documents = db.prepare(`
-      SELECT * FROM documents WHERE employee_id = ? ORDER BY uploaded_at DESC
-    `).all(employeeId);
+    let documents = [];
+    try {
+      documents = db.prepare(`
+        SELECT * FROM documents WHERE employee_id = ? ORDER BY uploaded_at DESC
+      `).all(employeeId);
+    } catch (e) {}
 
-    const timesheets = db.prepare(`
-      SELECT * FROM timesheets WHERE employee_id = ? ORDER BY submitted_at DESC
-    `).all(employeeId);
+    let timesheets = [];
+    try {
+      timesheets = db.prepare(`
+        SELECT * FROM timesheets WHERE employee_id = ? ORDER BY submitted_at DESC
+      `).all(employeeId);
+    } catch (e) {}
 
-    const payroll = db.prepare(`
-      SELECT * FROM payroll_records WHERE employee_id = ? ORDER BY payment_date DESC
-    `).all(employeeId);
+    let vendorDetails = null;
+    try {
+      vendorDetails = db.prepare(`
+        SELECT * FROM vendor_details WHERE employee_id = ?
+      `).get(employeeId);
+    } catch (e) {}
 
-    const auditHistory = db.prepare(`
-      SELECT * FROM audit_logs
-      WHERE entity_id = ? OR user_id = ?
-      ORDER BY timestamp DESC
-      LIMIT 15
-    `).all(employeeId, employeeId);
+    let auditLogs = [];
+    try {
+      auditLogs = db.prepare(`
+        SELECT * FROM audit_logs
+        WHERE entity_id = ? OR user_id = ?
+        ORDER BY created_at DESC
+        LIMIT 20
+      `).all(employeeId, employeeId);
+    } catch (e) {}
 
     res.json({
       employee,
       documents,
       timesheets,
-      payroll,
-      auditHistory
+      vendorDetails,
+      auditLogs
     });
   } catch (err) {
     console.error('[getEmployeeDetail Error]', err);
@@ -675,8 +711,8 @@ export function getEmployeeDetail(req, res) {
   }
 }
 
-// Admin: Review and update employee registration status (Approve, Reject, Needs Correction)
-export function reviewEmployeeStatus(req, res) {
+// Admin: Review/Update Employee Status (Approve, Needs Correction, Reject)
+export async function reviewEmployeeStatus(req, res) {
   try {
     const { employeeId } = req.params;
     const { status, adminNotes } = req.body;
@@ -685,24 +721,44 @@ export function reviewEmployeeStatus(req, res) {
       return res.status(400).json({ error: 'Invalid registration status.' });
     }
 
-    const employee = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
-    if (!employee) {
-      return res.status(404).json({ error: 'Employee not found.' });
+    // Update in SQLite
+    try {
+      db.prepare(`
+        UPDATE employees
+        SET registration_status = ?,
+            admin_notes = ?,
+            reviewed_at = CURRENT_TIMESTAMP,
+            reviewed_by = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE employee_id = ?
+      `).run(status, adminNotes || null, req.user.email, employeeId);
+
+      if (status === 'Approved') {
+        db.prepare("UPDATE users SET status = 'active' WHERE employee_id = ?").run(employeeId);
+      }
+    } catch (sqErr) {
+      console.warn('[SQLite reviewEmployeeStatus Warning]', sqErr.message);
     }
 
-    db.prepare(`
-      UPDATE employees
-      SET registration_status = ?,
-          admin_notes = ?,
-          reviewed_at = CURRENT_TIMESTAMP,
-          reviewed_by = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE employee_id = ?
-    `).run(status, adminNotes || null, req.user.email, employeeId);
-
-    // If status is Approved, mark all user permissions active
-    if (status === 'Approved') {
-      db.prepare("UPDATE users SET status = 'active' WHERE employee_id = ?").run(employeeId);
+    // Sync to MongoDB Atlas
+    if (isMongoConnected()) {
+      try {
+        await MongoEmployee.findOneAndUpdate(
+          { employee_id: employeeId },
+          {
+            registration_status: status,
+            admin_notes: adminNotes || '',
+            reviewed_at: new Date(),
+            reviewed_by: req.user.email,
+            updated_at: new Date()
+          }
+        );
+        if (status === 'Approved') {
+          await MongoUser.findOneAndUpdate({ employee_id: employeeId }, { status: 'active' });
+        }
+      } catch (mErr) {
+        console.warn('[MongoDB reviewEmployeeStatus Warning]', mErr.message);
+      }
     }
 
     // Send notification
@@ -712,15 +768,17 @@ export function reviewEmployeeStatus(req, res) {
       notifMsg += ` HR Note: ${adminNotes}`;
     }
 
-    db.prepare(`
-      INSERT INTO notifications (employee_id, title, message, type)
-      VALUES (?, ?, ?, ?)
-    `).run(
-      employeeId,
-      notifTitle,
-      notifMsg,
-      status === 'Approved' ? 'success' : (status === 'Needs Correction' ? 'warning' : 'error')
-    );
+    try {
+      db.prepare(`
+        INSERT INTO notifications (employee_id, title, message, type)
+        VALUES (?, ?, ?, ?)
+      `).run(
+        employeeId,
+        notifTitle,
+        notifMsg,
+        status === 'Approved' ? 'success' : (status === 'Needs Correction' ? 'warning' : 'error')
+      );
+    } catch (e) {}
 
     logAudit({
       userId: req.user.employeeId,
@@ -729,14 +787,18 @@ export function reviewEmployeeStatus(req, res) {
       action: `EMPLOYEE_${status.toUpperCase().replace(' ', '_')}`,
       entityType: 'employee',
       entityId: employeeId,
-      details: `Admin ${req.user.email} updated status of ${employee.full_name} (${employeeId}) to ${status}. Notes: ${adminNotes || 'None'}`,
+      details: `Admin ${req.user.email} updated status of ${employeeId} to ${status}. Notes: ${adminNotes || 'None'}`,
       ipAddress: req.ip
     });
 
-    const updated = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
+    let updated = null;
+    try {
+      updated = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
+    } catch (e) {}
+
     res.json({
       message: `Employee registration status set to ${status}.`,
-      employee: updated
+      employee: updated || { employee_id: employeeId, registration_status: status }
     });
   } catch (err) {
     console.error('[reviewEmployeeStatus Error]', err);
@@ -745,29 +807,84 @@ export function reviewEmployeeStatus(req, res) {
 }
 
 // Admin: Get Dashboard metrics
-export function getDashboardStats(req, res) {
+export async function getDashboardStats(req, res) {
   try {
-    const totalEmployees = db.prepare("SELECT COUNT(*) as count FROM employees").get().count;
-    const pendingRegistrations = db.prepare("SELECT COUNT(*) as count FROM employees WHERE registration_status = 'Pending Review'").get().count;
-    const approvedEmployees = db.prepare("SELECT COUNT(*) as count FROM employees WHERE registration_status = 'Approved'").get().count;
-    const pendingTimesheets = db.prepare("SELECT COUNT(*) as count FROM timesheets WHERE status = 'Pending'").get().count;
-    const approvedTimesheets = db.prepare("SELECT COUNT(*) as count FROM timesheets WHERE status = 'Approved'").get().count;
-    const pendingDocuments = db.prepare("SELECT COUNT(*) as count FROM documents WHERE status = 'Uploaded'").get().count;
+    let totalEmployees = 0;
+    let pendingRegistrations = 0;
+    let approvedEmployees = 0;
+    let pendingTimesheets = 0;
+    let approvedTimesheets = 0;
+    let pendingDocuments = 0;
+    let recentEmployees = [];
+    let recentTimesheets = [];
 
-    const recentEmployees = db.prepare(`
-      SELECT employee_id, full_name, designation, country, registration_status, submitted_at
-      FROM employees
-      ORDER BY submitted_at DESC
-      LIMIT 5
-    `).all();
+    // Query SQLite
+    try {
+      totalEmployees = db.prepare("SELECT COUNT(*) as count FROM employees").get()?.count || 0;
+      pendingRegistrations = db.prepare("SELECT COUNT(*) as count FROM employees WHERE registration_status = 'Pending Review'").get()?.count || 0;
+      approvedEmployees = db.prepare("SELECT COUNT(*) as count FROM employees WHERE registration_status = 'Approved'").get()?.count || 0;
+      pendingTimesheets = db.prepare("SELECT COUNT(*) as count FROM timesheets WHERE status = 'Pending'").get()?.count || 0;
+      approvedTimesheets = db.prepare("SELECT COUNT(*) as count FROM timesheets WHERE status = 'Approved'").get()?.count || 0;
+      pendingDocuments = db.prepare("SELECT COUNT(*) as count FROM documents WHERE status = 'Uploaded' OR status = 'Pending Review'").get()?.count || 0;
 
-    const recentTimesheets = db.prepare(`
-      SELECT t.*, e.full_name
-      FROM timesheets t
-      LEFT JOIN employees e ON e.employee_id = t.employee_id
-      ORDER BY t.submitted_at DESC
-      LIMIT 5
-    `).all();
+      recentEmployees = db.prepare(`
+        SELECT employee_id, full_name, designation, country, registration_status, submitted_at
+        FROM employees
+        ORDER BY submitted_at DESC
+        LIMIT 5
+      `).all();
+
+      recentTimesheets = db.prepare(`
+        SELECT t.*, e.full_name
+        FROM timesheets t
+        LEFT JOIN employees e ON e.employee_id = t.employee_id
+        ORDER BY t.submitted_at DESC
+        LIMIT 5
+      `).all();
+    } catch (sqErr) {
+      console.warn('[getDashboardStats SQLite Warning]', sqErr.message);
+    }
+
+    // Merge with MongoDB Atlas if connected
+    if (isMongoConnected()) {
+      try {
+        const mPending = await MongoEmployee.countDocuments({ registration_status: 'Pending Review' });
+        if (mPending > pendingRegistrations) pendingRegistrations = mPending;
+
+        const mApproved = await MongoEmployee.countDocuments({ registration_status: 'Approved' });
+        if (mApproved > approvedEmployees) approvedEmployees = mApproved;
+
+        const mTotal = await MongoEmployee.countDocuments({});
+        if (mTotal > totalEmployees) totalEmployees = mTotal;
+
+        const mPendingTs = await MongoTimesheet.countDocuments({ status: 'Pending' });
+        if (mPendingTs > pendingTimesheets) pendingTimesheets = mPendingTs;
+
+        const mApprovedTs = await MongoTimesheet.countDocuments({ status: 'Approved' });
+        if (mApprovedTs > approvedTimesheets) approvedTimesheets = mApprovedTs;
+
+        const mRecent = await MongoEmployee.find({}).sort({ submitted_at: -1, created_at: -1 }).limit(5).lean();
+        if (mRecent && mRecent.length > 0) {
+          const empMap = new Map();
+          for (const e of recentEmployees) empMap.set(e.employee_id, e);
+          for (const me of mRecent) {
+            if (!empMap.has(me.employee_id)) {
+              empMap.set(me.employee_id, {
+                employee_id: me.employee_id,
+                full_name: me.full_name,
+                designation: me.designation,
+                country: me.country,
+                registration_status: me.registration_status,
+                submitted_at: me.submitted_at
+              });
+            }
+          }
+          recentEmployees = Array.from(empMap.values()).slice(0, 5);
+        }
+      } catch (mErr) {
+        console.warn('[getDashboardStats Mongo Notice]', mErr.message);
+      }
+    }
 
     res.json({
       stats: {
