@@ -110,6 +110,11 @@ const PayrollSchema = new mongoose.Schema({
   gross_pay: { type: Number, required: true },
   deductions: { type: Number, default: 0.0 },
   net_pay: { type: Number, required: true },
+  currency: {
+    type: String,
+    enum: ['USD', 'INR'],
+    default: 'USD'
+  },
   payment_date: { type: String, required: true },
   payment_status: {
     type: String,

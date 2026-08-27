@@ -138,6 +138,7 @@ export function initSchema() {
       gross_pay REAL NOT NULL,
       deductions REAL NOT NULL DEFAULT 0.0,
       net_pay REAL NOT NULL,
+      currency TEXT CHECK(currency IN ('USD', 'INR')) NOT NULL DEFAULT 'USD',
       payment_date TEXT NOT NULL,
       payment_status TEXT CHECK(payment_status IN ('Paid', 'Processing', 'Scheduled')) NOT NULL DEFAULT 'Paid',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -201,6 +202,11 @@ export function initSchema() {
     }
     if (!empColumns.includes('employment_status')) {
       db.exec("ALTER TABLE employees ADD COLUMN employment_status TEXT DEFAULT 'Active';");
+    }
+
+    const payColumns = db.prepare("PRAGMA table_info(payroll_records)").all().map(c => c.name);
+    if (!payColumns.includes('currency')) {
+      db.exec("ALTER TABLE payroll_records ADD COLUMN currency TEXT DEFAULT 'USD';");
     }
   } catch (migErr) {
     console.warn('[DB Migration Warning]', migErr.message);

@@ -168,15 +168,107 @@ export async function seedDatabase() {
 
     db.prepare("INSERT INTO documents (employee_id, document_type, file_name, file_path, file_size, mime_type, status, review_notes, reviewed_at, reviewed_by) VALUES (?, 'w4', 'Marcus_W4.pdf', 'sample_w4_marcus.pdf', 195000, 'application/pdf', 'Needs Replacement', 'Page 2 is missing signature. Please re-upload with clear signature.', CURRENT_TIMESTAMP, 'admin@shinetek.com')").run('SH-2007');
 
+    // Employee 4 (India): SH-2008 (Rajesh Sharma - Lead Full Stack Engineer)
+    const emp4User = db.prepare(`
+      INSERT INTO users (employee_id, email, password_hash, role, status)
+      VALUES ('SH-2008', 'rajesh.sharma@shinetek.com', ?, 'employee', 'active')
+    `).run(empPassHash);
+
+    db.prepare(`
+      INSERT INTO employees (
+        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
+        date_of_birth, country, state, city, zip_code, address,
+        start_date, end_date, employment_status,
+        registration_status, submitted_at, reviewed_at, reviewed_by
+      ) VALUES (?, 'SH-2008', 'Rajesh', 'Sharma', null, 'Rajesh Sharma', 'rajesh.sharma@shinetek.com', '+91 98765 43210', 'Lead Full Stack Engineer',
+        '1993-04-18', 'India', 'Karnataka', 'Bengaluru', '560001', '12 MG Road, Indiranagar',
+        '2025-08-01', null, 'Active',
+        'Approved', '2025-08-01 09:00:00', '2025-08-02 11:00:00', 'admin@shinetek.com')
+    `).run(emp4User.lastInsertRowid);
+
+    // Indian Payroll Records for Rajesh Sharma (INR)
+    db.prepare(`
+      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
+      VALUES ('SH-2008', '2026-01-01', '2026-01-31', 185000.00, 28500.00, 156500.00, 'INR', '2026-01-31', 'Paid')
+    `).run();
+    db.prepare(`
+      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
+      VALUES ('SH-2008', '2026-02-01', '2026-02-28', 185000.00, 28500.00, 156500.00, 'INR', '2026-02-28', 'Paid')
+    `).run();
+
+    // Employee 5 (India): SH-2009 (Priya Patel - Senior QA Automation Engineer)
+    const emp5User = db.prepare(`
+      INSERT INTO users (employee_id, email, password_hash, role, status)
+      VALUES ('SH-2009', 'priya.patel@shinetek.com', ?, 'employee', 'active')
+    `).run(empPassHash);
+
+    db.prepare(`
+      INSERT INTO employees (
+        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
+        date_of_birth, country, state, city, zip_code, address,
+        start_date, end_date, employment_status,
+        registration_status, submitted_at, reviewed_at, reviewed_by
+      ) VALUES (?, 'SH-2009', 'Priya', 'Patel', null, 'Priya Patel', 'priya.patel@shinetek.com', '+91 91234 56789', 'Senior QA Automation Engineer',
+        '1996-09-24', 'India', 'Maharashtra', 'Pune', '411001', '45 Koregaon Park',
+        '2025-11-15', null, 'Active',
+        'Approved', '2025-11-15 10:00:00', '2025-11-16 14:30:00', 'admin@shinetek.com')
+    `).run(emp5User.lastInsertRowid);
+
+    // Indian Payroll Records for Priya Patel (INR)
+    db.prepare(`
+      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
+      VALUES ('SH-2009', '2026-01-01', '2026-01-31', 135000.00, 19200.00, 115800.00, 'INR', '2026-01-31', 'Paid')
+    `).run();
+    db.prepare(`
+      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
+      VALUES ('SH-2009', '2026-02-01', '2026-02-28', 135000.00, 19200.00, 115800.00, 'INR', '2026-02-28', 'Paid')
+    `).run();
+
+    // Employee 6 (India): SH-2010 (Ananya Reddy - DevOps & Cloud Engineer)
+    const emp6User = db.prepare(`
+      INSERT INTO users (employee_id, email, password_hash, role, status)
+      VALUES ('SH-2010', 'ananya.reddy@shinetek.com', ?, 'employee', 'active')
+    `).run(empPassHash);
+
+    db.prepare(`
+      INSERT INTO employees (
+        user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
+        date_of_birth, country, state, city, zip_code, address,
+        start_date, end_date, employment_status,
+        registration_status, submitted_at, reviewed_at, reviewed_by
+      ) VALUES (?, 'SH-2010', 'Ananya', 'Reddy', null, 'Ananya Reddy', 'ananya.reddy@shinetek.com', '+91 99887 76655', 'DevOps & Cloud Engineer',
+        '1994-12-05', 'India', 'Telangana', 'Hyderabad', '500081', '88 HITEC City, Madhapur',
+        '2026-01-10', null, 'Active',
+        'Approved', '2026-01-10 11:15:00', '2026-01-11 16:00:00', 'admin@shinetek.com')
+    `).run(emp6User.lastInsertRowid);
+
+    // Indian Payroll Record for Ananya Reddy (INR)
+    db.prepare(`
+      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
+      VALUES ('SH-2010', '2026-02-01', '2026-02-28', 160000.00, 24000.00, 136000.00, 'INR', '2026-03-05', 'Processing')
+    `).run();
+
+    // US Payroll Records for Emily Chen and Marcus Brody
+    db.prepare(`
+      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
+      VALUES ('SH-2006', '2026-01-01', '2026-01-15', 4800.00, 980.00, 3820.00, 'USD', '2026-01-20', 'Paid')
+    `).run();
+    db.prepare(`
+      INSERT INTO payroll_records (employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status)
+      VALUES ('SH-2007', '2026-01-01', '2026-01-15', 6100.00, 1400.00, 4700.00, 'USD', '2026-01-20', 'Paid')
+    `).run();
+
     // Notifications
     db.prepare("INSERT INTO notifications (employee_id, title, message, type) VALUES ('SH-2005', 'Registration Approved', 'Welcome to Shinetek Inc.! Your onboarding profile and documents have been approved.', 'success')").run();
     db.prepare("INSERT INTO notifications (employee_id, title, message, type) VALUES ('SH-2005', 'Timesheet Approved', 'Your timesheet for Jan 01 - Jan 15 has been approved by HR.', 'success')").run();
     db.prepare("INSERT INTO notifications (employee_id, title, message, type) VALUES ('SH-2006', 'Registration Under Review', 'Your employee onboarding submission is currently being reviewed by the HR team.', 'info')").run();
     db.prepare("INSERT INTO notifications (employee_id, title, message, type) VALUES ('SH-2007', 'Document Action Required', 'Your W-4 document requires replacement. Reason: Page 2 is missing signature.', 'warning')").run();
+    db.prepare("INSERT INTO notifications (employee_id, title, message, type) VALUES ('SH-2008', 'Payroll Statement Issued', 'Your monthly salary for February (Net: ₹1,56,500) has been deposited into your bank account.', 'success')").run();
+    db.prepare("INSERT INTO notifications (employee_id, title, message, type) VALUES ('SH-2009', 'Payroll Statement Issued', 'Your monthly salary for February (Net: ₹1,15,800) has been deposited into your bank account.', 'success')").run();
 
     // Initial sequence update
-    db.prepare("UPDATE system_settings SET value = '2008' WHERE key = 'id_current_seq'").run();
+    db.prepare("UPDATE system_settings SET value = '2011' WHERE key = 'id_current_seq'").run();
 
-    console.log('[DB] Sample employees seeded (SH-2005, SH-2006, SH-2007). Next ID set to SH-2008.');
+    console.log('[DB] Sample employees and Indian payroll seeded (SH-2005 to SH-2010). Next ID set to SH-2011.');
   }
 }

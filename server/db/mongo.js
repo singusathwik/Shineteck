@@ -190,7 +190,7 @@ async function seedMongoDefaults() {
         status: 'Approved'
       });
 
-      // Sample Payroll
+      // Sample US Payroll
       await Payroll.create({
         employee_id: 'SH-2005',
         pay_period_start: '2026-01-01',
@@ -198,11 +198,143 @@ async function seedMongoDefaults() {
         gross_pay: 5200.00,
         deductions: 1150.00,
         net_pay: 4050.00,
+        currency: 'USD',
         payment_date: '2026-01-20',
         payment_status: 'Paid'
       });
 
       console.log('[MongoDB] Sample employee SH-2005 seeded into MongoDB.');
+    }
+
+    // 4. Sample Indian Employee: Rajesh Sharma (SH-2008)
+    const emp4Exists = await User.findOne({ employee_id: 'SH-2008' });
+    if (!emp4Exists) {
+      const salt = await bcrypt.genSalt(10);
+      const empPassHash = await bcrypt.hash('Password@123', salt);
+
+      const emp4 = await User.create({
+        employee_id: 'SH-2008',
+        email: 'rajesh.sharma@shinetek.com',
+        password_hash: empPassHash,
+        role: 'employee',
+        status: 'active'
+      });
+
+      await Employee.create({
+        user_id: emp4._id,
+        employee_id: 'SH-2008',
+        first_name: 'Rajesh',
+        last_name: 'Sharma',
+        middle_initial: '',
+        full_name: 'Rajesh Sharma',
+        email: 'rajesh.sharma@shinetek.com',
+        phone: '+91 98765 43210',
+        designation: 'Lead Full Stack Engineer',
+        date_of_birth: '1993-04-18',
+        country: 'India',
+        state: 'Karnataka',
+        city: 'Bengaluru',
+        zip_code: '560001',
+        address: '12 MG Road, Indiranagar',
+        start_date: '2025-08-01',
+        end_date: null,
+        employment_status: 'Active',
+        registration_status: 'Approved',
+        reviewed_by: 'admin@shinetek.com'
+      });
+
+      // Indian Payroll Statements (INR)
+      await Payroll.create([
+        {
+          employee_id: 'SH-2008',
+          pay_period_start: '2026-01-01',
+          pay_period_end: '2026-01-31',
+          gross_pay: 185000.00,
+          deductions: 28500.00,
+          net_pay: 156500.00,
+          currency: 'INR',
+          payment_date: '2026-01-31',
+          payment_status: 'Paid'
+        },
+        {
+          employee_id: 'SH-2008',
+          pay_period_start: '2026-02-01',
+          pay_period_end: '2026-02-28',
+          gross_pay: 185000.00,
+          deductions: 28500.00,
+          net_pay: 156500.00,
+          currency: 'INR',
+          payment_date: '2026-02-28',
+          payment_status: 'Paid'
+        }
+      ]);
+
+      console.log('[MongoDB] Indian employee SH-2008 & INR Payroll seeded into MongoDB.');
+    }
+
+    // 5. Sample Indian Employee: Priya Patel (SH-2009)
+    const emp5Exists = await User.findOne({ employee_id: 'SH-2009' });
+    if (!emp5Exists) {
+      const salt = await bcrypt.genSalt(10);
+      const empPassHash = await bcrypt.hash('Password@123', salt);
+
+      const emp5 = await User.create({
+        employee_id: 'SH-2009',
+        email: 'priya.patel@shinetek.com',
+        password_hash: empPassHash,
+        role: 'employee',
+        status: 'active'
+      });
+
+      await Employee.create({
+        user_id: emp5._id,
+        employee_id: 'SH-2009',
+        first_name: 'Priya',
+        last_name: 'Patel',
+        middle_initial: '',
+        full_name: 'Priya Patel',
+        email: 'priya.patel@shinetek.com',
+        phone: '+91 91234 56789',
+        designation: 'Senior QA Automation Engineer',
+        date_of_birth: '1996-09-24',
+        country: 'India',
+        state: 'Maharashtra',
+        city: 'Pune',
+        zip_code: '411001',
+        address: '45 Koregaon Park',
+        start_date: '2025-11-15',
+        end_date: null,
+        employment_status: 'Active',
+        registration_status: 'Approved',
+        reviewed_by: 'admin@shinetek.com'
+      });
+
+      await Payroll.create([
+        {
+          employee_id: 'SH-2009',
+          pay_period_start: '2026-01-01',
+          pay_period_end: '2026-01-31',
+          gross_pay: 135000.00,
+          deductions: 19200.00,
+          net_pay: 115800.00,
+          currency: 'INR',
+          payment_date: '2026-01-31',
+          payment_status: 'Paid'
+        },
+        {
+          employee_id: 'SH-2009',
+          pay_period_start: '2026-02-01',
+          pay_period_end: '2026-02-28',
+          gross_pay: 135000.00,
+          deductions: 19200.00,
+          net_pay: 115800.00,
+          currency: 'INR',
+          payment_date: '2026-02-28',
+          payment_status: 'Paid'
+        }
+      ]);
+
+      console.log('[MongoDB] Indian employee SH-2009 & INR Payroll seeded into MongoDB.');
     }
   } catch (err) {
     console.error('[MongoDB Seed Error]', err.message);
