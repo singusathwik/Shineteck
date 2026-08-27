@@ -129,7 +129,7 @@ export function initSchema() {
       FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
     );
 
-    -- Payroll records
+    -- Payroll records (Statements issued to employees)
     CREATE TABLE IF NOT EXISTS payroll_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       employee_id TEXT NOT NULL,
@@ -142,6 +142,45 @@ export function initSchema() {
       payment_date TEXT NOT NULL,
       payment_status TEXT CHECK(payment_status IN ('Paid', 'Processing', 'Scheduled')) NOT NULL DEFAULT 'Paid',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
+    );
+
+    -- Payroll entries (Monthly client & vendor timesheet billing calculations)
+    CREATE TABLE IF NOT EXISTS payroll_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT NOT NULL,
+      employee_name TEXT NOT NULL,
+      payroll_month TEXT NOT NULL,
+      vendor_name TEXT DEFAULT '',
+      client_name TEXT DEFAULT '',
+      total_hours REAL NOT NULL,
+      bill_rate REAL NOT NULL,
+      emp_bill_rate REAL NOT NULL,
+      gross_amount REAL NOT NULL,
+      currency TEXT CHECK(currency IN ('USD', 'INR')) NOT NULL DEFAULT 'USD',
+      country TEXT DEFAULT 'United States',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
+    );
+
+    -- Vendor details
+    CREATE TABLE IF NOT EXISTS vendor_details (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      employee_id TEXT NOT NULL,
+      employee_name TEXT NOT NULL,
+      vendor_name TEXT NOT NULL,
+      vendor_address TEXT DEFAULT '',
+      client_name TEXT NOT NULL,
+      client_address TEXT DEFAULT '',
+      hourly_bill_rate REAL NOT NULL,
+      employee_rate REAL NOT NULL,
+      bu_margin REAL NOT NULL,
+      visa_type TEXT DEFAULT 'H-1B',
+      tax_percent REAL NOT NULL,
+      net_margin REAL NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
     );
 

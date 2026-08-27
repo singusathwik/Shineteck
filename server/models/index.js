@@ -195,6 +195,8 @@ const PayrollEntrySchema = new mongoose.Schema({
   bill_rate: { type: Number, required: true },
   emp_bill_rate: { type: Number, required: true },
   gross_amount: { type: Number, required: true },
+  currency: { type: String, enum: ['USD', 'INR'], default: 'USD' },
+  country: { type: String, default: 'United States' },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });

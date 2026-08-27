@@ -10,7 +10,9 @@ import {
   Payroll,
   SystemSetting,
   Notification,
-  AuditLog
+  AuditLog,
+  VendorDetail,
+  PayrollEntry
 } from '../models/index.js';
 
 dotenv.config();
@@ -335,6 +337,196 @@ async function seedMongoDefaults() {
       ]);
 
       console.log('[MongoDB] Indian employee SH-2009 & INR Payroll seeded into MongoDB.');
+    }
+
+    // 6. Seed Payroll Billing Entries (Payroll Information)
+    const entryCount = await PayrollEntry.countDocuments();
+    if (entryCount === 0) {
+      await PayrollEntry.create([
+        // Indian Employee Billing Entries (INR)
+        {
+          employee_id: 'SH-2008',
+          employee_name: 'Rajesh Sharma',
+          payroll_month: '2026-02',
+          vendor_name: 'Tata Consultancy Services (TCS)',
+          client_name: 'Shinetek Cloud Platform',
+          total_hours: 160,
+          bill_rate: 1500,
+          emp_bill_rate: 1156.25,
+          gross_amount: 185000.00,
+          currency: 'INR',
+          country: 'India'
+        },
+        {
+          employee_id: 'SH-2008',
+          employee_name: 'Rajesh Sharma',
+          payroll_month: '2026-01',
+          vendor_name: 'Tata Consultancy Services (TCS)',
+          client_name: 'Shinetek Cloud Platform',
+          total_hours: 160,
+          bill_rate: 1500,
+          emp_bill_rate: 1156.25,
+          gross_amount: 185000.00,
+          currency: 'INR',
+          country: 'India'
+        },
+        {
+          employee_id: 'SH-2009',
+          employee_name: 'Priya Patel',
+          payroll_month: '2026-02',
+          vendor_name: 'Infosys Technologies',
+          client_name: 'FinTech Global Corp',
+          total_hours: 160,
+          bill_rate: 1200,
+          emp_bill_rate: 843.75,
+          gross_amount: 135000.00,
+          currency: 'INR',
+          country: 'India'
+        },
+        {
+          employee_id: 'SH-2009',
+          employee_name: 'Priya Patel',
+          payroll_month: '2026-01',
+          vendor_name: 'Infosys Technologies',
+          client_name: 'FinTech Global Corp',
+          total_hours: 160,
+          bill_rate: 1200,
+          emp_bill_rate: 843.75,
+          gross_amount: 135000.00,
+          currency: 'INR',
+          country: 'India'
+        },
+        {
+          employee_id: 'SH-2010',
+          employee_name: 'Ananya Reddy',
+          payroll_month: '2026-02',
+          vendor_name: 'Wipro Digital',
+          client_name: 'Healthcare Nexus Platform',
+          total_hours: 160,
+          bill_rate: 1400,
+          emp_bill_rate: 1000,
+          gross_amount: 160000.00,
+          currency: 'INR',
+          country: 'India'
+        },
+        {
+          employee_id: 'SH-2011',
+          employee_name: 'Vikram Verma',
+          payroll_month: '2026-02',
+          vendor_name: 'HCL Technologies',
+          client_name: 'Retail Logistics AI',
+          total_hours: 168,
+          bill_rate: 1800,
+          emp_bill_rate: 1250,
+          gross_amount: 210000.00,
+          currency: 'INR',
+          country: 'India'
+        },
+        // US / Foreign Employee Billing Entries (USD)
+        {
+          employee_id: 'SH-2005',
+          employee_name: 'Johnathan Vance',
+          payroll_month: '2026-02',
+          vendor_name: 'Apex Systems',
+          client_name: 'Google Cloud Services',
+          total_hours: 160,
+          bill_rate: 95,
+          emp_bill_rate: 65,
+          gross_amount: 10400.00,
+          currency: 'USD',
+          country: 'United States'
+        },
+        {
+          employee_id: 'SH-2005',
+          employee_name: 'Johnathan Vance',
+          payroll_month: '2026-01',
+          vendor_name: 'Apex Systems',
+          client_name: 'Google Cloud Services',
+          total_hours: 160,
+          bill_rate: 95,
+          emp_bill_rate: 65,
+          gross_amount: 10400.00,
+          currency: 'USD',
+          country: 'United States'
+        },
+        {
+          employee_id: 'SH-2006',
+          employee_name: 'Emily Chen',
+          payroll_month: '2026-02',
+          vendor_name: 'Insight Global',
+          client_name: 'Meta Platforms',
+          total_hours: 160,
+          bill_rate: 85,
+          emp_bill_rate: 60,
+          gross_amount: 9600.00,
+          currency: 'USD',
+          country: 'United States'
+        },
+        {
+          employee_id: 'SH-2007',
+          employee_name: 'Marcus Brody',
+          payroll_month: '2026-02',
+          vendor_name: 'TEKsystems',
+          client_name: 'Amazon Web Services',
+          total_hours: 160,
+          bill_rate: 110,
+          emp_bill_rate: 75,
+          gross_amount: 12000.00,
+          currency: 'USD',
+          country: 'United States'
+        }
+      ]);
+      console.log('[MongoDB] Multi-currency Payroll Billing Entries seeded into MongoDB.');
+    }
+
+    // 7. Seed Sample Vendor Details
+    const vendorCount = await VendorDetail.countDocuments();
+    if (vendorCount === 0) {
+      await VendorDetail.create([
+        {
+          employee_id: 'SH-2005',
+          employee_name: 'Johnathan Vance',
+          vendor_name: 'Apex Systems',
+          vendor_address: 'Richmond, VA',
+          client_name: 'Google Cloud Services',
+          client_address: 'Mountain View, CA',
+          hourly_bill_rate: 95,
+          employee_rate: 65,
+          bu_margin: 30,
+          visa_type: 'H-1B',
+          tax_percent: 8.5,
+          net_margin: 27.45
+        },
+        {
+          employee_id: 'SH-2008',
+          employee_name: 'Rajesh Sharma',
+          vendor_name: 'Tata Consultancy Services (TCS)',
+          vendor_address: 'Mumbai, MH, India',
+          client_name: 'Shinetek Cloud Platform',
+          client_address: 'Bengaluru, KA, India',
+          hourly_bill_rate: 1500,
+          employee_rate: 1156.25,
+          bu_margin: 343.75,
+          visa_type: 'H-1B',
+          tax_percent: 8.5,
+          net_margin: 314.53
+        },
+        {
+          employee_id: 'SH-2009',
+          employee_name: 'Priya Patel',
+          vendor_name: 'Infosys Technologies',
+          vendor_address: 'Electronic City, Bengaluru, India',
+          client_name: 'FinTech Global Corp',
+          client_address: 'Pune, MH, India',
+          hourly_bill_rate: 1200,
+          employee_rate: 843.75,
+          bu_margin: 356.25,
+          visa_type: 'OPT',
+          tax_percent: 2.5,
+          net_margin: 347.34
+        }
+      ]);
+      console.log('[MongoDB] Sample Vendor Details seeded into MongoDB.');
     }
   } catch (err) {
     console.error('[MongoDB Seed Error]', err.message);

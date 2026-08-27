@@ -52,17 +52,40 @@ export function AdminPayroll() {
 
   const fetchPayrollAndEmps = async () => {
     try {
-      const params = {};
-      if (activeCurrencyTab !== 'ALL') {
-        params.currency = activeCurrencyTab;
-      }
-      const [payData, empData] = await Promise.all([
-        api.getAllPayroll(params),
-        api.getAllEmployees()
+      const [payData, empData, allPayData] = await Promise.all([
+        api.getAllPayroll(activeCurrencyTab !== 'ALL' ? { currency: activeCurrencyTab } : {}),
+        api.getAllEmployees(),
+        api.getAllPayroll({}) // fetch all records to calculate overall KPI summary accurately
       ]);
-      setPayrollRecords(payData.payrollRecords || []);
-      if (payData.summary) {
+      const records = payData.payrollRecords || [];
+      const allRecords = allPayData.payrollRecords || records;
+      setPayrollRecords(records);
+
+      if (payData.summary && payData.summary.totalRecords > 0) {
         setSummary(payData.summary);
+      } else {
+        // Dynamic client-side calculation fallback
+        let inrG = 0, inrN = 0, inrC = 0;
+        let usdG = 0, usdN = 0, usdC = 0;
+        allRecords.forEach(r => {
+          const cur = r.currency || (r.country === 'India' ? 'INR' : 'USD');
+          const g = parseFloat(r.gross_pay) || 0;
+          const n = parseFloat(r.net_pay) || 0;
+          if (cur === 'INR') {
+            inrG += g; inrN += n; inrC++;
+          } else {
+            usdG += g; usdN += n; usdC++;
+          }
+        });
+        setSummary({
+          inrGross: inrG,
+          inrNet: inrN,
+          inrCount: inrC,
+          usdGross: usdG,
+          usdNet: usdN,
+          usdCount: usdC,
+          totalRecords: allRecords.length
+        });
       }
       setEmployees(empData.employees || []);
     } catch (err) {
