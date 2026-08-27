@@ -72,92 +72,92 @@ export function AdminDashboard({ onSelectEmployee, onNavigateTab }) {
         </div>
       </div>
 
-      {/* KPI Metric Cards */}
+      {/* KPI Metric Cards with Eye-Friendly Tonal Accents */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
         <div
           onClick={() => onNavigateTab('employees')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-blue-50/60 border-blue-200/90 hover:border-blue-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Total Staff</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-blue-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 font-display">Total Staff</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-100/90 text-blue-700 flex items-center justify-center border border-blue-200">
               <Users className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 font-display">{stats?.totalEmployees || 0}</div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium flex items-center gap-1">
-            <span className="text-emerald-600 font-bold">Active</span> directory
+          <p className="text-[11px] text-blue-900/80 mt-1 font-semibold flex items-center gap-1">
+            <span className="text-emerald-700 font-bold">Active</span> directory
           </p>
         </div>
 
         <div
           onClick={() => onNavigateTab('approvals')}
-          className="enterprise-card p-4.5 bg-amber-50/40 border-amber-200/80 hover:border-amber-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-amber-50/60 border-amber-200/90 hover:border-amber-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-amber-800 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 font-display">Pending HR</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+          <div className="flex items-center justify-between text-amber-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 font-display">Pending HR</span>
+            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-amber-900 font-display">{stats?.pendingRegistrations || 0}</div>
-          <p className="text-[11px] text-amber-800 font-bold mt-1">Awaiting review</p>
+          <div className="text-2xl font-black text-amber-950 font-display">{stats?.pendingRegistrations || 0}</div>
+          <p className="text-[11px] text-amber-900 font-bold mt-1">Awaiting review</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('approvals')}
-          className="enterprise-card p-4.5 bg-emerald-50/30 border-emerald-200/80 hover:border-emerald-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-emerald-50/60 border-emerald-200/90 hover:border-emerald-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-emerald-800 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 font-display">Approved</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+          <div className="flex items-center justify-between text-emerald-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 font-display">Approved</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-emerald-900 font-display">{stats?.approvedEmployees || 0}</div>
-          <p className="text-[11px] text-emerald-700 mt-1 font-medium">Verified workforce</p>
+          <div className="text-2xl font-black text-emerald-950 font-display">{stats?.approvedEmployees || 0}</div>
+          <p className="text-[11px] text-emerald-800 font-semibold mt-1">Verified workforce</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('timesheets')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-purple-50/60 border-purple-200/90 hover:border-purple-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Timesheets</span>
-            <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-purple-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 font-display">Timesheets</span>
+            <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center border border-purple-200">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-display">{stats?.pendingTimesheets || 0}</div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">Pending authorization</p>
+          <div className="text-2xl font-black text-purple-950 font-display">{stats?.pendingTimesheets || 0}</div>
+          <p className="text-[11px] text-purple-900 font-semibold mt-1">Pending authorization</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('timesheets')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-sky-50/60 border-sky-200/90 hover:border-sky-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Authorized</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-sky-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-800 font-display">Authorized</span>
+            <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-800 flex items-center justify-center border border-sky-200">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-display">{stats?.approvedTimesheets || 0}</div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">Ready for payroll</p>
+          <div className="text-2xl font-black text-sky-950 font-display">{stats?.approvedTimesheets || 0}</div>
+          <p className="text-[11px] text-sky-900 font-semibold mt-1">Ready for payroll</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('approvals')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-indigo-50/60 border-indigo-200/90 hover:border-indigo-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Compliance</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-indigo-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 font-display">Compliance</span>
+            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center border border-indigo-200">
               <FileText className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 font-display">{stats?.pendingDocuments || 0}</div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">Doc checklists</p>
+          <div className="text-2xl font-black text-indigo-950 font-display">{stats?.pendingDocuments || 0}</div>
+          <p className="text-[11px] text-indigo-900 font-semibold mt-1">Doc checklists</p>
         </div>
       </div>
 

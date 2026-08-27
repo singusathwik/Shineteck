@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import { AddressForm } from '../../components/registration/AddressForm.jsx';
 import { ShineteckLogo } from '../../components/common/ShineteckLogo.jsx';
 import {
@@ -100,20 +101,19 @@ export function EmployeeProfile() {
       <div className="enterprise-card p-6 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl border-2 border-blue-600 overflow-hidden bg-slate-100 shrink-0 shadow-md">
-              {profile.profile_image_url ? (
-                <img src={profile.profile_image_url} alt={profile.full_name} className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-8 h-8 text-slate-400 m-auto mt-6" />
-              )}
-            </div>
+            <EmployeeAvatar
+              name={profile.full_name}
+              imageUrl={profile.profile_image_url}
+              size="xl"
+              status={profile.registration_status}
+            />
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">{profile.full_name}</h1>
                 <StatusBadge status={profile.registration_status} size="sm" />
               </div>
               <p className="text-xs text-slate-600 font-semibold">{profile.designation}</p>
-              <p className="text-xs font-mono text-blue-700 font-bold mt-0.5">ID: {profile.employee_id}</p>
+              <p className="text-xs font-mono text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold mt-1 inline-block">ID: {profile.employee_id}</p>
             </div>
           </div>
 
@@ -368,13 +368,12 @@ export function EmployeeProfile() {
 
               {/* Photo & Identity */}
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 rounded-2xl border-2 border-blue-400 overflow-hidden bg-white/10 shadow-lg mb-3">
-                  {profile.profile_image_url ? (
-                    <img src={profile.profile_image_url} alt={profile.full_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-10 h-10 text-white/50 m-auto mt-7" />
-                  )}
-                </div>
+                <EmployeeAvatar
+                  name={profile.full_name}
+                  imageUrl={profile.profile_image_url}
+                  size="xl"
+                  className="mb-3 ring-2 ring-blue-400"
+                />
                 <h3 className="text-base font-black tracking-tight text-white font-display leading-tight">{profile.full_name}</h3>
                 <p className="text-[11px] text-blue-300 font-medium mt-0.5">{profile.designation}</p>
                 <div className="mt-2 px-3 py-1 bg-white/10 rounded-lg border border-white/15">

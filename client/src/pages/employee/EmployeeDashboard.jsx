@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import { TimesheetUploadModal } from '../../components/timesheet/TimesheetUploadModal.jsx';
 import {
   Clock,
@@ -59,18 +60,26 @@ export function EmployeeDashboard({ onNavigateTab }) {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="enterprise-card p-6 bg-white">
+      <div className="enterprise-card p-6 bg-white border-slate-300 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
-                Welcome back, {user?.fullName || 'Employee'}
-              </h1>
-              <StatusBadge status={regStatus} size="sm" />
+          <div className="flex items-center gap-4">
+            <EmployeeAvatar
+              name={user?.fullName || 'Employee'}
+              imageUrl={user?.profileImageUrl}
+              size="lg"
+              status={regStatus}
+            />
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
+                  Welcome back, {user?.fullName || 'Employee'}
+                </h1>
+                <StatusBadge status={regStatus} size="sm" />
+              </div>
+              <p className="text-xs text-slate-600 font-medium">
+                Employee ID: <span className="font-mono font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{user?.employeeId}</span> • {user?.designation || 'Staff Consultant'} • {profile?.country || 'Global'}
+              </p>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Employee ID: <span className="font-mono font-bold text-blue-700">{user?.employeeId}</span> • {user?.designation || 'Staff Consultant'} • {profile?.country || 'Global'}
-            </p>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
@@ -87,11 +96,11 @@ export function EmployeeDashboard({ onNavigateTab }) {
 
         {/* Status Callout if Pending Review */}
         {regStatus === 'Pending Review' && (
-          <div className="mt-4 p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-start gap-2.5 shadow-2xs font-medium">
+          <div className="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-950 flex items-start gap-2.5 shadow-2xs font-medium">
             <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <p className="font-bold font-display">Onboarding Verification In Progress</p>
-              <p className="text-[11px] text-amber-800 mt-0.5">
+              <p className="text-[11px] text-amber-900 mt-0.5">
                 Your profile and compliance documents have been received and are queued for review by Shineteck HR. You may submit work timesheets normally.
               </p>
             </div>
@@ -100,11 +109,11 @@ export function EmployeeDashboard({ onNavigateTab }) {
 
         {/* Status Callout if Needs Correction */}
         {regStatus === 'Needs Correction' && (
-          <div className="mt-4 p-3.5 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-900 flex items-start gap-2.5 shadow-2xs">
+          <div className="mt-4 p-3.5 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-950 flex items-start gap-2.5 shadow-2xs">
             <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
             <div>
               <p className="font-bold font-display">Action Required: Compliance Update Needed</p>
-              <p className="text-[11px] text-orange-800 mt-0.5 font-medium">
+              <p className="text-[11px] text-orange-900 mt-0.5 font-medium">
                 {profile?.admin_notes || 'Please check your documents tab to replace requested compliance documents.'}
               </p>
               <button
@@ -119,65 +128,65 @@ export function EmployeeDashboard({ onNavigateTab }) {
         )}
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards with Eye-Friendly Tonal Accents */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div
           onClick={() => onNavigateTab('timesheets')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-blue-50/60 border-blue-200/90 hover:border-blue-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Timesheets</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-blue-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 font-display">Timesheets</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center border border-blue-200">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 font-display">{timesheets.length}</div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">
-            <strong className="text-slate-800 font-mono">{pendingTimesheetCount}</strong> pending authorization
+          <p className="text-[11px] text-blue-900 font-semibold mt-1">
+            <strong className="text-blue-950 font-mono font-bold">{pendingTimesheetCount}</strong> pending authorization
           </p>
         </div>
 
         <div
           onClick={() => onNavigateTab('documents')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-purple-50/60 border-purple-200/90 hover:border-purple-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Documents</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-purple-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 font-display">Documents</span>
+            <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center border border-purple-200">
               <FileText className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 font-display">{documents.length}</div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">
-            <strong className="text-emerald-700 font-mono">{approvedDocsCount}</strong> verified by HR
+          <p className="text-[11px] text-purple-900 font-semibold mt-1">
+            <strong className="text-emerald-700 font-mono font-bold">{approvedDocsCount}</strong> verified by HR
           </p>
         </div>
 
         <div
           onClick={() => onNavigateTab('payroll')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-emerald-50/60 border-emerald-200/90 hover:border-emerald-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Pay Stubs</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-emerald-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 font-display">Pay Stubs</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
               <DollarSign className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900 font-display">{payroll.length}</div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">Statements issued</p>
+          <p className="text-[11px] text-emerald-900 font-semibold mt-1">Statements issued</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('profile')}
-          className="enterprise-card p-4.5 bg-white hover:border-slate-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
+          className="enterprise-card p-4.5 bg-indigo-50/60 border-indigo-200/90 hover:border-indigo-400 hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-display">Account</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="flex items-center justify-between text-indigo-900 mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 font-display">Account</span>
+            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center border border-indigo-200">
               <UserCheck className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-sm font-bold text-slate-900 mt-1 truncate font-display">
+          <div className="text-sm font-bold text-indigo-950 mt-1 truncate font-display">
             {profile?.employment_status || 'Active'}
           </div>
           <p className="text-[11px] text-slate-500 mt-1 font-medium">Managed by Shineteck Inc.</p>

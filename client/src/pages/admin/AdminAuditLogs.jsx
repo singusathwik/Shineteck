@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import {
   ShieldAlert,
   Search,
@@ -43,10 +44,10 @@ export function AdminAuditLogs() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="enterprise-card p-6 bg-white border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="enterprise-card p-6 bg-white border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">System Audit Trail & Security Logs</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">System Audit Trail & Security Logs</h1>
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">
             Immutable chronological record of employee registrations, document compliance reviews, and timesheet actions
           </p>
         </div>
@@ -54,7 +55,7 @@ export function AdminAuditLogs() {
         <button
           type="button"
           onClick={fetchLogs}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded border border-slate-300 transition-colors"
+          className="enterprise-btn-secondary"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh Logs
@@ -62,7 +63,7 @@ export function AdminAuditLogs() {
       </div>
 
       {/* Filter & Search */}
-      <div className="enterprise-card p-4 bg-white border-slate-200">
+      <div className="enterprise-card p-4 bg-white border-slate-300">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
@@ -71,16 +72,16 @@ export function AdminAuditLogs() {
               placeholder="Search by Actor, Details, ID, or Action..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-medium">Role:</span>
+            <span className="text-slate-500 font-bold">Role:</span>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-700 focus:ring-1 focus:ring-blue-600"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-700 font-medium focus:ring-2 focus:ring-blue-600/20"
             >
               <option value="ALL">All Roles</option>
               <option value="employee">Employee</option>
@@ -90,80 +91,86 @@ export function AdminAuditLogs() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-medium">Status:</span>
+            <span className="text-slate-500 font-bold">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-700 focus:ring-1 focus:ring-blue-600"
+              className="px-2.5 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-700 font-medium focus:ring-2 focus:ring-blue-600/20"
             >
               <option value="ALL">All Statuses</option>
               <option value="SUCCESS">SUCCESS</option>
-              <option value="FAILURE">FAILURE</option>
+              <option value="FAILED">FAILED</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Audit Log Table */}
-      <div className="enterprise-card bg-white border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+      <div className="table-container shadow-sm">
+        <table className="enterprise-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Actor</th>
+              <th>Role</th>
+              <th>Action Event</th>
+              <th>Target Record</th>
+              <th>Details</th>
+              <th className="text-right">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.length === 0 ? (
               <tr>
-                <th className="py-3 px-4">Timestamp</th>
-                <th className="py-3 px-4">Actor</th>
-                <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Action Event</th>
-                <th className="py-3 px-4">Target Record</th>
-                <th className="py-3 px-4">Details</th>
-                <th className="py-3 px-4 text-right">Result</th>
+                <td colSpan={7} className="py-8 text-center text-slate-400">
+                  No audit records found matching criteria.
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {logs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
-                    No audit records found matching criteria.
+            ) : (
+              logs.map((log) => (
+                <tr key={log.id} className="hover:bg-blue-50/70 transition-colors">
+                  <td className="text-slate-500 whitespace-nowrap font-mono text-[11px]">
+                    {new Date(log.timestamp).toLocaleString()}
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2.5">
+                      <EmployeeAvatar
+                        name={log.user_name || log.user_id || 'System'}
+                        size="xs"
+                      />
+                      <span className="font-bold text-slate-900 text-xs font-display">
+                        {log.user_name || log.user_id}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      log.user_role === 'admin'
+                        ? 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                        : log.user_role === 'employee'
+                        ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {log.user_role}
+                    </span>
+                  </td>
+                  <td className="font-mono font-bold text-slate-800 text-[11px]">
+                    {log.action}
+                  </td>
+                  <td className="font-mono text-slate-600 text-xs">
+                    {log.entity_type ? `${log.entity_type} #${log.entity_id || '—'}` : '—'}
+                  </td>
+                  <td className="text-slate-600 max-w-[280px] truncate text-xs" title={log.details}>
+                    {log.details || '—'}
+                  </td>
+                  <td className="text-right">
+                    <StatusBadge status={log.status} size="sm" />
                   </td>
                 </tr>
-              ) : (
-                logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-4 text-slate-500 whitespace-nowrap font-mono text-[11px]">
-                      {new Date(log.timestamp).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-slate-800">
-                      {log.user_name || log.user_id}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        log.user_role === 'admin'
-                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                          : log.user_role === 'employee'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {log.user_role}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-800 text-[11px]">
-                      {log.action}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-slate-600">
-                      {log.entity_type ? `${log.entity_type} #${log.entity_id || '—'}` : '—'}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600 max-w-[280px] truncate" title={log.details}>
-                      {log.details || '—'}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <StatusBadge status={log.status} size="sm" />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
