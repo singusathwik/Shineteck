@@ -72,13 +72,24 @@ export function initSchema() {
       full_name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       phone TEXT NOT NULL,
+      gender TEXT,
       designation TEXT NOT NULL,
       date_of_birth TEXT NOT NULL,
       country TEXT NOT NULL,
       state TEXT NOT NULL,
       city TEXT NOT NULL,
       zip_code TEXT NOT NULL,
+      zip_code_part1 TEXT,
+      zip_code_part2 TEXT,
       address TEXT NOT NULL,
+      address_line_1 TEXT,
+      address_line_2 TEXT,
+      suite_apt TEXT,
+      emergency_first_name TEXT,
+      emergency_last_name TEXT,
+      emergency_email TEXT,
+      emergency_phone TEXT,
+      emergency_relationship TEXT,
       profile_image_url TEXT,
       start_date TEXT,
       end_date TEXT,
@@ -93,11 +104,11 @@ export function initSchema() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
 
-    -- Employee uploaded documents (W-4, I-9, Passport, Visa)
+    -- Employee uploaded documents
     CREATE TABLE IF NOT EXISTS documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       employee_id TEXT NOT NULL,
-      document_type TEXT CHECK(document_type IN ('w4', 'i9', 'passport', 'visa')) NOT NULL,
+      document_type TEXT NOT NULL,
       file_name TEXT NOT NULL,
       file_path TEXT NOT NULL,
       file_size INTEGER NOT NULL,
@@ -234,6 +245,39 @@ export function initSchema() {
     if (!empColumns.includes('middle_initial')) {
       db.exec("ALTER TABLE employees ADD COLUMN middle_initial TEXT;");
     }
+    if (!empColumns.includes('gender')) {
+      db.exec("ALTER TABLE employees ADD COLUMN gender TEXT;");
+    }
+    if (!empColumns.includes('address_line_1')) {
+      db.exec("ALTER TABLE employees ADD COLUMN address_line_1 TEXT;");
+    }
+    if (!empColumns.includes('address_line_2')) {
+      db.exec("ALTER TABLE employees ADD COLUMN address_line_2 TEXT;");
+    }
+    if (!empColumns.includes('suite_apt')) {
+      db.exec("ALTER TABLE employees ADD COLUMN suite_apt TEXT;");
+    }
+    if (!empColumns.includes('zip_code_part1')) {
+      db.exec("ALTER TABLE employees ADD COLUMN zip_code_part1 TEXT;");
+    }
+    if (!empColumns.includes('zip_code_part2')) {
+      db.exec("ALTER TABLE employees ADD COLUMN zip_code_part2 TEXT;");
+    }
+    if (!empColumns.includes('emergency_first_name')) {
+      db.exec("ALTER TABLE employees ADD COLUMN emergency_first_name TEXT;");
+    }
+    if (!empColumns.includes('emergency_last_name')) {
+      db.exec("ALTER TABLE employees ADD COLUMN emergency_last_name TEXT;");
+    }
+    if (!empColumns.includes('emergency_email')) {
+      db.exec("ALTER TABLE employees ADD COLUMN emergency_email TEXT;");
+    }
+    if (!empColumns.includes('emergency_phone')) {
+      db.exec("ALTER TABLE employees ADD COLUMN emergency_phone TEXT;");
+    }
+    if (!empColumns.includes('emergency_relationship')) {
+      db.exec("ALTER TABLE employees ADD COLUMN emergency_relationship TEXT;");
+    }
     if (!empColumns.includes('start_date')) {
       db.exec("ALTER TABLE employees ADD COLUMN start_date TEXT;");
     }
@@ -252,6 +296,31 @@ export function initSchema() {
     const tsColumns = db.prepare("PRAGMA table_info(timesheets)").all().map(c => c.name);
     if (!tsColumns.includes('vendor_name')) {
       db.exec("ALTER TABLE timesheets ADD COLUMN vendor_name TEXT DEFAULT '';");
+    }
+
+    // Check if documents table has old check constraint and migrate if needed
+    const docTableSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='documents'").get()?.sql || '';
+    if (docTableSql.includes("CHECK(document_type IN ('w4'")) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS documents_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          employee_id TEXT NOT NULL,
+          document_type TEXT NOT NULL,
+          file_name TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          mime_type TEXT NOT NULL,
+          status TEXT CHECK(status IN ('Uploaded', 'Approved', 'Needs Replacement', 'Rejected')) NOT NULL DEFAULT 'Uploaded',
+          review_notes TEXT,
+          uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          reviewed_at DATETIME,
+          reviewed_by TEXT,
+          FOREIGN KEY (employee_id) REFERENCES employees(employee_id) ON DELETE CASCADE
+        );
+        INSERT OR IGNORE INTO documents_new SELECT * FROM documents;
+        DROP TABLE documents;
+        ALTER TABLE documents_new RENAME TO documents;
+      `);
     }
   } catch (migErr) {
     console.warn('[DB Migration Warning]', migErr.message);

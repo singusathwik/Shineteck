@@ -47,7 +47,14 @@ export function uploadProfilePicture(req, res) {
   }
 }
 
-// Upload Required Document (W-4, I-9, Passport, Visa)
+const ALLOWED_DOC_TYPES = [
+  'w4', 'w9', 'i9', 'passport', 'visa',
+  'driver_license', 'aadhaar', 'pan', 'ach_form',
+  'emergency_contact_form', 'medical_health_insurance',
+  'ssn_copy', 'i94', 'employee_agreement', 'offer_letter', 'e_verify'
+];
+
+// Upload Required Document
 export function uploadEmployeeDocument(req, res) {
   try {
     if (!req.file) {
@@ -57,10 +64,10 @@ export function uploadEmployeeDocument(req, res) {
     const { documentType, employeeId } = req.body;
     const targetEmployeeId = req.user ? req.user.employeeId : employeeId;
 
-    if (!documentType || !['w4', 'i9', 'passport', 'visa'].includes(documentType.toLowerCase())) {
+    if (!documentType || !ALLOWED_DOC_TYPES.includes(documentType.toLowerCase())) {
       // Remove temporary file if invalid type
       if (req.file.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Invalid document type. Allowed: w4, i9, passport, visa.' });
+      return res.status(400).json({ error: `Invalid document type. Allowed: ${ALLOWED_DOC_TYPES.join(', ')}` });
     }
 
     const cleanDocType = documentType.toLowerCase();

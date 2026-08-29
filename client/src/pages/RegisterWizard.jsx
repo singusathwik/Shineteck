@@ -28,7 +28,9 @@ import {
   Download,
   Clock,
   Sparkles,
-  Home
+  Home,
+  HeartHandshake,
+  Users
 } from 'lucide-react';
 
 import { DEFAULT_PORTRAIT_SVG } from '../assets/defaultPortrait.js';
@@ -64,6 +66,11 @@ const inputCls = (hasErr) =>
     hasErr ? 'border-rose-400 bg-rose-50/30' : 'border-slate-300 hover:border-slate-400'
   }`;
 
+const selectCls = (hasErr) =>
+  `w-full px-3.5 py-2.5 text-xs font-medium border rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs ${
+    hasErr ? 'border-rose-400 bg-rose-50/30' : 'border-slate-300 hover:border-slate-400'
+  }`;
+
 const SectionHeader = ({ icon: Icon, title, desc }) => (
   <div className="flex items-start gap-3 pb-4 border-b border-slate-100 mb-5">
     <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0 shadow-2xs">
@@ -76,30 +83,71 @@ const SectionHeader = ({ icon: Icon, title, desc }) => (
   </div>
 );
 
+// India compliance documents definition
+const INDIA_DOCS = [
+  { key: 'driver_license', title: "Driver's License", desc: 'Valid Government Driver\'s License card scan (Front & Back)', required: true },
+  { key: 'aadhaar', title: 'Aadhaar Card', desc: 'Official 12-digit Unique Identification Aadhaar card copy', required: true },
+  { key: 'pan', title: 'PAN Card (Permanent Account Number)', desc: 'Income Tax Department PAN card copy', required: true },
+  { key: 'ach_form', title: 'ACH / Direct Deposit Form', desc: 'Bank account verification details and cancelled cheque copy', required: true },
+  { key: 'emergency_contact_form', title: 'Emergency Contact Form', desc: 'Signed Emergency Contact nomination declaration', required: true }
+];
+
+// US & Global compliance documents definition (10 Required + 3 Optional)
+const GLOBAL_DOCS = [
+  { key: 'i9', title: 'Form I-9 — Employment Eligibility Verification', desc: 'USCIS verification document with Section 1 completed.', sample: '/sample_docs/i9.png', required: true },
+  { key: 'w4', title: 'Form W-4 / W-9 — Withholding Certificate', desc: 'IRS federal tax withholding form signed for current fiscal year.', sample: '/sample_docs/w4.png', required: true },
+  { key: 'passport', title: 'Government Passport Copy', desc: 'Color photograph bio page of your official government passport.', sample: '/sample_docs/passport.png', required: true },
+  { key: 'visa', title: 'Visa Copy / Work Authorization Document', desc: 'Work authorization, H-1B, Green Card, or EAD document copy.', sample: '/sample_docs/visa.png', required: true },
+  { key: 'emergency_contact_form', title: 'Emergency Contact Information Form', desc: 'Primary & secondary emergency contact details and authorization.', required: true },
+  { key: 'ach_form', title: 'ACH Payment / Direct Deposit Form', desc: 'Direct deposit authorization and voided cheque / bank statement.', required: true },
+  { key: 'medical_health_insurance', title: 'Medical Health Insurance Enrollment Form', desc: 'Corporate medical health insurance plan selection and beneficiary form.', required: true },
+  { key: 'ssn_copy', title: 'Social Security Card (SSN) Copy', desc: 'Legible copy of official US Social Security Number card.', required: true },
+  { key: 'driver_license', title: "Driver's License Copy", desc: 'State-issued Driver\'s License or REAL ID identity card.', required: true },
+  { key: 'i94', title: 'Form I-94 — Arrival/Departure Record', desc: 'Official DHS / CBP most recent electronic Form I-94 record.', required: true },
+  { key: 'employee_agreement', title: 'Employee Agreement / Contract', desc: 'Signed Shinetek corporate employment agreement and confidentiality terms.', required: false },
+  { key: 'offer_letter', title: 'Signed Offer Letter', desc: 'Official countersigned company offer letter and appointment terms.', required: false },
+  { key: 'e_verify', title: 'E-Verify Document / Verification Record', desc: 'DHS E-Verify case verification documentation or reference document.', required: false }
+];
+
 export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
   const { login } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [nextIdPreview, setNextIdPreview] = useState('SH-2008');
 
-  // Step 1: Personal Info
+  // Step 1: Personal Info & Emergency Details
   const [personalInfo, setPersonalInfo] = useState({
     lastName: '',
     firstName: '',
     middleInitial: '',
     email: '',
     phone: '',
+    gender: 'Male',
     password: '',
     confirmPassword: '',
     designation: '',
-    dateOfBirth: ''
+    birthMonth: '',
+    birthDay: '',
+    birthYear: '',
+    dateOfBirth: '',
+    // Emergency Contact
+    emergencyFirstName: '',
+    emergencyLastName: '',
+    emergencyEmail: '',
+    emergencyPhone: '',
+    emergencyRelationship: 'Spouse'
   });
 
   // Step 2: Address Info
   const [addressInfo, setAddressInfo] = useState({
-    country: 'United States',
-    state: '',
+    addressLine1: '',
+    addressLine2: '',
+    suiteApt: '',
     city: '',
+    state: '',
+    zipCodePart1: '',
+    zipCodePart2: '',
     zipCode: '',
+    country: 'United States',
     address: ''
   });
 
@@ -109,13 +157,8 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
     serverUrl: null
   });
 
-  // Step 4: Documents
-  const [documents, setDocuments] = useState({
-    w4: null,
-    i9: null,
-    passport: null,
-    visa: null
-  });
+  // Step 4: Documents (Dynamic key-value pairs for all types)
+  const [documents, setDocuments] = useState({});
 
   // Form errors & submission states
   const [errors, setErrors] = useState({});
@@ -139,15 +182,33 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
   }, []);
 
   const steps = [
-    { num: 1, label: 'Personal Information', sub: 'Identity & credentials', icon: User },
+    { num: 1, label: 'Personal & Emergency', sub: 'Identity & emergency contact', icon: User },
     { num: 2, label: 'Address Details', sub: 'Location & contact', icon: MapPin },
     { num: 3, label: 'Profile Picture', sub: 'Photo verification', icon: Camera },
     { num: 4, label: 'Required Documents', sub: 'Tax & identity docs', icon: FileText },
     { num: 5, label: 'Review & Submit', sub: 'Final verification', icon: CheckSquare }
   ];
 
+  const isIndia = (addressInfo.country || '').trim().toLowerCase() === 'india';
+  const currentDocList = isIndia ? INDIA_DOCS : GLOBAL_DOCS;
+
   const handlePersonalChange = (field, value) => {
-    setPersonalInfo(prev => ({ ...prev, [field]: value }));
+    setPersonalInfo(prev => {
+      const updated = { ...prev, [field]: value };
+      // Sync dateOfBirth if birthMonth, birthDay, or birthYear changed
+      if (['birthMonth', 'birthDay', 'birthYear'].includes(field)) {
+        const m = field === 'birthMonth' ? value : prev.birthMonth;
+        const d = field === 'birthDay' ? value : prev.birthDay;
+        const y = field === 'birthYear' ? value : prev.birthYear;
+        if (m && d && y) {
+          updated.dateOfBirth = `${m}/${d}/${y}`;
+        } else {
+          updated.dateOfBirth = '';
+        }
+      }
+      return updated;
+    });
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
@@ -170,8 +231,20 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
       errs.email = 'Please provide a valid email format.';
     }
     if (!personalInfo.phone.trim()) errs.phone = 'Contact Phone number is required.';
+    if (!personalInfo.gender) errs.gender = 'Gender selection is required.';
     if (!personalInfo.designation.trim()) errs.designation = 'Designation / Job Title is required.';
-    if (!personalInfo.dateOfBirth) errs.dateOfBirth = 'Date of Birth is required.';
+    
+    // Validate DOB format (Month, Date, Year)
+    if (!personalInfo.birthMonth || !personalInfo.birthDay || !personalInfo.birthYear) {
+      errs.dateOfBirth = 'Please select Month, Date (Day), and Year for Date of Birth.';
+    }
+
+    // Validate Emergency Details
+    if (!personalInfo.emergencyFirstName.trim()) errs.emergencyFirstName = 'Emergency Contact First Name is required.';
+    if (!personalInfo.emergencyLastName.trim()) errs.emergencyLastName = 'Emergency Contact Last Name is required.';
+    if (!personalInfo.emergencyPhone.trim()) errs.emergencyPhone = 'Emergency Contact Phone number is required.';
+    if (!personalInfo.emergencyRelationship.trim()) errs.emergencyRelationship = 'Relationship is required.';
+
     if (!personalInfo.password) {
       errs.password = 'Password is required.';
     } else if (personalInfo.password.length < 8) {
@@ -187,18 +260,11 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
 
   const validateStep2 = () => {
     const errs = {};
-    if (!addressInfo.country) errs.country = 'Country is required.';
-    if (!addressInfo.state) errs.state = 'State / Province is required.';
-    if (!addressInfo.city) errs.city = 'City is required.';
-    if (!addressInfo.zipCode) errs.zipCode = 'ZIP / Postal Code is required.';
-    if (!addressInfo.address) errs.address = 'Street address is required.';
-
-    if (addressInfo.country === 'United States' && addressInfo.zipCode) {
-      const usZipRegex = /^\d{5}(-\d{4})?$/;
-      if (!usZipRegex.test(addressInfo.zipCode.trim())) {
-        errs.zipCode = 'Invalid US ZIP Code format. Example: 90001 or 90001-1234';
-      }
-    }
+    if (!addressInfo.addressLine1.trim()) errs.addressLine1 = 'Address Line 1 is required.';
+    if (!addressInfo.city.trim()) errs.city = 'City is required.';
+    if (!addressInfo.state.trim()) errs.state = 'State / Province is required.';
+    if (!addressInfo.zipCodePart1.trim()) errs.zipCode = 'ZIP / Postal Code Part 1 is required.';
+    if (!addressInfo.country.trim()) errs.country = 'Country is required.';
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -215,13 +281,14 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
 
   const validateStep4 = () => {
     const missing = [];
-    if (!documents.w4) missing.push('Form W-4');
-    if (!documents.i9) missing.push('Form I-9');
-    if (!documents.passport) missing.push('Passport Copy');
-    if (!documents.visa) missing.push('Visa Copy / Work Authorization');
+    for (const doc of currentDocList) {
+      if (doc.required && !documents[doc.key]) {
+        missing.push(doc.title);
+      }
+    }
 
     if (missing.length > 0) {
-      setErrors({ docs: `Please upload all required onboarding documents: ${missing.join(', ')}.` });
+      setErrors({ docs: `Please upload all required compliance documents: ${missing.join(', ')}.` });
       return false;
     }
     setErrors({});
@@ -307,6 +374,24 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
         personalInfo.lastName.trim()
       ].filter(Boolean).join(' ');
 
+      const combinedAddress = addressInfo.address || [
+        addressInfo.addressLine1,
+        addressInfo.addressLine2,
+        addressInfo.suiteApt
+      ].filter(Boolean).map(s => s.trim()).join(', ');
+
+      const combinedZip = addressInfo.zipCode || (
+        addressInfo.zipCodePart1 && addressInfo.zipCodePart2
+          ? `${addressInfo.zipCodePart1.trim()}-${addressInfo.zipCodePart2.trim()}`
+          : (addressInfo.zipCodePart1 || addressInfo.zipCodePart2 || '').trim()
+      );
+
+      const effectiveDob = personalInfo.dateOfBirth || (
+        personalInfo.birthMonth && personalInfo.birthDay && personalInfo.birthYear
+          ? `${personalInfo.birthMonth}/${personalInfo.birthDay}/${personalInfo.birthYear}`
+          : ''
+      );
+
       const payload = {
         lastName: personalInfo.lastName.trim(),
         firstName: personalInfo.firstName.trim(),
@@ -314,15 +399,26 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
         fullName: computedFullName,
         email: personalInfo.email.trim(),
         phone: personalInfo.phone.trim(),
+        gender: personalInfo.gender,
         password: personalInfo.password,
         confirmPassword: personalInfo.confirmPassword,
         designation: personalInfo.designation.trim(),
-        dateOfBirth: personalInfo.dateOfBirth,
-        country: addressInfo.country,
-        state: addressInfo.state,
-        city: addressInfo.city,
-        zipCode: addressInfo.zipCode.trim(),
-        address: addressInfo.address.trim(),
+        dateOfBirth: effectiveDob,
+        country: addressInfo.country.trim(),
+        state: addressInfo.state.trim(),
+        city: addressInfo.city.trim(),
+        zipCode: combinedZip,
+        zipCodePart1: addressInfo.zipCodePart1?.trim(),
+        zipCodePart2: addressInfo.zipCodePart2?.trim(),
+        address: combinedAddress,
+        addressLine1: addressInfo.addressLine1?.trim(),
+        addressLine2: addressInfo.addressLine2?.trim(),
+        suiteApt: addressInfo.suiteApt?.trim(),
+        emergencyFirstName: personalInfo.emergencyFirstName.trim(),
+        emergencyLastName: personalInfo.emergencyLastName.trim(),
+        emergencyEmail: personalInfo.emergencyEmail.trim(),
+        emergencyPhone: personalInfo.emergencyPhone.trim(),
+        emergencyRelationship: personalInfo.emergencyRelationship.trim(),
         profileImageUrl: profilePhoto?.serverUrl || profilePhoto?.previewUrl || null,
         uploadedDocuments: docsArray
       };
@@ -338,6 +434,29 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
       setIsSubmitting(false);
     }
   };
+
+  // Month options helper
+  const months = [
+    { num: '01', name: '01 - January' },
+    { num: '02', name: '02 - February' },
+    { num: '03', name: '03 - March' },
+    { num: '04', name: '04 - April' },
+    { num: '05', name: '05 - May' },
+    { num: '06', name: '06 - June' },
+    { num: '07', name: '07 - July' },
+    { num: '08', name: '08 - August' },
+    { num: '09', name: '09 - September' },
+    { num: '10', name: '10 - October' },
+    { num: '11', name: '11 - November' },
+    { num: '12', name: '12 - December' }
+  ];
+
+  // Days helper
+  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
+
+  // Years helper (from 2010 down to 1945)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1945 - 15 }, (_, i) => String(currentYear - 16 - i));
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-blue-600 selection:text-white">
@@ -465,7 +584,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                       <div>
                         <strong className="text-slate-900 block font-semibold font-display">HR Verification:</strong>
                         <span className="text-slate-600 leading-normal">
-                          The Shineteck HR Compliance team will verify your personal identity records and uploaded tax/work forms (W-4, I-9, Passport, Visa).
+                          The Shineteck HR Compliance team will verify your personal identity records and uploaded compliance documents.
                         </span>
                       </div>
                     </div>
@@ -535,7 +654,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                   </div>
                 )}
 
-                {/* STEP 1: Personal Information */}
+                {/* STEP 1: Personal Information & Emergency Details */}
                 {currentStep === 1 && (
                   <div className="space-y-5">
                     {/* Basic Identity */}
@@ -589,18 +708,90 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                           />
                         </FieldGroup>
 
+                        {/* Gender Selection */}
                         <FieldGroup
-                          label="Date of Birth"
+                          label="Gender"
                           required
-                          error={errors.dateOfBirth}
+                          error={errors.gender}
                         >
-                          <input
-                            type="date"
-                            value={personalInfo.dateOfBirth}
-                            onChange={e => handlePersonalChange('dateOfBirth', e.target.value)}
-                            className={inputCls(errors.dateOfBirth)}
-                          />
+                          <div className="grid grid-cols-3 gap-2">
+                            {['Male', 'Female', 'Other'].map((g) => (
+                              <button
+                                key={g}
+                                type="button"
+                                onClick={() => handlePersonalChange('gender', g)}
+                                className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center ${
+                                  personalInfo.gender === g
+                                    ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-2xs ring-2 ring-blue-500/20'
+                                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400'
+                                }`}
+                              >
+                                {g}
+                              </button>
+                            ))}
+                          </div>
                         </FieldGroup>
+
+                        {/* Date of Birth: Month, Date (Day), Year Format */}
+                        <div className="sm:col-span-2">
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            Date of Birth (Month, Date, Year) <span className="text-rose-500">*</span>
+                          </label>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {/* Month */}
+                            <div>
+                              <select
+                                value={personalInfo.birthMonth}
+                                onChange={e => handlePersonalChange('birthMonth', e.target.value)}
+                                className={selectCls(errors.dateOfBirth)}
+                              >
+                                <option value="">Select Month</option>
+                                {months.map(m => (
+                                  <option key={m.num} value={m.num}>{m.name}</option>
+                                ))}
+                              </select>
+                              <span className="text-[10px] text-slate-400 mt-1 block font-medium">Month (MM)</span>
+                            </div>
+
+                            {/* Date / Day */}
+                            <div>
+                              <select
+                                value={personalInfo.birthDay}
+                                onChange={e => handlePersonalChange('birthDay', e.target.value)}
+                                className={selectCls(errors.dateOfBirth)}
+                              >
+                                <option value="">Select Day</option>
+                                {days.map(d => (
+                                  <option key={d} value={d}>{d}</option>
+                                ))}
+                              </select>
+                              <span className="text-[10px] text-slate-400 mt-1 block font-medium">Date / Day (DD)</span>
+                            </div>
+
+                            {/* Year */}
+                            <div>
+                              <select
+                                value={personalInfo.birthYear}
+                                onChange={e => handlePersonalChange('birthYear', e.target.value)}
+                                className={selectCls(errors.dateOfBirth)}
+                              >
+                                <option value="">Select Year</option>
+                                {years.map(y => (
+                                  <option key={y} value={y}>{y}</option>
+                                ))}
+                              </select>
+                              <span className="text-[10px] text-slate-400 mt-1 block font-medium">Year (YYYY)</span>
+                            </div>
+                          </div>
+
+                          {errors.dateOfBirth && (
+                            <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+                              <AlertCircle className="w-3.5 h-3.5" />{errors.dateOfBirth}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       {/* Legal Name Preview Bar */}
@@ -621,6 +812,97 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                             Formatted
                           </span>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Emergency Contact Details Section */}
+                    <div className="enterprise-card bg-white p-6 space-y-5">
+                      <SectionHeader
+                        icon={HeartHandshake}
+                        title="Emergency Contact Details"
+                        desc="Primary emergency contact person in case of urgent medical or corporate situation"
+                      />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FieldGroup
+                          label="Contact Last Name"
+                          required
+                          error={errors.emergencyLastName}
+                        >
+                          <input
+                            type="text"
+                            placeholder="e.g. Vance"
+                            value={personalInfo.emergencyLastName}
+                            onChange={e => handlePersonalChange('emergencyLastName', e.target.value)}
+                            className={inputCls(errors.emergencyLastName)}
+                          />
+                        </FieldGroup>
+
+                        <FieldGroup
+                          label="Contact First Name"
+                          required
+                          error={errors.emergencyFirstName}
+                        >
+                          <input
+                            type="text"
+                            placeholder="e.g. Eleanor"
+                            value={personalInfo.emergencyFirstName}
+                            onChange={e => handlePersonalChange('emergencyFirstName', e.target.value)}
+                            className={inputCls(errors.emergencyFirstName)}
+                          />
+                        </FieldGroup>
+
+                        <FieldGroup
+                          label="Emergency Contact Phone"
+                          icon={Phone}
+                          required
+                          error={errors.emergencyPhone}
+                        >
+                          <input
+                            type="tel"
+                            placeholder="+1 (555) 234-5678"
+                            value={personalInfo.emergencyPhone}
+                            onChange={e => handlePersonalChange('emergencyPhone', e.target.value)}
+                            className={inputCls(errors.emergencyPhone)}
+                          />
+                        </FieldGroup>
+
+                        <FieldGroup
+                          label="Emergency Contact Email"
+                          icon={Mail}
+                          optionalBadge
+                          error={errors.emergencyEmail}
+                        >
+                          <input
+                            type="email"
+                            placeholder="e.g. eleanor.vance@example.com"
+                            value={personalInfo.emergencyEmail}
+                            onChange={e => handlePersonalChange('emergencyEmail', e.target.value)}
+                            className={inputCls(errors.emergencyEmail)}
+                          />
+                        </FieldGroup>
+
+                        <div className="sm:col-span-2">
+                          <FieldGroup
+                            label="Relationship with Person"
+                            icon={Users}
+                            required
+                            error={errors.emergencyRelationship}
+                          >
+                            <select
+                              value={personalInfo.emergencyRelationship}
+                              onChange={e => handlePersonalChange('emergencyRelationship', e.target.value)}
+                              className={selectCls(errors.emergencyRelationship)}
+                            >
+                              <option value="Spouse">Spouse / Partner</option>
+                              <option value="Parent">Parent / Guardian</option>
+                              <option value="Sibling">Brother / Sister (Sibling)</option>
+                              <option value="Child">Son / Daughter (Child)</option>
+                              <option value="Friend">Close Friend / Relative</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </FieldGroup>
+                        </div>
                       </div>
                     </div>
 
@@ -699,19 +981,31 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                   />
                 )}
 
-                {/* STEP 4: Document Uploads */}
+                {/* STEP 4: Dynamic Document Uploads (India vs Outside India) */}
                 {currentStep === 4 && (
                   <div className="space-y-5">
                     {/* Guidelines */}
                     <div className="enterprise-card bg-white p-6">
-                      <SectionHeader icon={ShieldCheck} title="Document Upload Guidelines" desc="Federal and corporate compliance standards for document submission" />
+                      <SectionHeader
+                        icon={ShieldCheck}
+                        title={isIndia ? "India Compliance Document Upload Guidelines" : "US & Global Document Upload Guidelines"}
+                        desc={isIndia
+                          ? "Government of India identity and financial compliance verification"
+                          : "Federal USCIS, IRS, and corporate compliance standards for document submission"
+                        }
+                      />
+                      <div className="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200 mb-4 text-xs text-blue-950 font-medium">
+                        📍 Region Detected from Address: <strong>{addressInfo.country || 'Global'}</strong>. {isIndia
+                          ? 'Showing 5 required Indian onboarding documents (Driver\'s License, Aadhaar, PAN, ACH Form, Emergency Contact Form).'
+                          : 'Showing 10 required federal/corporate onboarding documents and 3 optional documents.'}
+                      </div>
+
                       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[
                           'Upload clear, fully legible copies (PDF / JPG / PNG)',
                           'Ensure all 4 corners of documents are visible',
                           'Avoid shadows, screen glare, or partial cuts',
-                          'Form W-4 must include your legal signature',
-                          'Form I-9 must include Section 1 employee data',
+                          isIndia ? 'Aadhaar card must show full 12-digit number' : 'Form W-4/I-9 must include signature',
                           'Maximum file size per document is 10.0 MB'
                         ].map((tip, i) => (
                           <li key={i} className="flex items-start gap-2.5 p-3 bg-slate-50/80 rounded-xl border border-slate-200/80 text-xs font-medium">
@@ -729,52 +1023,22 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                       </div>
                     )}
 
-                    {/* Tax & Employment Forms */}
+                    {/* Dynamic Document Cards List */}
                     <div className="space-y-4">
-                      <DocumentUploadCard
-                        docKey="w4"
-                        title="Form W-4 — Employee Withholding Certificate"
-                        description="IRS federal tax withholding form signed for current fiscal year."
-                        uploadedDoc={documents.w4}
-                        sampleImageUrl="/sample_docs/w4.png"
-                        onUpload={handleDocumentUpload}
-                        onRemove={handleDocumentRemove}
-                        onPreview={d => setPreviewModalDoc(d)}
-                      />
-                      <DocumentUploadCard
-                        docKey="i9"
-                        title="Form I-9 — Employment Eligibility Verification"
-                        description="USCIS verification document with Section 1 completed."
-                        uploadedDoc={documents.i9}
-                        sampleImageUrl="/sample_docs/i9.png"
-                        onUpload={handleDocumentUpload}
-                        onRemove={handleDocumentRemove}
-                        onPreview={d => setPreviewModalDoc(d)}
-                      />
-                    </div>
-
-                    {/* Identity Documents */}
-                    <div className="space-y-4">
-                      <DocumentUploadCard
-                        docKey="passport"
-                        title="Government Passport Copy"
-                        description="Color photograph page of your official government passport."
-                        uploadedDoc={documents.passport}
-                        sampleImageUrl="/sample_docs/passport.png"
-                        onUpload={handleDocumentUpload}
-                        onRemove={handleDocumentRemove}
-                        onPreview={d => setPreviewModalDoc(d)}
-                      />
-                      <DocumentUploadCard
-                        docKey="visa"
-                        title="Visa Copy / Work Authorization Document"
-                        description="Work authorization, H-1B, Green Card, or EAD document copy."
-                        uploadedDoc={documents.visa}
-                        sampleImageUrl="/sample_docs/visa.png"
-                        onUpload={handleDocumentUpload}
-                        onRemove={handleDocumentRemove}
-                        onPreview={d => setPreviewModalDoc(d)}
-                      />
+                      {currentDocList.map((dt) => (
+                        <DocumentUploadCard
+                          key={dt.key}
+                          docKey={dt.key}
+                          title={dt.title}
+                          description={dt.desc}
+                          required={dt.required}
+                          uploadedDoc={documents[dt.key]}
+                          sampleImageUrl={dt.sample || null}
+                          onUpload={handleDocumentUpload}
+                          onRemove={handleDocumentRemove}
+                          onPreview={d => setPreviewModalDoc(d)}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}
@@ -787,15 +1051,34 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                       <SectionHeader icon={User} title="Personal Information" desc="Review your identity and account details" />
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
                         {[
-                          ['Employee ID', <span className="font-mono font-bold text-blue-700">{nextIdPreview}</span>],
+                          ['Employee ID', <span key="id" className="font-mono font-bold text-blue-700">{nextIdPreview}</span>],
                           ['Last Name', personalInfo.lastName],
                           ['First Name', personalInfo.firstName],
-                          ['Middle Initial / Name', personalInfo.middleInitial ? personalInfo.middleInitial : <span className="text-slate-400 italic">None</span>],
-                          ['Full Legal Name', <span className="font-bold text-slate-900">{[personalInfo.firstName.trim(), personalInfo.middleInitial.trim(), personalInfo.lastName.trim()].filter(Boolean).join(' ')}</span>],
-                          ['Date of Birth', personalInfo.dateOfBirth],
+                          ['Middle Initial / Name', personalInfo.middleInitial ? personalInfo.middleInitial : <span key="mi" className="text-slate-400 italic">None</span>],
+                          ['Full Legal Name', <span key="name" className="font-bold text-slate-900">{[personalInfo.firstName.trim(), personalInfo.middleInitial.trim(), personalInfo.lastName.trim()].filter(Boolean).join(' ')}</span>],
+                          ['Gender', personalInfo.gender],
+                          ['Date of Birth (MM/DD/YYYY)', personalInfo.dateOfBirth || `${personalInfo.birthMonth}/${personalInfo.birthDay}/${personalInfo.birthYear}`],
                           ['Work Email', personalInfo.email],
                           ['Contact Phone', personalInfo.phone],
                           ['Designation', personalInfo.designation],
+                        ].map(([label, value]) => (
+                          <div key={label} className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
+                            <p className="text-[10.5px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-display">{label}</p>
+                            <p className="text-slate-800 font-semibold">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Emergency Contact Details review */}
+                    <div className="enterprise-card bg-white p-6 space-y-4">
+                      <SectionHeader icon={HeartHandshake} title="Emergency Contact Details" desc="Emergency contact person and relations" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                        {[
+                          ['Contact Name', `${personalInfo.emergencyFirstName} ${personalInfo.emergencyLastName}`],
+                          ['Relationship', personalInfo.emergencyRelationship],
+                          ['Emergency Phone', personalInfo.emergencyPhone],
+                          ['Emergency Email', personalInfo.emergencyEmail || <span key="email" className="text-slate-400 italic">Not provided</span>]
                         ].map(([label, value]) => (
                           <div key={label} className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
                             <p className="text-[10.5px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-display">{label}</p>
@@ -811,9 +1094,9 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         {[
                           ['Country', addressInfo.country],
-                          ['State / Province', addressInfo.state],
+                          ['State / Province / Region', addressInfo.state],
                           ['City', addressInfo.city],
-                          ['ZIP / Postal Code', addressInfo.zipCode],
+                          ['ZIP / Postal Code', addressInfo.zipCode || `${addressInfo.zipCodePart1}-${addressInfo.zipCodePart2}`],
                         ].map(([label, value]) => (
                           <div key={label} className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
                             <p className="text-[10.5px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-display">{label}</p>
@@ -821,8 +1104,10 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                           </div>
                         ))}
                         <div className="sm:col-span-2 p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
-                          <p className="text-[10.5px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-display">Street Address</p>
-                          <p className="text-slate-800 font-semibold">{addressInfo.address}</p>
+                          <p className="text-[10.5px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-display">Street Address Lines & Suite</p>
+                          <p className="text-slate-800 font-semibold">
+                            {[addressInfo.addressLine1, addressInfo.addressLine2, addressInfo.suiteApt].filter(Boolean).join(', ') || addressInfo.address}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -843,48 +1128,52 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                           <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Verified ✓</span>
                         </div>
                         <div className="flex-1 space-y-2.5">
-                          {[
-                            { label: 'Form W-4 (Withholding)', doc: documents.w4, sample: '/sample_docs/w4.png' },
-                            { label: 'Form I-9 (Eligibility)', doc: documents.i9, sample: '/sample_docs/i9.png' },
-                            { label: 'Passport Copy', doc: documents.passport, sample: '/sample_docs/passport.png' },
-                            { label: 'Visa / Work Authorization', doc: documents.visa, sample: '/sample_docs/visa.png' }
-                          ].map(({ label, doc, sample }) => (
-                            <div key={label} className="flex items-center justify-between p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  onClick={() => setPreviewModalDoc({
-                                    title: label,
-                                    previewUrl: doc?.filePath || sample,
-                                    fileName: doc?.fileName || 'document_sample.png'
-                                  })}
-                                  className="w-10 h-10 rounded-lg overflow-hidden bg-white border border-slate-300 shrink-0 cursor-pointer shadow-2xs hover:border-blue-400"
-                                >
-                                  <img src={doc?.filePath || sample} alt={label} className="w-full h-full object-cover object-top" />
+                          {currentDocList.map((dt) => {
+                            const doc = documents[dt.key];
+                            return (
+                              <div key={dt.key} className="flex items-center justify-between p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    onClick={() => setPreviewModalDoc({
+                                      title: dt.title,
+                                      previewUrl: doc?.filePath || dt.sample || null,
+                                      fileName: doc?.fileName || `${dt.key}_doc.pdf`
+                                    })}
+                                    className="w-10 h-10 rounded-lg overflow-hidden bg-white border border-slate-300 shrink-0 cursor-pointer shadow-2xs hover:border-blue-400 flex items-center justify-center"
+                                  >
+                                    {doc?.filePath || dt.sample ? (
+                                      <img src={doc?.filePath || dt.sample} alt={dt.title} className="w-full h-full object-cover object-top" />
+                                    ) : (
+                                      <FileText className="w-5 h-5 text-slate-400" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-800 font-bold text-xs block">{dt.title}</span>
+                                    <span className="text-slate-400 text-[11px] truncate max-w-[200px] block font-mono">
+                                      {doc?.fileName || (dt.required ? 'Missing Required Doc' : 'Optional (Not Uploaded)')}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="text-slate-800 font-bold text-xs block">{label}</span>
-                                  <span className="text-slate-400 text-[11px] truncate max-w-[160px] block font-mono">
-                                    {doc?.fileName || 'Verified Onboarding Doc'}
-                                  </span>
-                                </div>
-                              </div>
 
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewModalDoc({
-                                    title: label,
-                                    previewUrl: doc?.filePath || sample,
-                                    fileName: doc?.fileName || 'document_sample.png'
-                                  })}
-                                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 cursor-pointer"
-                                >
-                                  <Eye className="w-3 h-3" /> Preview
-                                </button>
-                                <StatusBadge status={doc ? 'Uploaded' : 'Uploaded'} size="sm" />
+                                <div className="flex items-center gap-2">
+                                  {doc && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewModalDoc({
+                                        title: dt.title,
+                                        previewUrl: doc?.filePath || dt.sample || null,
+                                        fileName: doc?.fileName || `${dt.key}_doc.pdf`
+                                      })}
+                                      className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 cursor-pointer"
+                                    >
+                                      <Eye className="w-3 h-3" /> Preview
+                                    </button>
+                                  )}
+                                  <StatusBadge status={doc ? 'Uploaded' : (dt.required ? 'Pending Review' : 'Optional')} size="sm" />
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     </div>

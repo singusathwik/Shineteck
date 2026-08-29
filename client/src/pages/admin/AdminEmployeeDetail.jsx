@@ -338,57 +338,109 @@ export function AdminEmployeeDetail({ employeeId, onBack }) {
           </div>
         </div>
 
-        {/* Detailed Identity & Address Record */}
-        <div className="lg:col-span-8 enterprise-card p-6 bg-white border-slate-200 space-y-4">
-          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-2">
-            <User className="w-4 h-4 text-blue-600" />
-            Employee Personal & Address Record
-          </h3>
+        {/* Detailed Identity, Emergency & Address Record */}
+        <div className="lg:col-span-8 space-y-6">
+          <div className="enterprise-card p-6 bg-white border-slate-200 space-y-4">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-2">
+              <User className="w-4 h-4 text-blue-600" />
+              Employee Personal & Legal Identity Record
+            </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Legal Last Name</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.last_name || employee.full_name?.split(' ').pop() || '—'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Legal Last Name</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.last_name || employee.full_name?.split(' ').pop() || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Legal First Name</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.first_name || employee.full_name?.split(' ')[0] || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Middle Initial / Name</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.middle_initial || <span className="text-slate-400 italic">None</span>}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Full Legal Name on Record</span>
+                <p className="font-bold text-slate-900 mt-0.5">{employee.full_name}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Gender</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{employee.gender || 'Not specified'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Date of Birth (Month/Date/Year)</span>
+                <p className="font-mono font-medium text-slate-900 mt-0.5">{employee.date_of_birth || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Corporate Email</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.email}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Contact Phone</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.phone}</p>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Legal First Name</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.first_name || employee.full_name?.split(' ')[0] || '—'}</p>
+          </div>
+
+          {/* Emergency Contact Information */}
+          <div className="enterprise-card p-6 bg-white border-slate-200 space-y-4">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              Emergency Contact Information
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Emergency Contact Name</span>
+                <p className="font-bold text-slate-900 mt-0.5">
+                  {[employee.emergency_first_name, employee.emergency_last_name].filter(Boolean).join(' ') || <span className="text-slate-400 italic">Not provided</span>}
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Relationship</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.emergency_relationship || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Emergency Phone</span>
+                <p className="font-mono font-medium text-slate-900 mt-0.5">{employee.emergency_phone || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Emergency Email</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.emergency_email || <span className="text-slate-400 italic">None</span>}</p>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Middle Initial / Name</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.middle_initial || <span className="text-slate-400 italic">None</span>}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Full Legal Name on Record</span>
-              <p className="font-bold text-slate-900 mt-0.5">{employee.full_name}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Corporate Email</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.email}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Contact Phone</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.phone}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Date of Birth</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.date_of_birth}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Country</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.country}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">State & City</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.city}, {employee.state}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">ZIP / Postal Code</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.zip_code}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Residential Address</span>
-              <p className="font-medium text-slate-900 mt-0.5">{employee.address}</p>
+          </div>
+
+          {/* Structured Address */}
+          <div className="enterprise-card p-6 bg-white border-slate-200 space-y-4">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-indigo-600" />
+              Location & Residential Address
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Country</span>
+                <p className="font-bold text-slate-900 mt-0.5">{employee.country || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">State / Province</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.state || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">City</span>
+                <p className="font-medium text-slate-900 mt-0.5">{employee.city || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">ZIP / Postal Code</span>
+                <p className="font-mono font-bold text-slate-900 mt-0.5">{employee.zip_code || '—'}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Street Address & Suite / Apt</span>
+                <p className="font-medium text-slate-900 mt-0.5">
+                  {[employee.address_line_1, employee.address_line_2, employee.suite_apt].filter(Boolean).join(', ') || employee.address || '—'}
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -69,22 +69,10 @@ export const addressDatabase = {
 
 export function validateAddressInfo(country, state, city, zipCode) {
   const errors = [];
-  if (!country) errors.push("Country is required.");
-  if (!state) errors.push("State/Province is required.");
-  if (!city) errors.push("City is required.");
-  if (!zipCode) errors.push("ZIP / Postal code is required.");
-
-  const countryData = addressDatabase[country];
-  if (countryData) {
-    if (!countryData.states[state]) {
-      errors.push(`Selected state '${state}' is not valid for country '${country}'.`);
-    }
-    if (zipCode && !countryData.zipRegex.test(zipCode.trim())) {
-      errors.push(`Invalid postal code format for ${country}. Example: ${countryData.zipExample}`);
-    }
-  } else if (zipCode && zipCode.trim().length < 3) {
-    errors.push("Postal code must be at least 3 characters.");
-  }
+  if (!country || !country.trim()) errors.push("Country is required.");
+  if (!state || !state.trim()) errors.push("State / Province is required.");
+  if (!city || !city.trim()) errors.push("City is required.");
+  if (!zipCode || !zipCode.trim()) errors.push("ZIP / Postal code is required.");
 
   return {
     isValid: errors.length === 0,

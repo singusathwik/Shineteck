@@ -438,7 +438,7 @@ export function AdminApprovals({ onSelectEmployee }) {
                   {/* Identity Grid */}
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                     <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] border-b border-slate-200 pb-1 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-blue-600" /> Personal Identity Records
+                      <User className="w-3.5 h-3.5 text-blue-600" /> Personal Identity & Contact Records
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       <div>
@@ -450,12 +450,12 @@ export function AdminApprovals({ onSelectEmployee }) {
                         <p className="font-semibold text-slate-900">{inspectingDetails.employee.first_name || '—'}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-semibold block">Middle Initial</span>
-                        <p className="font-semibold text-slate-900">{inspectingDetails.employee.middle_initial || 'None'}</p>
+                        <span className="text-slate-400 text-[10px] uppercase font-semibold block">Gender</span>
+                        <p className="font-semibold text-slate-900">{inspectingDetails.employee.gender || '—'}</p>
                       </div>
                       <div>
                         <span className="text-slate-400 text-[10px] uppercase font-semibold block">Date of Birth</span>
-                        <p className="font-semibold text-slate-900">{inspectingDetails.employee.date_of_birth}</p>
+                        <p className="font-semibold text-slate-900">{inspectingDetails.employee.date_of_birth || '—'}</p>
                       </div>
                       <div>
                         <span className="text-slate-400 text-[10px] uppercase font-semibold block">Corporate Email</span>
@@ -465,10 +465,18 @@ export function AdminApprovals({ onSelectEmployee }) {
                         <span className="text-slate-400 text-[10px] uppercase font-semibold block">Phone</span>
                         <p className="font-semibold text-slate-900">{inspectingDetails.employee.phone}</p>
                       </div>
+                      <div className="sm:col-span-3 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-slate-500 text-[10px] uppercase font-bold block mb-1">Emergency Contact</span>
+                        <p className="font-semibold text-slate-900 text-xs">
+                          {[inspectingDetails.employee.emergency_first_name, inspectingDetails.employee.emergency_last_name].filter(Boolean).join(' ') || 'Not provided'}
+                          {inspectingDetails.employee.emergency_relationship && ` (${inspectingDetails.employee.emergency_relationship})`}
+                          {inspectingDetails.employee.emergency_phone && ` • Phone: ${inspectingDetails.employee.emergency_phone}`}
+                        </p>
+                      </div>
                       <div className="sm:col-span-3">
                         <span className="text-slate-400 text-[10px] uppercase font-semibold block">Residential Address</span>
                         <p className="font-semibold text-slate-900">
-                          {inspectingDetails.employee.address}, {inspectingDetails.employee.city}, {inspectingDetails.employee.state} {inspectingDetails.employee.zip_code}, {inspectingDetails.employee.country}
+                          {[inspectingDetails.employee.address_line_1, inspectingDetails.employee.address_line_2, inspectingDetails.employee.suite_apt].filter(Boolean).join(', ') || inspectingDetails.employee.address || '—'}, {inspectingDetails.employee.city}, {inspectingDetails.employee.state} {inspectingDetails.employee.zip_code}, {inspectingDetails.employee.country}
                         </p>
                       </div>
                     </div>

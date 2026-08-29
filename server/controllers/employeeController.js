@@ -249,11 +249,22 @@ export function updateEmployeeProfile(req, res) {
 
     const {
       phone,
+      gender,
       country,
       state,
       city,
       zipCode,
+      zipCodePart1,
+      zipCodePart2,
       address,
+      addressLine1,
+      addressLine2,
+      suiteApt,
+      emergencyFirstName,
+      emergencyLastName,
+      emergencyEmail,
+      emergencyPhone,
+      emergencyRelationship,
       firstName,
       lastName,
       middleInitial,
@@ -271,10 +282,17 @@ export function updateEmployeeProfile(req, res) {
     }
 
     // Validate address if changing
-    const newCountry = country || currentEmp.country;
-    const newState = state || currentEmp.state;
-    const newCity = city || currentEmp.city;
-    const newZip = zipCode || currentEmp.zip_code;
+    const newCountry = country !== undefined ? country : currentEmp.country;
+    const newState = state !== undefined ? state : currentEmp.state;
+    const newCity = city !== undefined ? city : currentEmp.city;
+    const newZipPart1 = zipCodePart1 !== undefined ? zipCodePart1 : currentEmp.zip_code_part1;
+    const newZipPart2 = zipCodePart2 !== undefined ? zipCodePart2 : currentEmp.zip_code_part2;
+    const newZip = zipCode || (newZipPart1 && newZipPart2 ? `${newZipPart1}-${newZipPart2}` : currentEmp.zip_code);
+
+    const newAddr1 = addressLine1 !== undefined ? addressLine1 : currentEmp.address_line_1;
+    const newAddr2 = addressLine2 !== undefined ? addressLine2 : currentEmp.address_line_2;
+    const newSuite = suiteApt !== undefined ? suiteApt : currentEmp.suite_apt;
+    const newAddress = address || [newAddr1, newAddr2, newSuite].filter(Boolean).join(', ') || currentEmp.address;
 
     const addressCheck = validateAddressInfo(newCountry, newState, newCity, newZip);
     if (!addressCheck.isValid) {
@@ -315,12 +333,20 @@ export function updateEmployeeProfile(req, res) {
     const finalDesignation = (isAdmin && designation) ? designation.trim() : currentEmp.designation;
     const finalDob = (isAdmin && dateOfBirth) ? dateOfBirth : currentEmp.date_of_birth;
 
+    const finalGender = gender !== undefined ? gender : currentEmp.gender;
+    const finalEmergFirst = emergencyFirstName !== undefined ? emergencyFirstName : currentEmp.emergency_first_name;
+    const finalEmergLast = emergencyLastName !== undefined ? emergencyLastName : currentEmp.emergency_last_name;
+    const finalEmergEmail = emergencyEmail !== undefined ? emergencyEmail : currentEmp.emergency_email;
+    const finalEmergPhone = emergencyPhone !== undefined ? emergencyPhone : currentEmp.emergency_phone;
+    const finalEmergRel = emergencyRelationship !== undefined ? emergencyRelationship : currentEmp.emergency_relationship;
+
     db.prepare(`
       UPDATE employees
       SET first_name = ?,
           last_name = ?,
           middle_initial = ?,
           full_name = ?,
+          gender = ?,
           designation = ?,
           date_of_birth = ?,
           start_date = ?,
@@ -331,7 +357,17 @@ export function updateEmployeeProfile(req, res) {
           state = ?,
           city = ?,
           zip_code = ?,
+          zip_code_part1 = ?,
+          zip_code_part2 = ?,
           address = ?,
+          address_line_1 = ?,
+          address_line_2 = ?,
+          suite_apt = ?,
+          emergency_first_name = ?,
+          emergency_last_name = ?,
+          emergency_email = ?,
+          emergency_phone = ?,
+          emergency_relationship = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE employee_id = ?
     `).run(
@@ -339,17 +375,28 @@ export function updateEmployeeProfile(req, res) {
       finalLastName,
       finalMiddleInitial,
       finalFullName,
+      finalGender,
       finalDesignation,
       finalDob,
       finalStartDate,
       finalEndDate,
       finalEmploymentStatus,
       phone ? phone.trim() : currentEmp.phone,
-      newCountry,
-      newState,
-      newCity,
-      newZip.trim(),
-      address ? address.trim() : currentEmp.address,
+      newCountry ? newCountry.trim() : '',
+      newState ? newState.trim() : '',
+      newCity ? newCity.trim() : '',
+      newZip ? newZip.trim() : '',
+      newZipPart1 ? newZipPart1.trim() : null,
+      newZipPart2 ? newZipPart2.trim() : null,
+      newAddress ? newAddress.trim() : currentEmp.address,
+      newAddr1 ? newAddr1.trim() : null,
+      newAddr2 ? newAddr2.trim() : null,
+      newSuite ? newSuite.trim() : null,
+      finalEmergFirst ? finalEmergFirst.trim() : null,
+      finalEmergLast ? finalEmergLast.trim() : null,
+      finalEmergEmail ? finalEmergEmail.trim() : null,
+      finalEmergPhone ? finalEmergPhone.trim() : null,
+      finalEmergRel ? finalEmergRel.trim() : null,
       employeeId
     );
 

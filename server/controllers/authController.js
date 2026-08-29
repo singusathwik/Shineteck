@@ -18,6 +18,7 @@ export async function register(req, res) {
       fullName,
       email,
       phone,
+      gender,
       password,
       confirmPassword,
       designation,
@@ -26,7 +27,17 @@ export async function register(req, res) {
       state,
       city,
       zipCode,
+      zipCodePart1,
+      zipCodePart2,
       address,
+      addressLine1,
+      addressLine2,
+      suiteApt,
+      emergencyFirstName,
+      emergencyLastName,
+      emergencyEmail,
+      emergencyPhone,
+      emergencyRelationship,
       profileImageUrl,
       uploadedDocuments // Array of { documentType, fileName, filePath, fileSize, mimeType }
     } = req.body;
@@ -69,8 +80,17 @@ export async function register(req, res) {
       return res.status(400).json({ error: 'An account with this email address already exists.' });
     }
 
+    // Build structured address string if not provided directly
+    const effectiveAddress = address && address.trim()
+      ? address.trim()
+      : [addressLine1, addressLine2, suiteApt].filter(Boolean).map(s => s.trim()).join(', ');
+
+    const effectiveZip = zipCode && zipCode.trim()
+      ? zipCode.trim()
+      : (zipCodePart1 && zipCodePart2 ? `${zipCodePart1.trim()}-${zipCodePart2.trim()}` : (zipCodePart1 || zipCodePart2 || '').trim());
+
     // Validate Address
-    const addressValidation = validateAddressInfo(country, state, city, zipCode);
+    const addressValidation = validateAddressInfo(country, state, city, effectiveZip);
     if (!addressValidation.isValid) {
       return res.status(400).json({ error: addressValidation.errors.join(' ') });
     }
@@ -97,11 +117,13 @@ export async function register(req, res) {
 
       const employeeInsert = db.prepare(`
         INSERT INTO employees (
-          user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-          date_of_birth, country, state, city, zip_code, address,
+          user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, gender, designation,
+          date_of_birth, country, state, city, zip_code, zip_code_part1, zip_code_part2,
+          address, address_line_1, address_line_2, suite_apt,
+          emergency_first_name, emergency_last_name, emergency_email, emergency_phone, emergency_relationship,
           start_date, end_date, employment_status,
           profile_image_url, registration_status, submitted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending Review', CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending Review', CURRENT_TIMESTAMP)
       `);
       employeeInsert.run(
         userId,
@@ -112,13 +134,24 @@ export async function register(req, res) {
         effectiveFullName,
         email.trim().toLowerCase(),
         phone.trim(),
+        gender || null,
         designation.trim(),
         dateOfBirth,
-        country,
-        state,
-        city,
-        zipCode.trim(),
-        address.trim(),
+        country ? country.trim() : '',
+        state ? state.trim() : '',
+        city ? city.trim() : '',
+        effectiveZip,
+        zipCodePart1 ? zipCodePart1.trim() : null,
+        zipCodePart2 ? zipCodePart2.trim() : null,
+        effectiveAddress,
+        addressLine1 ? addressLine1.trim() : null,
+        addressLine2 ? addressLine2.trim() : null,
+        suiteApt ? suiteApt.trim() : null,
+        emergencyFirstName ? emergencyFirstName.trim() : null,
+        emergencyLastName ? emergencyLastName.trim() : null,
+        emergencyEmail ? emergencyEmail.trim() : null,
+        emergencyPhone ? emergencyPhone.trim() : null,
+        emergencyRelationship ? emergencyRelationship.trim() : null,
         todayDate,
         null,
         'Active',
@@ -184,13 +217,24 @@ export async function register(req, res) {
               full_name: effectiveFullName,
               email: email.toLowerCase().trim(),
               phone: phone.trim(),
+              gender: gender || null,
               designation: designation.trim(),
               date_of_birth: dateOfBirth,
-              country,
-              state,
-              city,
-              zip_code: zipCode.trim(),
-              address: address.trim(),
+              country: country ? country.trim() : '',
+              state: state ? state.trim() : '',
+              city: city ? city.trim() : '',
+              zip_code: effectiveZip,
+              zip_code_part1: zipCodePart1 ? zipCodePart1.trim() : null,
+              zip_code_part2: zipCodePart2 ? zipCodePart2.trim() : null,
+              address: effectiveAddress,
+              address_line_1: addressLine1 ? addressLine1.trim() : null,
+              address_line_2: addressLine2 ? addressLine2.trim() : null,
+              suite_apt: suiteApt ? suiteApt.trim() : null,
+              emergency_first_name: emergencyFirstName ? emergencyFirstName.trim() : null,
+              emergency_last_name: emergencyLastName ? emergencyLastName.trim() : null,
+              emergency_email: emergencyEmail ? emergencyEmail.trim() : null,
+              emergency_phone: emergencyPhone ? emergencyPhone.trim() : null,
+              emergency_relationship: emergencyRelationship ? emergencyRelationship.trim() : null,
               start_date: todayDate,
               end_date: null,
               employment_status: 'Active',
@@ -419,8 +463,10 @@ export function getMe(req, res) {
   try {
     const user = db.prepare(`
       SELECT u.id, u.employee_id, u.email, u.role, u.status,
-             e.first_name, e.last_name, e.middle_initial, e.full_name, e.phone, e.designation, e.date_of_birth,
-             e.country, e.state, e.city, e.zip_code, e.address,
+             e.first_name, e.last_name, e.middle_initial, e.full_name, e.phone, e.gender, e.designation, e.date_of_birth,
+             e.country, e.state, e.city, e.zip_code, e.zip_code_part1, e.zip_code_part2,
+             e.address, e.address_line_1, e.address_line_2, e.suite_apt,
+             e.emergency_first_name, e.emergency_last_name, e.emergency_email, e.emergency_phone, e.emergency_relationship,
              e.start_date, e.end_date, e.employment_status,
              e.profile_image_url, e.registration_status, e.admin_notes,
              e.submitted_at, e.reviewed_at, e.reviewed_by
@@ -449,13 +495,24 @@ export function getMe(req, res) {
         middleInitial: user.middle_initial,
         fullName: user.full_name || (user.role === 'admin' ? 'System Administrator' : 'Employee'),
         phone: user.phone,
+        gender: user.gender,
         designation: user.designation || (user.role === 'admin' ? 'System Administrator' : 'Staff'),
         dateOfBirth: user.date_of_birth,
         country: user.country,
         state: user.state,
         city: user.city,
         zipCode: user.zip_code,
+        zipCodePart1: user.zip_code_part1,
+        zipCodePart2: user.zip_code_part2,
         address: user.address,
+        addressLine1: user.address_line_1,
+        addressLine2: user.address_line_2,
+        suiteApt: user.suite_apt,
+        emergencyFirstName: user.emergency_first_name,
+        emergencyLastName: user.emergency_last_name,
+        emergencyEmail: user.emergency_email,
+        emergencyPhone: user.emergency_phone,
+        emergencyRelationship: user.emergency_relationship,
         startDate: user.start_date,
         endDate: user.end_date,
         employmentStatus: user.employment_status || 'Active',

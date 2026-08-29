@@ -155,95 +155,144 @@ export function EmployeeProfile() {
 
       {/* Grid: Non-Editable Identity Credentials & Editable Contact/Address */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Locked Identity Fields */}
-        <div className="lg:col-span-6 enterprise-card p-6 bg-white space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-blue-600" />
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-display">
-                Official Identity Record
-              </h3>
+        {/* Left Column: Locked Identity Fields & Emergency Contact */}
+        <div className="lg:col-span-6 space-y-6">
+          <div className="enterprise-card p-6 bg-white space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-display">
+                  Official Identity Record
+                </h3>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 font-medium">
+                <Lock className="w-3 h-3 text-slate-400" /> HR Verified & Locked
+              </span>
             </div>
-            <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 font-medium">
-              <Lock className="w-3 h-3 text-slate-400" /> HR Verified & Locked
-            </span>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">EMPLOYEE IDENTIFIER</span>
+                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-mono font-bold text-blue-700">
+                  {profile.employee_id}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">LAST NAME</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-semibold text-slate-800">
+                    {profile.last_name || profile.full_name?.split(' ').pop() || '—'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">FIRST NAME</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-semibold text-slate-800">
+                    {profile.first_name || profile.full_name?.split(' ')[0] || '—'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">MIDDLE INITIAL</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-semibold text-slate-800">
+                    {profile.middle_initial || <span className="text-slate-400 italic">None</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">FULL LEGAL NAME ON RECORD</span>
+                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-bold text-slate-900">
+                  {profile.full_name}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">GENDER</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-semibold text-slate-800">
+                    {profile.gender || 'Not specified'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">DATE OF BIRTH (MONTH/DATE/YEAR)</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 font-mono">
+                    {profile.date_of_birth || '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">OFFICIAL WORK EMAIL</span>
+                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 font-mono">
+                  {profile.email}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">CORPORATE DESIGNATION</span>
+                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 font-semibold">
+                  {profile.designation}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                <div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">START DATE</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-mono font-bold text-slate-800">
+                    {profile.start_date || 'N/A'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">WORKING STATUS</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 flex items-center justify-between">
+                    {profile.end_date ? (
+                      <span className="font-mono text-rose-700 font-semibold">{profile.end_date}</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-status-pulse"></span>
+                        Currently Working (Active)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3.5 text-xs">
-            <div>
-              <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">EMPLOYEE IDENTIFIER</span>
-              <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-mono font-bold text-blue-700">
-                {profile.employee_id}
+          {/* Emergency Contact Information Card */}
+          <div className="enterprise-card p-6 bg-white space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-display">
+                  Emergency Contact Details
+                </h3>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div>
-                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">LAST NAME</span>
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">CONTACT NAME</span>
                 <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-semibold text-slate-800">
-                  {profile.last_name || profile.full_name?.split(' ').pop() || '—'}
+                  {[profile.emergency_first_name, profile.emergency_last_name].filter(Boolean).join(' ') || '—'}
                 </div>
               </div>
               <div>
-                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">FIRST NAME</span>
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">RELATIONSHIP</span>
                 <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-semibold text-slate-800">
-                  {profile.first_name || profile.full_name?.split(' ')[0] || '—'}
+                  {profile.emergency_relationship || '—'}
                 </div>
               </div>
               <div>
-                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">MIDDLE INITIAL</span>
-                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-semibold text-slate-800">
-                  {profile.middle_initial || <span className="text-slate-400 italic">None</span>}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">FULL LEGAL NAME ON RECORD</span>
-              <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-bold text-slate-900">
-                {profile.full_name}
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">OFFICIAL WORK EMAIL</span>
-              <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 font-mono">
-                {profile.email}
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">CORPORATE DESIGNATION</span>
-              <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 font-semibold">
-                {profile.designation}
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">DATE OF BIRTH</span>
-              <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 font-mono">
-                {profile.date_of_birth}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-              <div>
-                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">START DATE</span>
-                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-mono font-bold text-slate-800">
-                  {profile.start_date || 'N/A'}
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">EMERGENCY PHONE</span>
+                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-mono text-slate-800">
+                  {profile.emergency_phone || '—'}
                 </div>
               </div>
               <div>
-                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">WORKING STATUS</span>
-                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 flex items-center justify-between">
-                  {profile.end_date ? (
-                    <span className="font-mono text-rose-700 font-semibold">{profile.end_date}</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-status-pulse"></span>
-                      Currently Working (Active)
-                    </span>
-                  )}
+                <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">EMERGENCY EMAIL</span>
+                <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 truncate">
+                  {profile.emergency_email || <span className="text-slate-400 italic">None</span>}
                 </div>
               </div>
             </div>
@@ -343,8 +392,10 @@ export function EmployeeProfile() {
                 </div>
 
                 <div>
-                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">STREET ADDRESS</span>
-                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-medium text-slate-800">{profile.address || '—'}</div>
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">STREET ADDRESS & SUITE</span>
+                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl font-medium text-slate-800">
+                    {[profile.address_line_1, profile.address_line_2, profile.suite_apt].filter(Boolean).join(', ') || profile.address || '—'}
+                  </div>
                 </div>
               </div>
             )}
