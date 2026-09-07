@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { TimesheetUploadModal } from '../../components/timesheet/TimesheetUploadModal.jsx';
+import { TimesheetDownloadMenu } from '../../components/timesheet/TimesheetDownloadMenu.jsx';
 import { exportToCSV } from '../../utils/csvExport.js';
 import { SkeletonTable } from '../../components/common/SkeletonLoader.jsx';
 import {
@@ -198,19 +199,7 @@ export function EmployeeTimesheets() {
                     {ts.total_hours} hrs
                   </td>
                   <td>
-                    {ts.file_name ? (
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(ts.id)}
-                        className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-bold truncate max-w-[180px] cursor-pointer"
-                        title="Download timesheet attachment"
-                      >
-                        <FileText className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{ts.file_name}</span>
-                      </button>
-                    ) : (
-                      <span className="text-slate-400">Manual Entry</span>
-                    )}
+                    <TimesheetDownloadMenu timesheet={ts} />
                   </td>
                   <td className="text-slate-500 font-mono text-[11px]">
                     {new Date(ts.submitted_at).toLocaleDateString()}

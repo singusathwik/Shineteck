@@ -25,6 +25,7 @@ import {
   Key,
   X,
   Eye,
+  EyeOff,
   Download,
   Clock,
   Sparkles,
@@ -121,7 +122,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
     middleInitial: '',
     email: '',
     phone: '',
-    gender: 'Male',
+    gender: '',
     password: '',
     confirmPassword: '',
     designation: '',
@@ -166,6 +167,8 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
   const [submissionSuccess, setSubmissionSuccess] = useState(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [previewModalDoc, setPreviewModalDoc] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     async function loadNextId() {
@@ -263,7 +266,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
     if (!addressInfo.addressLine1.trim()) errs.addressLine1 = 'Address Line 1 is required.';
     if (!addressInfo.city.trim()) errs.city = 'City is required.';
     if (!addressInfo.state.trim()) errs.state = 'State / Province is required.';
-    if (!addressInfo.zipCodePart1.trim()) errs.zipCode = 'ZIP / Postal Code Part 1 is required.';
+    if (!addressInfo.zipCode.trim()) errs.zipCode = 'ZIP / Postal Code is required.';
     if (!addressInfo.country.trim()) errs.country = 'Country is required.';
 
     setErrors(errs);
@@ -380,11 +383,14 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
         addressInfo.suiteApt
       ].filter(Boolean).map(s => s.trim()).join(', ');
 
-      const combinedZip = addressInfo.zipCode || (
-        addressInfo.zipCodePart1 && addressInfo.zipCodePart2
-          ? `${addressInfo.zipCodePart1.trim()}-${addressInfo.zipCodePart2.trim()}`
-          : (addressInfo.zipCodePart1 || addressInfo.zipCodePart2 || '').trim()
-      );
+      const rawZip = (addressInfo.zipCode || '').trim();
+      let zip1 = rawZip;
+      let zip2 = '';
+      if (rawZip.includes('-')) {
+        const parts = rawZip.split('-');
+        zip1 = parts[0].trim();
+        zip2 = parts.slice(1).join('-').trim();
+      }
 
       const effectiveDob = personalInfo.dateOfBirth || (
         personalInfo.birthMonth && personalInfo.birthDay && personalInfo.birthYear
@@ -407,9 +413,9 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
         country: addressInfo.country.trim(),
         state: addressInfo.state.trim(),
         city: addressInfo.city.trim(),
-        zipCode: combinedZip,
-        zipCodePart1: addressInfo.zipCodePart1?.trim(),
-        zipCodePart2: addressInfo.zipCodePart2?.trim(),
+        zipCode: rawZip,
+        zipCodePart1: zip1,
+        zipCodePart2: zip2,
         address: combinedAddress,
         addressLine1: addressInfo.addressLine1?.trim(),
         addressLine2: addressInfo.addressLine2?.trim(),
@@ -708,28 +714,22 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                           />
                         </FieldGroup>
 
-                        {/* Gender Selection */}
+                        {/* Gender Dropdown Selection */}
                         <FieldGroup
                           label="Gender"
                           required
                           error={errors.gender}
                         >
-                          <div className="grid grid-cols-3 gap-2">
-                            {['Male', 'Female', 'Other'].map((g) => (
-                              <button
-                                key={g}
-                                type="button"
-                                onClick={() => handlePersonalChange('gender', g)}
-                                className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center ${
-                                  personalInfo.gender === g
-                                    ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-2xs ring-2 ring-blue-500/20'
-                                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400'
-                                }`}
-                              >
-                                {g}
-                              </button>
-                            ))}
-                          </div>
+                          <select
+                            value={personalInfo.gender}
+                            onChange={e => handlePersonalChange('gender', e.target.value)}
+                            className={selectCls(errors.gender)}
+                          >
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
                         </FieldGroup>
 
                         {/* Date of Birth: Month, Date (Day), Year Format */}
@@ -942,14 +942,42 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FieldGroup label="Account Password" icon={Key} required error={errors.password}>
-                          <input type="password" placeholder="Minimum 8 characters" value={personalInfo.password}
-                            onChange={e => handlePersonalChange('password', e.target.value)}
-                            className={inputCls(errors.password)} />
+                          <div className="relative">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="Minimum 8 characters"
+                              value={personalInfo.password}
+                              onChange={e => handlePersonalChange('password', e.target.value)}
+                              className={`${inputCls(errors.password)} pr-10`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            >
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </FieldGroup>
                         <FieldGroup label="Confirm Password" icon={Key} required error={errors.confirmPassword}>
-                          <input type="password" placeholder="Re-enter password" value={personalInfo.confirmPassword}
-                            onChange={e => handlePersonalChange('confirmPassword', e.target.value)}
-                            className={inputCls(errors.confirmPassword)} />
+                          <div className="relative">
+                            <input
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              placeholder="Re-enter password"
+                              value={personalInfo.confirmPassword}
+                              onChange={e => handlePersonalChange('confirmPassword', e.target.value)}
+                              className={`${inputCls(errors.confirmPassword)} pr-10`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                              aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                            >
+                              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </FieldGroup>
                       </div>
                     </div>
@@ -1096,7 +1124,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
                           ['Country', addressInfo.country],
                           ['State / Province / Region', addressInfo.state],
                           ['City', addressInfo.city],
-                          ['ZIP / Postal Code', addressInfo.zipCode || `${addressInfo.zipCodePart1}-${addressInfo.zipCodePart2}`],
+                          ['ZIP / Postal Code', addressInfo.zipCode || '—'],
                         ].map(([label, value]) => (
                           <div key={label} className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
                             <p className="text-[10.5px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-display">{label}</p>

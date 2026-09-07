@@ -101,6 +101,7 @@ export async function register(req, res) {
 
     let newEmployeeId = null;
     let userId = null;
+    const todayDate = new Date().toISOString().split('T')[0];
 
     // Atomic transaction for ID generation and user/employee insertion
     const registerTx = db.transaction(() => {
@@ -112,8 +113,6 @@ export async function register(req, res) {
       `);
       const userResult = userInsert.run(newEmployeeId, email.trim().toLowerCase(), passwordHash);
       userId = userResult.lastInsertRowid;
-
-      const todayDate = new Date().toISOString().split('T')[0];
 
       const employeeInsert = db.prepare(`
         INSERT INTO employees (
@@ -315,31 +314,41 @@ export async function register(req, res) {
 
 export async function login(req, res) {
   try {
-    const { identifier, password } = req.body; // identifier can be Employee ID or Email
+    const { identifier, password } = req.body;
 
     if (!identifier || !password) {
-      return res.status(400).json({ error: 'Please enter your Employee ID / Email and password.' });
+      return res.status(400).json({ error: 'Please enter your corporate email and password.' });
     }
 
     const cleanIdentifier = identifier.trim().toLowerCase();
 
-    // Query user by employee_id or email
+    // Disallow login via Employee ID
+    if (!cleanIdentifier.includes('@')) {
+      const isEmpId = db.prepare('SELECT employee_id FROM users WHERE LOWER(employee_id) = ?').get(cleanIdentifier);
+      if (isEmpId) {
+        return res.status(400).json({
+          error: 'Login using Employee ID is disabled. Please sign in with your corporate email address.'
+        });
+      }
+      return res.status(400).json({
+        error: 'Please enter a valid corporate email address.'
+      });
+    }
+
+    // Query user strictly by corporate email
     let user = db.prepare(`
       SELECT u.id, u.employee_id, u.email, u.password_hash, u.role, u.status,
              e.full_name, e.designation, e.profile_image_url, e.registration_status
       FROM users u
       LEFT JOIN employees e ON e.employee_id = u.employee_id
-      WHERE LOWER(u.employee_id) = ? OR LOWER(u.email) = ?
-    `).get(cleanIdentifier, cleanIdentifier);
+      WHERE LOWER(u.email) = ?
+    `).get(cleanIdentifier);
 
     // If not found in SQLite, check MongoDB Atlas as fallback
     if (!user && isMongoConnected()) {
       try {
         const mUser = await MongoUser.findOne({
-          $or: [
-            { email: cleanIdentifier },
-            { employee_id: cleanIdentifier.toUpperCase() }
-          ]
+          email: cleanIdentifier
         });
 
         if (mUser) {
@@ -396,7 +405,7 @@ export async function login(req, res) {
         ipAddress: req.ip,
         status: 'FAILURE'
       });
-      return res.status(401).json({ error: 'Invalid credentials. Please verify your Employee ID / Email and password.' });
+      return res.status(401).json({ error: 'Invalid credentials. Please verify your corporate email and password.' });
     }
 
     if (user.status === 'suspended') {
@@ -420,7 +429,7 @@ export async function login(req, res) {
         ipAddress: req.ip,
         status: 'FAILURE'
       });
-      return res.status(401).json({ error: 'Invalid credentials. Please verify your Employee ID / Email and password.' });
+      return res.status(401).json({ error: 'Invalid credentials. Please verify your corporate email and password.' });
     }
 
     const token = jwt.sign(
@@ -434,7 +443,7 @@ export async function login(req, res) {
       userName: user.full_name || user.email,
       userRole: user.role,
       action: user.role === 'admin' ? 'ADMIN_LOGIN' : 'EMPLOYEE_LOGIN',
-      details: `Successful login via ${cleanIdentifier.includes('@') ? 'email' : 'employee ID'}`,
+      details: 'Successful login via corporate email',
       ipAddress: req.ip,
       status: 'SUCCESS'
     });

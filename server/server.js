@@ -131,6 +131,9 @@ app.patch('/api/admin/timesheets/:id/review', requireAdmin, timeCtrl.reviewTimes
 // Admin Payroll
 app.get('/api/admin/payroll', requireAdmin, payCtrl.getAllPayroll);
 app.post('/api/admin/payroll', requireAdmin, payCtrl.createPayrollRecord);
+app.get('/api/admin/payroll/compensation-ledger/:employeeId', requireAdmin, payCtrl.getEmployeeCompensationLedger);
+app.put('/api/admin/payroll/compensation/:employeeId', requireAdmin, payCtrl.updateEmployeeCompensation);
+app.post('/api/admin/payroll/disburse-monthly', requireAdmin, payCtrl.disburseMonthlySalary);
 
 // Admin System Settings (Configurable Employee ID generator)
 app.get('/api/admin/settings', requireAdmin, settingsCtrl.getSettings);

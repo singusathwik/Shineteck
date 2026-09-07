@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   Lock,
+  Mail,
   User,
   AlertCircle,
   ArrowRight,
@@ -33,7 +34,7 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
       setIdentifier('admin@shinetek.com');
       setPassword('Admin@1234');
     } else {
-      setIdentifier('SH-2005');
+      setIdentifier('johnathan.vance@shinetek.com');
       setPassword('Password@123');
     }
     setErrorMsg(null);
@@ -44,7 +45,7 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
     setErrorMsg(null);
 
     if (!identifier.trim() || !password) {
-      setErrorMsg('Please enter your Corporate Email or Employee ID and password.');
+      setErrorMsg('Please enter your corporate email and password.');
       return;
     }
 
@@ -325,24 +326,24 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
 
             {/* Authentication Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Identifier Input */}
+              {/* Corporate Email Input */}
               <div className="space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-slate-700 uppercase tracking-wider font-display text-[11px]">
-                    Corporate Email / Employee ID
+                    Corporate Email
                   </label>
                   {activeRoleTab === 'employee' && (
-                    <span className="text-[10.5px] text-blue-600 font-mono font-semibold">e.g. SH-2005</span>
+                    <span className="text-[10.5px] text-blue-600 font-mono font-medium">e.g. j.vance@shinetek.com</span>
                   )}
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
+                    <Mail className="w-4 h-4" />
                   </div>
                   <input
-                    type="text"
+                    type="email"
                     required
-                    placeholder={activeRoleTab === 'admin' ? 'admin@shinetek.com' : 'e.g. j.vance@shinetek.com or SH-2005'}
+                    placeholder={activeRoleTab === 'admin' ? 'admin@shinetek.com' : 'e.g. j.vance@shinetek.com'}
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 text-xs font-medium bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs"
@@ -410,7 +411,7 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
                   onClick={() => handleQuickFill('employee')}
                   className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                 >
-                  <User className="w-3.5 h-3.5 text-blue-600" />
+                  <Mail className="w-3.5 h-3.5 text-blue-600" />
                   <span>Employee Fill</span>
                 </button>
 

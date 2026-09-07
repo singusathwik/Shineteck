@@ -22,15 +22,22 @@ export function DocumentUploadCard({
     setErrorMsg(null);
     if (!file) return;
 
-    // Validate size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMsg('File exceeds maximum size of 10MB.');
+    // Validate size (25MB max)
+    if (file.size > 25 * 1024 * 1024) {
+      setErrorMsg('File exceeds maximum size of 25MB.');
       return;
     }
 
-    const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowed.includes(file.type)) {
-      setErrorMsg('Only PDF, JPG, JPEG, and PNG files are allowed.');
+    const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
+    const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx', 'txt'];
+    const isAllowed = file.type?.startsWith('image/') ||
+      file.type === 'application/pdf' ||
+      file.type?.includes('word') ||
+      file.type?.includes('officedocument') ||
+      allowedExts.includes(ext);
+
+    if (!isAllowed) {
+      setErrorMsg('Supported formats: PDF, Images (JPG, PNG, WebP), and Word documents (DOC, DOCX).');
       return;
     }
 
@@ -215,7 +222,7 @@ export function DocumentUploadCard({
                 {isUploading ? 'Uploading Document to Vault...' : 'Click to Upload or Drag & Drop File'}
               </p>
               <p className="text-[11px] text-slate-500 font-medium">
-                Official PDF or high-resolution JPG/PNG scan (Up to 10.0 MB)
+                Official PDF, high-res Image (JPG/PNG/WebP), or Word document (Up to 25.0 MB)
               </p>
             </div>
           )}
@@ -225,7 +232,7 @@ export function DocumentUploadCard({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.txt,application/pdf,image/*"
         onChange={(e) => {
           if (e.target.files?.[0]) handleFile(e.target.files[0]);
         }}

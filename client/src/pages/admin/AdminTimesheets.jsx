@@ -3,6 +3,7 @@ import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.j
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import { exportToCSV } from '../../utils/csvExport.js';
+import { TimesheetDownloadMenu } from '../../components/timesheet/TimesheetDownloadMenu.jsx';
 import {
   Clock,
   Search,
@@ -202,19 +203,7 @@ export function AdminTimesheets() {
                       {ts.total_hours} hrs
                     </td>
                     <td className="py-3.5 px-4">
-                      {ts.file_name ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDownload(ts.id)}
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium truncate max-w-[140px]"
-                          title="Download timesheet log"
-                        >
-                          <FileText className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{ts.file_name}</span>
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">Manual Entry</span>
-                      )}
+                      <TimesheetDownloadMenu timesheet={ts} />
                     </td>
                     <td className="py-3.5 px-4 text-slate-500">
                       {new Date(ts.submitted_at).toLocaleDateString()}
@@ -287,18 +276,12 @@ export function AdminTimesheets() {
                   <span className="text-[10px] text-slate-400 font-semibold uppercase">PERIOD RANGE</span>
                   <p className="font-semibold text-slate-900">{reviewModalTs.start_date} to {reviewModalTs.end_date}</p>
                 </div>
-                {reviewModalTs.file_name && (
-                  <div className="col-span-2 pt-2 border-t border-slate-200 flex items-center justify-between">
-                    <span className="text-slate-600">Attached File: {reviewModalTs.file_name}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(reviewModalTs.id)}
-                      className="text-blue-600 font-semibold underline flex items-center gap-1"
-                    >
-                      <Download className="w-3 h-3" /> Download
-                    </button>
-                  </div>
-                )}
+                <div className="col-span-2 pt-2 border-t border-slate-200 flex items-center justify-between">
+                  <span className="text-slate-600 font-medium truncate max-w-[200px]">
+                    {reviewModalTs.file_name ? `Attached: ${reviewModalTs.file_name}` : 'Timesheet Log (Manual Entry)'}
+                  </span>
+                  <TimesheetDownloadMenu timesheet={reviewModalTs} />
+                </div>
               </div>
 
               <div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
-import { DollarSign, FileText, Calendar, CheckCircle2, Download, Eye, X, Building2, Sparkles } from 'lucide-react';
+import { DollarSign, Eye, X, ShieldCheck } from 'lucide-react';
 
 function formatMoney(amount, currency = 'USD') {
   const num = parseFloat(amount) || 0;
@@ -11,15 +11,26 @@ function formatMoney(amount, currency = 'USD') {
   return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatLPA(amount, currency = 'USD') {
+  const num = parseFloat(amount) || 0;
+  if (currency === 'INR') {
+    return `${(num / 100000).toFixed(1)} LPA`;
+  }
+  return `$${(num / 1000).toFixed(0)}k/yr`;
+}
+
 export function EmployeePayroll() {
   const [payrollRecords, setPayrollRecords] = useState([]);
+  const [annualSummary, setAnnualSummary] = useState(null);
   const [selectedStub, setSelectedStub] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const fetchPayroll = async () => {
     try {
       const data = await api.getMyPayroll();
       setPayrollRecords(data.payrollRecords || []);
+      if (data.annualSummary) {
+        setAnnualSummary(data.annualSummary);
+      }
     } catch (err) {
       console.error('Failed to load payroll:', err);
     } finally {
@@ -42,6 +53,73 @@ export function EmployeePayroll() {
           Review official earnings statements, tax withholdings, and net direct deposits issued by Shineteck Inc. HR
         </p>
       </div>
+
+      {/* Annual Compensation Summary Card (if available) */}
+      {annualSummary && (
+        <div className="enterprise-card p-5 bg-gradient-to-br from-white to-slate-50 border-slate-200 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Annual Compensation & Disbursement Progress ({annualSummary.year})
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Your official annual compensation limit and Year-to-Date disbursement ledger
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-900 border border-blue-200">
+              {formatLPA(annualSummary.annualSalary, annualSummary.currency)}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div className="p-3 bg-white rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px] font-medium">Annual Package (Cap)</span>
+              <span className="text-lg font-bold font-mono text-slate-900">
+                {formatMoney(annualSummary.annualSalary, annualSummary.currency)}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                Base: {formatMoney(annualSummary.monthlyBase, annualSummary.currency)} / mo
+              </span>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px] font-medium">Total Gross Disbursed YTD</span>
+              <span className="text-lg font-bold font-mono text-emerald-700">
+                {formatMoney(annualSummary.ytdGross, annualSummary.currency)}
+              </span>
+              <span className="text-[10px] text-emerald-600 font-medium block mt-0.5">
+                Net: {formatMoney(annualSummary.ytdNet, annualSummary.currency)}
+              </span>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px] font-medium">Remaining Annual Balance</span>
+              <span className="text-lg font-bold font-mono text-slate-800">
+                {formatMoney(annualSummary.remainingCap, annualSummary.currency)}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                Available cap for {annualSummary.year}
+              </span>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px] font-medium">Months Disbursed</span>
+              <span className="text-lg font-bold font-mono text-purple-800">
+                {annualSummary.monthsPaidCount} <span className="text-xs font-normal text-slate-400">/ 12 Months</span>
+              </span>
+              <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                <div
+                  className="bg-purple-600 h-1.5 rounded-full"
+                  style={{ width: `${Math.min(100, Math.round((annualSummary.monthsPaidCount / 12) * 100))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Table of Pay Records */}
       <div className="table-container shadow-sm">

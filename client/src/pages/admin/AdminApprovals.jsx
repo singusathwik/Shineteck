@@ -3,6 +3,7 @@ import { api, getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
 import { DocumentViewerModal } from '../../components/admin/DocumentViewerModal.jsx';
+import { DocumentDownloadMenu } from '../../components/documents/DocumentDownloadMenu.jsx';
 import {
   UserCheck,
   UserX,
@@ -501,19 +502,11 @@ export function AdminApprovals({ onSelectEmployee }) {
                               <StatusBadge status={doc.status} size="sm" />
                             </div>
                             <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-[11px]">
-                              <a
-                                href={getDocumentStreamUrl(doc.id, token)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold"
-                              >
-                                <Download className="w-3 h-3" />
-                                Stream File
-                              </a>
+                              <DocumentDownloadMenu doc={doc} />
                               <button
                                 type="button"
                                 onClick={() => setSelectedDocForReview(doc)}
-                                className="px-2 py-0.5 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 text-[11px]"
+                                className="px-2.5 py-1 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 text-[11px] transition-colors cursor-pointer"
                               >
                                 Review Doc
                               </button>

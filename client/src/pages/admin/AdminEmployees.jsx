@@ -905,7 +905,7 @@ export function AdminEmployees({ onSelectEmployee }) {
                     />
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Default temporary password is <strong>Password@123</strong>. The employee will use this password along with their email or Employee ID to log in.
+                    Default temporary password is <strong>Password@123</strong>. The employee will use this password along with their corporate email to log in.
                   </p>
                 </div>
               </div>

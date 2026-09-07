@@ -1,5 +1,12 @@
 import React from 'react';
 import { MapPin, Building, Building2, Navigation, AlertCircle, Home, Globe } from 'lucide-react';
+import { SearchableCombobox } from '../common/SearchableCombobox.jsx';
+import {
+  COUNTRIES,
+  getStatesForCountry,
+  getCitiesForState,
+  COMMON_GLOBAL_CITIES
+} from '../../data/locationData.js';
 
 export function AddressForm({ values, onChange, errors = {}, setErrors }) {
   const inputCls = (hasErr) =>
@@ -7,32 +14,49 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
       hasErr ? 'border-rose-400 bg-rose-50/30' : 'border-slate-300 hover:border-slate-400'
     }`;
 
-  // Update Zip code parts and combined zip
-  const handleZipPartChange = (part, value) => {
-    const cleanVal = value.trim();
-    if (part === 1) {
-      onChange('zipCodePart1', cleanVal);
-      const combined = cleanVal && values.zipCodePart2 ? `${cleanVal}-${values.zipCodePart2}` : (cleanVal || values.zipCodePart2 || '');
-      onChange('zipCode', combined);
-    } else {
-      onChange('zipCodePart2', cleanVal);
-      const combined = values.zipCodePart1 && cleanVal ? `${values.zipCodePart1}-${cleanVal}` : (values.zipCodePart1 || cleanVal || '');
-      onChange('zipCode', combined);
-    }
+  // Handle single ZIP / Postal code change
+  const handleZipChange = (value) => {
+    onChange('zipCode', value);
     if (setErrors && errors.zipCode) {
       setErrors(prev => ({ ...prev, zipCode: null }));
     }
   };
 
+  const handleCountryChange = (newCountry) => {
+    onChange('country', newCountry);
+    if (setErrors && errors.country) {
+      setErrors(prev => ({ ...prev, country: null }));
+    }
+  };
+
+  const handleStateChange = (newState) => {
+    onChange('state', newState);
+    if (setErrors && errors.state) {
+      setErrors(prev => ({ ...prev, state: null }));
+    }
+  };
+
+  const handleCityChange = (newCity) => {
+    onChange('city', newCity);
+    if (setErrors && errors.city) {
+      setErrors(prev => ({ ...prev, city: null }));
+    }
+  };
+
   const handleAddressLineChange = (field, value) => {
     onChange(field, value);
-    // Sync combined address
+    // Sync combined address string
     const addr1 = field === 'addressLine1' ? value : (values.addressLine1 || '');
     const addr2 = field === 'addressLine2' ? value : (values.addressLine2 || '');
     const suite = field === 'suiteApt' ? value : (values.suiteApt || '');
     const combined = [addr1, addr2, suite].filter(Boolean).map(s => s.trim()).join(', ');
     onChange('address', combined);
   };
+
+  // Dynamic dropdown options based on selections
+  const availableStates = getStatesForCountry(values.country);
+  const stateCities = getCitiesForState(values.country, values.state);
+  const availableCities = stateCities.length > 0 ? stateCities : COMMON_GLOBAL_CITIES;
 
   return (
     <div className="space-y-5">
@@ -93,7 +117,7 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
             />
           </div>
 
-          {/* Suite / Apartment in the same section below Address 1 & Address 2 */}
+          {/* Suite / Apartment */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider font-display">
@@ -115,59 +139,59 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
         </div>
       </div>
 
-      {/* ── Section 2: City, State, Split ZIP Code & Country ── */}
+      {/* ── Section 2: Country, State, City & Single Postal / ZIP Code ── */}
       <div className="enterprise-card bg-white p-6 space-y-5">
         <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center shrink-0 shadow-2xs">
-            <Navigation className="w-4 h-4 text-indigo-600" />
+            <Globe className="w-4 h-4 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 font-display">City, State, Postal Code & Country</h3>
+            <h3 className="text-sm font-bold text-slate-900 font-display">Country, State, City & Postal Code</h3>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              Enter your municipality, state/region, split postal code, and country
+              Search or type your country, state/region, city, and enter your postal code
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* City - Text Input (NO dropdown) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5">
+          {/* 1. Country - Searchable Combobox (dropdown + typing) */}
           <div>
             <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
-              <Building2 className="w-3.5 h-3.5 text-slate-400" />
-              City <span className="text-rose-500">*</span>
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
+              Country <span className="text-rose-500">*</span>
             </label>
-            <input
-              type="text"
-              placeholder="e.g. Dallas, Los Angeles, Hyderabad, Bengaluru"
-              value={values.city || ''}
-              onChange={(e) => {
-                onChange('city', e.target.value);
-                if (setErrors && errors.city) setErrors(prev => ({ ...prev, city: null }));
-              }}
-              className={inputCls(errors.city)}
+            <SearchableCombobox
+              id="address-country"
+              value={values.country || ''}
+              onChange={handleCountryChange}
+              options={COUNTRIES}
+              placeholder="Select or type country (e.g. India, United States)"
+              hasError={Boolean(errors.country)}
+              icon={Globe}
+              emptyNotice="No country matches. Type your custom country name."
             />
-            {errors.city && (
+            {errors.country && (
               <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
-                <AlertCircle className="w-3.5 h-3.5" />{errors.city}
+                <AlertCircle className="w-3.5 h-3.5" />{errors.country}
               </p>
             )}
           </div>
 
-          {/* State - Text Input (NO dropdown) */}
+          {/* 2. State / Province / Region - Searchable Combobox */}
           <div>
             <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
               <Navigation className="w-3.5 h-3.5 text-slate-400" />
               State / Province / Region <span className="text-rose-500">*</span>
             </label>
-            <input
-              type="text"
-              placeholder="e.g. Texas, California, Telangana, Karnataka"
+            <SearchableCombobox
+              id="address-state"
               value={values.state || ''}
-              onChange={(e) => {
-                onChange('state', e.target.value);
-                if (setErrors && errors.state) setErrors(prev => ({ ...prev, state: null }));
-              }}
-              className={inputCls(errors.state)}
+              onChange={handleStateChange}
+              options={availableStates}
+              placeholder="Select or type state (e.g. Texas, Telangana)"
+              hasError={Boolean(errors.state)}
+              icon={Navigation}
+              emptyNotice="Type your custom state, province, or region."
             />
             {errors.state && (
               <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
@@ -176,71 +200,57 @@ export function AddressForm({ values, onChange, errors = {}, setErrors }) {
             )}
           </div>
 
-          {/* ZIP / Postal Code - Split 2-part input boxes */}
-          <div className="sm:col-span-2">
+          {/* 3. City - Searchable Combobox */}
+          <div>
             <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
-              <Navigation className="w-3.5 h-3.5 text-slate-400" />
-              ZIP / Postal Code (Split 2-Part Format) <span className="text-rose-500">*</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+              City <span className="text-rose-500">*</span>
             </label>
+            <SearchableCombobox
+              id="address-city"
+              value={values.city || ''}
+              onChange={handleCityChange}
+              options={availableCities}
+              placeholder="Select or type city (e.g. Dallas, Hyderabad)"
+              hasError={Boolean(errors.city)}
+              icon={Building2}
+              emptyNotice="Type your custom city or municipality."
+            />
+            {errors.city && (
+              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />{errors.city}
+              </p>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 items-center">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Part 1 (e.g. 500 or 75001)"
-                  value={values.zipCodePart1 || ''}
-                  onChange={(e) => handleZipPartChange(1, e.target.value)}
-                  className={inputCls(errors.zipCode)}
-                />
-                <span className="text-[10px] text-slate-400 mt-1 block font-medium">First section (e.g. 123)</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400 font-bold text-lg select-none">-</span>
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    placeholder="Part 2 (e.g. 081 or 1234)"
-                    value={values.zipCodePart2 || ''}
-                    onChange={(e) => handleZipPartChange(2, e.target.value)}
-                    className={inputCls(errors.zipCode)}
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block font-medium">Second section (e.g. 456)</span>
-                </div>
-              </div>
-            </div>
-
+          {/* 4. ZIP / Postal Code - Single clean input box */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
+              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              ZIP / Postal Code <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="address-zipcode"
+              type="text"
+              placeholder="e.g. 75001, 500081, 90210, SW1A 1AA"
+              value={values.zipCode || ''}
+              onChange={(e) => handleZipChange(e.target.value)}
+              className={inputCls(errors.zipCode)}
+            />
             {errors.zipCode && (
               <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
                 <AlertCircle className="w-3.5 h-3.5" />{errors.zipCode}
               </p>
             )}
           </div>
+        </div>
 
-          {/* Country - Text Input at the end (NO dropdown) */}
-          <div className="sm:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-display">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
-              Country <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Type your country: e.g. India, United States, Canada, United Kingdom"
-              value={values.country || ''}
-              onChange={(e) => {
-                onChange('country', e.target.value);
-                if (setErrors && errors.country) setErrors(prev => ({ ...prev, country: null }));
-              }}
-              className={inputCls(errors.country)}
-            />
-            {errors.country && (
-              <p className="flex items-center gap-1 text-xs text-rose-600 mt-1.5 font-semibold">
-                <AlertCircle className="w-3.5 h-3.5" />{errors.country}
-              </p>
-            )}
-            <p className="text-[11px] text-slate-500 mt-1.5 font-medium">
-              💡 Tip: Typing <strong className="text-blue-700 font-semibold">India</strong> will customize your document uploads for Indian compliance (Driver&apos;s License, Aadhaar, PAN, ACH Form, Emergency Contact Form). Typing <strong className="text-blue-700 font-semibold">United States</strong> or any other country will load US/Global employment forms.
-            </p>
+        {/* Dynamic compliance notification tip */}
+        <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-slate-600 flex items-start gap-2.5">
+          <span className="text-base leading-none select-none">💡</span>
+          <div className="leading-relaxed">
+            <strong className="text-blue-950 font-bold">Country Compliance Tip: </strong>
+            Selecting <strong className="text-blue-700 font-semibold">India</strong> will automatically configure required document uploads for Indian statutory compliance (PAN, Aadhaar, Driver&apos;s License, Bank ACH). Selecting <strong className="text-blue-700 font-semibold">United States</strong> or any other country will load US/Global employment forms (W-4, I-9, Direct Deposit).
           </div>
         </div>
       </div>

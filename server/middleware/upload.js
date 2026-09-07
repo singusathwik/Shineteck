@@ -66,50 +66,63 @@ const imageFileFilter = (req, file, cb) => {
   }
 };
 
-// Filter for Documents
+// Filter for Documents (Compliance, ID, Tax, etc.)
 const documentFileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    'application/pdf',
-    'image/jpeg',
-    'image/jpg',
-    'image/png'
-  ];
-  const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png'];
+  const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx', '.txt'];
   const ext = path.extname(file.originalname).toLowerCase();
   
-  if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) {
+  if (
+    file.mimetype.startsWith('image/') ||
+    file.mimetype === 'application/pdf' ||
+    file.mimetype.includes('word') ||
+    file.mimetype.includes('officedocument') ||
+    allowedExts.includes(ext)
+  ) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid document format. Only PDF, JPG, JPEG, and PNG files are allowed.'), false);
+    cb(new Error('Invalid document format. Supported: PDF, JPG, JPEG, PNG, WebP, Word (DOC, DOCX), TXT.'), false);
   }
 };
 
-// Filter for Timesheets
+// Filter for Timesheets (Universal: Sheets, PDF, Images, Word Docs)
 const timesheetFileFilter = (req, file, cb) => {
-  const allowedExts = ['.csv', '.xlsx', '.xls', '.pdf'];
+  const allowedExts = [
+    '.csv', '.xlsx', '.xls', '.pdf',
+    '.png', '.jpg', '.jpeg', '.webp',
+    '.doc', '.docx', '.txt'
+  ];
   const ext = path.extname(file.originalname).toLowerCase();
   
-  if (allowedExts.includes(ext)) {
+  if (
+    file.mimetype.startsWith('image/') ||
+    file.mimetype === 'application/pdf' ||
+    file.mimetype.includes('spreadsheet') ||
+    file.mimetype.includes('excel') ||
+    file.mimetype.includes('csv') ||
+    file.mimetype.includes('word') ||
+    file.mimetype.includes('officedocument') ||
+    allowedExts.includes(ext)
+  ) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid timesheet format. Supported formats: CSV, XLSX, XLS, PDF.'), false);
+    cb(new Error('Invalid timesheet format. Supported formats: CSV, XLSX, XLS, PDF, PNG, JPG, WebP, Word (DOC, DOCX), TXT.'), false);
   }
 };
 
 export const uploadAvatar = multer({
   storage: avatarStorage,
   fileFilter: imageFileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 export const uploadDocument = multer({
   storage: documentStorage,
   fileFilter: documentFileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit
 });
 
 export const uploadTimesheet = multer({
   storage: timesheetStorage,
   fileFilter: timesheetFileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit
 });

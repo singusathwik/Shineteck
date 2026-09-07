@@ -17,6 +17,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge.jsx';
+import { DocumentDownloadMenu } from '../documents/DocumentDownloadMenu.jsx';
 
 export function DocumentViewerModal({ doc, isOpen, onClose, onReviewed }) {
   const [reviewNotes, setReviewNotes] = useState(doc?.review_notes || '');
@@ -75,13 +76,16 @@ export function DocumentViewerModal({ doc, isOpen, onClose, onReviewed }) {
               <p className="text-[11px] text-slate-500 font-mono">Employee ID: {doc.employee_id}</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <DocumentDownloadMenu doc={doc} variant="compact" />
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
@@ -178,19 +182,24 @@ export function DocumentViewerModal({ doc, isOpen, onClose, onReviewed }) {
               </div>
             ) : null}
 
-            <div className={`${isImage ? 'hidden' : 'block'} text-center py-6`}>
-              <FileText className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-              <p className="text-xs font-bold text-slate-700 mb-1">{doc.file_name}</p>
-              <p className="text-[11px] text-slate-500 mb-3 font-medium">PDF / Secure Authorized Compliance Document</p>
-              <a
-                href={streamUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                Open Document in High-Res Secure Viewer
-              </a>
+            <div className={`${isImage ? 'hidden' : 'block'} text-center py-6 space-y-3`}>
+              <FileText className="w-12 h-12 text-slate-400 mx-auto" />
+              <div>
+                <p className="text-xs font-bold text-slate-700 mb-0.5">{doc.file_name}</p>
+                <p className="text-[11px] text-slate-500 font-medium">Compliance Document File</p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                <a
+                  href={streamUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Open High-Res Viewer
+                </a>
+                <DocumentDownloadMenu doc={doc} variant="full" />
+              </div>
             </div>
           </div>
 

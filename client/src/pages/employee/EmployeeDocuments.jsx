@@ -3,6 +3,7 @@ import { api, getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { DocumentUploadCard } from '../../components/registration/DocumentUploadCard.jsx';
+import { DocumentDownloadMenu } from '../../components/documents/DocumentDownloadMenu.jsx';
 import {
   FileText,
   ShieldCheck,
@@ -168,15 +169,18 @@ export function EmployeeDocuments() {
                 <FileText className="w-16 h-16 text-slate-400 mb-3" />
                 <p className="font-semibold text-xs text-slate-800">{previewDoc.file_name}</p>
                 <p className="text-[11px] text-slate-500 mb-4">Secure Shinetek Document Vault</p>
-                <a
-                  href={getDocumentStreamUrl(previewDoc.id)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  <Eye className="w-4 h-4" />
-                  View in Secure Browser Viewer
-                </a>
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                  <a
+                    href={getDocumentStreamUrl(previewDoc.id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View in Secure Browser Viewer
+                  </a>
+                  <DocumentDownloadMenu doc={previewDoc} variant="full" />
+                </div>
               </div>
             </div>
           </div>

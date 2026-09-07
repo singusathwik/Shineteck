@@ -13,6 +13,7 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [autoParsedNote, setAutoParsedNote] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -40,12 +41,21 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
     if (!selectedFile) return;
 
     const ext = selectedFile.name.split('.').pop().toLowerCase();
-    if (!['csv', 'xlsx', 'xls', 'pdf'].includes(ext)) {
-      setErrorMsg('Invalid file format. Supported: CSV, XLSX, XLS, PDF.');
+    const allowedExts = ['csv', 'xlsx', 'xls', 'pdf', 'png', 'jpg', 'jpeg', 'webp', 'doc', 'docx', 'txt'];
+    if (!allowedExts.includes(ext)) {
+      setErrorMsg('Invalid file format. Supported: CSV, Excel (XLSX, XLS), PDF, Images (PNG, JPG, WebP), Word (DOC, DOCX), TXT.');
       return;
     }
 
     setFile(selectedFile);
+
+    // If image file, generate preview
+    if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+      const preview = URL.createObjectURL(selectedFile);
+      setFilePreview(preview);
+    } else {
+      setFilePreview(null);
+    }
 
     // If CSV file, parse in client for instant calculation preview
     if (ext === 'csv') {
@@ -305,30 +315,65 @@ export function TimesheetUploadModal({ isOpen, onClose, onSuccess }) {
 
           {/* File Upload */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Attach Timesheet File (CSV, XLSX, PDF)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-slate-700 font-display">
+                Attach Timesheet File (Universal Formats Supported)
+              </label>
+              <span className="text-[10px] text-slate-400 font-medium">Optional</span>
+            </div>
+
+            {/* Supported format chips */}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {['CSV / Excel', 'PDF Document', 'Image (PNG/JPG)', 'Word (DOC/DOCX)'].map((fmt) => (
+                <span key={fmt} className="text-[9.5px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                  {fmt}
+                </span>
+              ))}
+            </div>
+
             <div
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/30 rounded-xl p-3 text-center cursor-pointer transition-colors"
             >
               {file ? (
-                <div className="flex items-center justify-center gap-2 text-xs text-slate-800">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <span className="font-bold">{file.name}</span>
-                  <span className="text-slate-400 font-mono">({(file.size / 1024).toFixed(1)} KB)</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-xs text-slate-800">
+                    <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="font-bold truncate max-w-[240px]">{file.name}</span>
+                    <span className="text-slate-400 font-mono text-[11px]">({(file.size / 1024).toFixed(1)} KB)</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFile(null);
+                        setFilePreview(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="p-1 rounded text-rose-500 hover:bg-rose-50 ml-1"
+                      title="Remove file"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Thumbnail Preview for Images */}
+                  {filePreview && (
+                    <div className="max-w-[200px] mx-auto rounded-lg overflow-hidden border border-slate-200 shadow-2xs">
+                      <img src={filePreview} alt="Timesheet Preview" className="w-full h-24 object-cover" />
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-500 py-2">
                   <Upload className="w-4 h-4 text-blue-600" />
-                  <span>Click to attach CSV, Excel, or PDF activity log</span>
+                  <span>Click to attach CSV, Excel, PDF, Image, or Word activity log</span>
                 </div>
               )}
             </div>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.xlsx,.xls,.pdf"
+              accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.txt"
               onChange={handleFileChange}
               className="hidden"
             />

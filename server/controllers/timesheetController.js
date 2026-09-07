@@ -427,26 +427,59 @@ export async function reviewTimesheet(req, res) {
 }
 
 // Download timesheet file
+// Download timesheet file (with dynamic CSV fallback if no physical file was uploaded)
 export function downloadTimesheetFile(req, res) {
   try {
     const { id } = req.params;
     const timesheet = db.prepare('SELECT * FROM timesheets WHERE id = ?').get(id);
 
-    if (!timesheet || !timesheet.file_path) {
-      return res.status(404).json({ error: 'Timesheet file not found.' });
+    if (!timesheet) {
+      return res.status(404).json({ error: 'Timesheet record not found.' });
     }
 
-    // Auth check
+    // Auth check: Admin or the employee who owns the timesheet
     if (req.user.role !== 'admin' && req.user.employeeId !== timesheet.employee_id) {
       return res.status(403).json({ error: 'Unauthorized to download this timesheet.' });
     }
 
-    const fullPath = path.resolve(TIMESHEET_DIR, timesheet.file_path);
-    if (!fs.existsSync(fullPath)) {
-      return res.status(404).json({ error: 'Timesheet physical file is missing from storage.' });
+    // If physical file exists on disk, download it
+    if (timesheet.file_path) {
+      const fullPath = path.resolve(TIMESHEET_DIR, timesheet.file_path);
+      if (fs.existsSync(fullPath)) {
+        return res.download(fullPath, timesheet.file_name || 'timesheet.csv');
+      }
     }
 
-    res.download(fullPath, timesheet.file_name || 'timesheet.csv');
+    // Fallback: Generate structured CSV export for manual/seeded timesheets without physical files
+    const emp = db.prepare('SELECT full_name FROM employees WHERE employee_id = ?').get(timesheet.employee_id);
+    const empName = emp ? emp.full_name : timesheet.employee_id;
+    const safeStr = (v) => `"${String(v !== undefined && v !== null ? v : '').replace(/"/g, '""')}"`;
+
+    const totalH = parseFloat(timesheet.total_hours) || 0;
+    const regH = Math.min(totalH, 40).toFixed(1);
+    const otH = Math.max(0, totalH - 40).toFixed(1);
+
+    const csvContent = [
+      'Timesheet ID,Employee ID,Employee Name,Vendor / Client,Start Date,End Date,Regular Hours,Overtime Hours,Total Work Hours,Status,Submitted At,Admin Notes',
+      [
+        safeStr(timesheet.id),
+        safeStr(timesheet.employee_id),
+        safeStr(empName),
+        safeStr(timesheet.vendor_name || 'Direct / Shineteck Inc.'),
+        safeStr(timesheet.start_date),
+        safeStr(timesheet.end_date),
+        safeStr(regH),
+        safeStr(otH),
+        safeStr(timesheet.total_hours),
+        safeStr(timesheet.status),
+        safeStr(timesheet.submitted_at || new Date().toISOString().slice(0, 10)),
+        safeStr(timesheet.admin_feedback || timesheet.notes || '')
+      ].join(',')
+    ].join('\r\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="timesheet_${timesheet.employee_id}_${timesheet.start_date}.csv"`);
+    return res.send(csvContent);
   } catch (err) {
     console.error('[downloadTimesheetFile Error]', err);
     res.status(500).json({ error: 'Failed to download timesheet.' });

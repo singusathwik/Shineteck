@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '../db/schema.js';
 import { logAudit } from '../middleware/audit.js';
 import { validateAddressInfo } from '../data/addressData.js';
-import { Employee as MongoEmployee, User as MongoUser, Notification as MongoNotif } from '../models/index.js';
+import { Employee as MongoEmployee, User as MongoUser, Notification as MongoNotif, Timesheet as MongoTimesheet } from '../models/index.js';
 import { isMongoConnected } from '../db/mongo.js';
 import { generateNextEmployeeIdSync } from './settingsController.js';
 

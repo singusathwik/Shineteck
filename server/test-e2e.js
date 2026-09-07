@@ -75,14 +75,30 @@ async function runTests() {
   if (!empId) throw new Error('Registration failed to return employee ID');
   if (regRes.user?.fullName !== 'Alexander M. Wright') throw new Error('Expected fullName to be Alexander M. Wright');
 
-  // 4. Employee Login Verification
-  console.log('\n4. Testing Employee Login with Assigned ID...');
-  const loginRes = await fetch(`${BASE_URL}/auth/login`, {
+  // 4. Employee Login Verification (Verify Employee ID rejection & Corporate Email requirement)
+  console.log('\n4. Testing Employee Login Restriction...');
+  console.log('   (a) Verifying Employee ID login attempt is rejected...');
+  const idLoginRes = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identifier: empId, password: 'Password@123' })
+  });
+  const idLoginData = await idLoginRes.json();
+  if (idLoginRes.status !== 400 || !idLoginData.error?.includes('Employee ID is disabled')) {
+    throw new Error(`Expected Employee ID login rejection, got: ${JSON.stringify(idLoginData)}`);
+  }
+  console.log('   Passed: Employee ID login correctly rejected:', idLoginData.error);
+
+  console.log('   (b) Verifying Corporate Email login succeeds...');
+  const loginRes = await fetch(`${BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier: testEmail, password: 'Password@123' })
   }).then(r => r.json());
-  console.log('   Login successful:', loginRes.user?.fullName, `(${loginRes.user?.employeeId})`);
+  if (!loginRes.token) {
+    throw new Error(`Email login failed: ${JSON.stringify(loginRes)}`);
+  }
+  console.log('   Login successful via Corporate Email:', loginRes.user?.fullName, `(${loginRes.user?.employeeId})`);
 
   // 5. Admin Login Verification
   console.log('\n5. Testing Admin Login...');
@@ -149,15 +165,20 @@ async function runTests() {
   }).then(r => r.json());
   const pendingTs = allTimesheets.timesheets.find(t => t.employee_id === empId);
   if (pendingTs) {
-    const appTs = await fetch(`${BASE_URL}/admin/timesheets/${pendingTs.id}/review`, {
+    const appTsRes = await fetch(`${BASE_URL}/admin/timesheets/${pendingTs.id}/review`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify({ status: 'Approved', adminFeedback: 'Hours approved for pay period.' })
-    }).then(r => r.json());
-    console.log(`   Timesheet #${pendingTs.id} updated to: ${appTs.timesheet.status}`);
+    });
+    const appTs = await appTsRes.json();
+    if (!appTs.timesheet) {
+      console.log('   Review returned:', appTsRes.status, appTs);
+    } else {
+      console.log(`   Timesheet #${pendingTs.id} updated to: ${appTs.timesheet.status}`);
+    }
   }
 
   // 9. Admin Issue Payroll

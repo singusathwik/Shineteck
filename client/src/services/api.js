@@ -118,6 +118,12 @@ export const api = {
     return request(`/admin/payroll${query ? `?${query}` : ''}`);
   },
   createPayrollRecord: (data) => request('/admin/payroll', { method: 'POST', body: data }),
+  getEmployeeCompensationLedger: (employeeId, year) => {
+    const query = year ? `?year=${year}` : '';
+    return request(`/admin/payroll/compensation-ledger/${encodeURIComponent(employeeId)}${query}`);
+  },
+  updateEmployeeCompensation: (employeeId, data) => request(`/admin/payroll/compensation/${encodeURIComponent(employeeId)}`, { method: 'PUT', body: data }),
+  disburseMonthlySalary: (data) => request('/admin/payroll/disburse-monthly', { method: 'POST', body: data }),
   getSettings: () => request('/admin/settings'),
   updateSettings: (data) => request('/admin/settings', { method: 'PUT', body: data }),
   getAuditLogs: (params = {}) => {

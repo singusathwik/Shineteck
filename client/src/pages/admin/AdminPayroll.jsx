@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
+import { EmployeeCompensationLedger } from '../../components/payroll/EmployeeCompensationLedger.jsx';
 import {
   DollarSign,
   Plus,
@@ -10,12 +11,9 @@ import {
   Calendar,
   X,
   FileText,
-  Globe,
-  Building,
   Eye,
   CreditCard,
-  Layers,
-  ArrowUpDown
+  Layers
 } from 'lucide-react';
 
 function formatMoney(amount, currency = 'USD') {
@@ -27,6 +25,7 @@ function formatMoney(amount, currency = 'USD') {
 }
 
 export function AdminPayroll() {
+  const [mainView, setMainView] = useState('ledger'); // 'ledger' | 'statements'
   const [payrollRecords, setPayrollRecords] = useState([]);
   const [summary, setSummary] = useState({ usdGross: 0, usdNet: 0, usdCount: 0, inrGross: 0, inrNet: 0, inrCount: 0, totalRecords: 0 });
   const [employees, setEmployees] = useState([]);
@@ -163,27 +162,82 @@ export function AdminPayroll() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="enterprise-card p-6 bg-white border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Corporate Multi-National Payroll Management</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Manage international US/Foreign (USD) and Indian domestic (INR) salary disbursements & tax deductions
-          </p>
+      {/* ── Sub-Navigation: Compensation Ledger vs Statement Register ──────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 enterprise-card p-3 bg-white border-slate-200">
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setMainView('ledger')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              mainView === 'ledger'
+                ? 'bg-[#0f2b48] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 text-blue-400" />
+            <span>Employee Compensation & 12-Month Ledger</span>
+            <span className="px-1.5 py-0.2 bg-blue-500/20 text-blue-300 text-[10px] rounded-full font-mono">
+              LPA & Cap
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMainView('statements')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              mainView === 'statements'
+                ? 'bg-[#0f2b48] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 text-slate-400" />
+            <span>Payroll Statements & Register</span>
+            <span className="px-1.5 py-0.2 bg-slate-200 text-slate-700 text-[10px] rounded-full font-mono">
+              {summary.totalRecords}
+            </span>
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setIsModalOpen(true);
-            setErrorMsg(null);
-          }}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded-lg shadow-sm hover:shadow-md transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Issue Pay Statement</span>
-        </button>
+        {mainView === 'statements' && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsModalOpen(true);
+              setErrorMsg(null);
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Issue Pay Statement</span>
+          </button>
+        )}
       </div>
+
+      {mainView === 'ledger' ? (
+        <EmployeeCompensationLedger onSwitchToStatements={() => setMainView('statements')} />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="enterprise-card p-6 bg-white border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Corporate Multi-National Payroll Management</h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Manage international US/Foreign (USD) and Indian domestic (INR) salary disbursements & tax deductions
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsModalOpen(true);
+                setErrorMsg(null);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-bold rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Issue Pay Statement</span>
+            </button>
+          </div>
 
       {statusMessage && (
         <div className="p-3 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
@@ -707,6 +761,8 @@ export function AdminPayroll() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { DocumentViewerModal } from '../../components/admin/DocumentViewerModal.jsx';
+import { DocumentDownloadMenu } from '../../components/documents/DocumentDownloadMenu.jsx';
 import {
   ArrowLeft,
   User,
@@ -485,21 +486,13 @@ export function AdminEmployeeDetail({ employeeId, onBack }) {
                     Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}
                   </span>
                   <div className="flex items-center gap-2">
-                    <a
-                      href={getDocumentStreamUrl(doc.id, token)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-slate-600 hover:text-blue-700 font-semibold"
-                    >
-                      <Download className="w-3 h-3" />
-                      Stream File
-                    </a>
+                    <DocumentDownloadMenu doc={doc} />
                     <button
                       type="button"
                       onClick={() => setSelectedDocForReview(doc)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors cursor-pointer text-xs"
                     >
-                      <Eye className="w-3 h-3" />
+                      <Eye className="w-3.5 h-3.5" />
                       Review & Decide
                     </button>
                   </div>

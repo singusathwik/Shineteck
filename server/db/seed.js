@@ -91,49 +91,49 @@ export async function seedDatabase() {
       first: 'Johnathan', last: 'Vance', mid: 'E.', full: 'Johnathan E. Vance', phone: '+1 (555) 234-5678',
       role: 'Senior Software Engineer', dob: '1992-06-15',
       country: 'United States', state: 'California', city: 'Los Angeles', zip: '90001', address: '742 Evergreen Terrace, Apt 4B',
-      startDate: '2026-01-01', status: 'Active', regStatus: 'Approved'
+      startDate: '2026-01-01', status: 'Active', regStatus: 'Approved', annualSalary: 125000
     },
     {
       id: 'SH-2006', email: 'emily.chen@shinetek.com',
       first: 'Emily', last: 'Chen', mid: '', full: 'Emily Chen', phone: '+1 (555) 456-7890',
       role: 'Senior UX/UI Designer', dob: '1995-11-20',
       country: 'United States', state: 'California', city: 'San Francisco', zip: '94105', address: '500 Howard Street, Suite 300',
-      startDate: '2026-02-01', status: 'Active', regStatus: 'Approved'
+      startDate: '2026-02-01', status: 'Active', regStatus: 'Approved', annualSalary: 115000
     },
     {
       id: 'SH-2007', email: 'marcus.brody@shinetek.com',
       first: 'Marcus', last: 'Brody', mid: '', full: 'Marcus Brody', phone: '+1 (555) 789-0123',
       role: 'Cloud Solutions Architect', dob: '1990-03-08',
       country: 'United States', state: 'Texas', city: 'Austin', zip: '78701', address: '1200 Congress Ave',
-      startDate: '2025-06-01', status: 'Active', regStatus: 'Approved'
+      startDate: '2025-06-01', status: 'Active', regStatus: 'Approved', annualSalary: 140000
     },
     {
       id: 'SH-2008', email: 'rajesh.sharma@shinetek.com',
       first: 'Rajesh', last: 'Sharma', mid: '', full: 'Rajesh Sharma', phone: '+91 98765 43210',
       role: 'Lead Full Stack Engineer', dob: '1993-04-18',
       country: 'India', state: 'Karnataka', city: 'Bengaluru', zip: '560001', address: '12 MG Road, Indiranagar',
-      startDate: '2025-08-01', status: 'Active', regStatus: 'Approved'
+      startDate: '2025-08-01', status: 'Active', regStatus: 'Approved', annualSalary: 2220000
     },
     {
       id: 'SH-2009', email: 'priya.patel@shinetek.com',
       first: 'Priya', last: 'Patel', mid: '', full: 'Priya Patel', phone: '+91 91234 56789',
       role: 'Senior QA Automation Engineer', dob: '1996-09-24',
       country: 'India', state: 'Maharashtra', city: 'Pune', zip: '411001', address: '45 Koregaon Park',
-      startDate: '2025-11-15', status: 'Active', regStatus: 'Approved'
+      startDate: '2025-11-15', status: 'Active', regStatus: 'Approved', annualSalary: 1620000
     },
     {
       id: 'SH-2010', email: 'ananya.reddy@shinetek.com',
       first: 'Ananya', last: 'Reddy', mid: '', full: 'Ananya Reddy', phone: '+91 99887 76655',
       role: 'DevOps & Cloud Engineer', dob: '1994-12-05',
       country: 'India', state: 'Telangana', city: 'Hyderabad', zip: '500081', address: '88 HITEC City, Madhapur',
-      startDate: '2026-01-10', status: 'Active', regStatus: 'Approved'
+      startDate: '2026-01-10', status: 'Active', regStatus: 'Approved', annualSalary: 1920000
     },
     {
       id: 'SH-2011', email: 'vikram.verma@shinetek.com',
       first: 'Vikram', last: 'Verma', mid: '', full: 'Vikram Verma', phone: '+91 98450 11223',
       role: 'Staff Data Engineer', dob: '1991-08-14',
       country: 'India', state: 'Delhi NCR', city: 'Gurugram', zip: '122002', address: 'DLF Cyber City, Tower B',
-      startDate: '2025-05-01', status: 'Active', regStatus: 'Approved'
+      startDate: '2025-05-01', status: 'Active', regStatus: 'Approved', annualSalary: 2520000
     },
     // Applicants in Pending Review & Needs Correction for Admin Approvals
     {
@@ -141,21 +141,21 @@ export async function seedDatabase() {
       first: 'Amitabh', last: 'Banerjee', mid: 'K.', full: 'Amitabh K. Banerjee', phone: '+91 98300 45678',
       role: 'Cloud Security Specialist', dob: '1991-03-12',
       country: 'India', state: 'West Bengal', city: 'Kolkata', zip: '700091', address: 'Salt Lake Sector V, Block EP',
-      startDate: '2026-03-01', status: 'Active', regStatus: 'Pending Review'
+      startDate: '2026-03-01', status: 'Active', regStatus: 'Pending Review', annualSalary: 1000000
     },
     {
       id: 'SH-2013', email: 'sarah.jenkins@shinetek.com',
       first: 'Sarah', last: 'Jenkins', mid: 'M.', full: 'Sarah M. Jenkins', phone: '+1 (555) 678-9012',
       role: 'DevSecOps Consultant', dob: '1994-07-22',
       country: 'United States', state: 'Washington', city: 'Seattle', zip: '98101', address: '1400 4th Ave, Suite 500',
-      startDate: '2026-03-01', status: 'Active', regStatus: 'Pending Review'
+      startDate: '2026-03-01', status: 'Active', regStatus: 'Pending Review', annualSalary: 110000
     },
     {
       id: 'SH-2014', email: 'deepak.gupta@shinetek.com',
       first: 'Deepak', last: 'Gupta', mid: '', full: 'Deepak Gupta', phone: '+91 98111 22334',
       role: 'Full Stack Engineer', dob: '1995-10-10',
       country: 'India', state: 'Uttar Pradesh', city: 'Noida', zip: '201301', address: 'Sector 62, Innovation Hub',
-      startDate: '2026-03-01', status: 'Active', regStatus: 'Needs Correction'
+      startDate: '2026-03-01', status: 'Active', regStatus: 'Needs Correction', annualSalary: 1000000
     }
   ];
 
@@ -176,15 +176,17 @@ export async function seedDatabase() {
         INSERT INTO employees (
           user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
           date_of_birth, country, state, city, zip_code, address,
-          start_date, employment_status, registration_status, submitted_at, reviewed_at, reviewed_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, CURRENT_TIMESTAMP, ?, 'admin@shinetek.com')
+          start_date, annual_salary, employment_status, registration_status, submitted_at, reviewed_at, reviewed_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, CURRENT_TIMESTAMP, ?, 'admin@shinetek.com')
       `).run(
         userRow.id, emp.id, emp.first, emp.last, emp.mid, emp.full, emp.email, emp.phone, emp.role,
-        emp.dob, emp.country, emp.state, emp.city, emp.zip, emp.address, emp.startDate,
+        emp.dob, emp.country, emp.state, emp.city, emp.zip, emp.address, emp.startDate, emp.annualSalary || 1000000,
         emp.regStatus, emp.regStatus === 'Approved' ? new Date().toISOString() : null
       );
     } else {
-      db.prepare('UPDATE employees SET country = ?, designation = ?, registration_status = ? WHERE employee_id = ?').run(emp.country, emp.role, emp.regStatus, emp.id);
+      db.prepare('UPDATE employees SET country = ?, designation = ?, registration_status = ?, annual_salary = COALESCE(annual_salary, ?) WHERE employee_id = ?').run(
+        emp.country, emp.role, emp.regStatus, emp.annualSalary || 1000000, emp.id
+      );
     }
   }
 
@@ -250,13 +252,16 @@ export async function seedDatabase() {
   ];
 
   for (const st of sampleStatements) {
+    const month = st.start.substring(0, 7);
     const exists = db.prepare('SELECT id FROM payroll_records WHERE employee_id = ? AND pay_period_start = ? AND pay_period_end = ?').get(st.empId, st.start, st.end);
     if (!exists) {
       db.prepare(`
         INSERT INTO payroll_records (
-          employee_id, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(st.empId, st.start, st.end, st.gross, st.ded, st.net, st.cur, st.date, st.status);
+          employee_id, payroll_month, pay_period_start, pay_period_end, gross_pay, deductions, net_pay, currency, payment_date, payment_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(st.empId, month, st.start, st.end, st.gross, st.ded, st.net, st.cur, st.date, st.status);
+    } else {
+      db.prepare('UPDATE payroll_records SET payroll_month = COALESCE(payroll_month, ?) WHERE id = ?').run(month, exists.id);
     }
   }
 

@@ -93,6 +93,7 @@ export function initSchema() {
       profile_image_url TEXT,
       start_date TEXT,
       end_date TEXT,
+      annual_salary REAL DEFAULT 1000000,
       employment_status TEXT CHECK(employment_status IN ('Active', 'Inactive')) NOT NULL DEFAULT 'Active',
       registration_status TEXT CHECK(registration_status IN ('Pending Review', 'Approved', 'Needs Correction', 'Rejected')) NOT NULL DEFAULT 'Pending Review',
       admin_notes TEXT,
@@ -145,6 +146,7 @@ export function initSchema() {
     CREATE TABLE IF NOT EXISTS payroll_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       employee_id TEXT NOT NULL,
+      payroll_month TEXT,
       pay_period_start TEXT NOT NULL,
       pay_period_end TEXT NOT NULL,
       gross_pay REAL NOT NULL,
@@ -287,10 +289,26 @@ export function initSchema() {
     if (!empColumns.includes('employment_status')) {
       db.exec("ALTER TABLE employees ADD COLUMN employment_status TEXT DEFAULT 'Active';");
     }
+    if (!empColumns.includes('annual_salary')) {
+      db.exec("ALTER TABLE employees ADD COLUMN annual_salary REAL DEFAULT 1000000;");
+    }
 
     const payColumns = db.prepare("PRAGMA table_info(payroll_records)").all().map(c => c.name);
     if (!payColumns.includes('currency')) {
       db.exec("ALTER TABLE payroll_records ADD COLUMN currency TEXT DEFAULT 'USD';");
+    }
+    if (!payColumns.includes('payroll_month')) {
+      db.exec("ALTER TABLE payroll_records ADD COLUMN payroll_month TEXT;");
+    }
+    // Backfill payroll_month for existing records
+    try {
+      db.exec(`
+        UPDATE payroll_records
+        SET payroll_month = substr(pay_period_start, 1, 7)
+        WHERE (payroll_month IS NULL OR payroll_month = '') AND pay_period_start IS NOT NULL;
+      `);
+    } catch (bfErr) {
+      console.warn('[DB Backfill payroll_month notice]', bfErr.message);
     }
 
     const tsColumns = db.prepare("PRAGMA table_info(timesheets)").all().map(c => c.name);
