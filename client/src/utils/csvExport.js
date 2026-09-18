@@ -3,12 +3,8 @@
  * Formats arrays of objects into cleanly sanitized CSV downloads.
  */
 
-export function exportToCSV(data, filename = 'export.csv', headers = null) {
-  if (!data || !data.length) {
-    alert('No records available to export.');
-    return;
-  }
-
+export function serializeCSV(data, headers = null) {
+  if (!data?.length) return '';
   // Determine header columns
   const keys = headers ? Object.keys(headers) : Object.keys(data[0]);
   const headerRow = headers ? Object.values(headers) : keys;
@@ -16,8 +12,11 @@ export function exportToCSV(data, filename = 'export.csv', headers = null) {
   const escapeCSV = (val) => {
     if (val === null || val === undefined) return '';
     let str = String(val).trim();
+    // Sanitize after trimming so leading whitespace cannot conceal a formula.
+    // Preserve numeric cells, including negative amounts, as numbers.
+    if (typeof val === 'string' && /^[=+@-]/.test(str)) str = `'${str}`;
     // Escape double quotes by doubling them
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    if (/[,"\r\n]/.test(str)) {
       str = `"${str.replace(/"/g, '""')}"`;
     }
     return str;
@@ -36,7 +35,15 @@ export function exportToCSV(data, filename = 'export.csv', headers = null) {
     csvRows.push(values.join(','));
   }
 
-  const csvString = csvRows.join('\r\n');
+  return csvRows.join('\r\n');
+}
+
+export function exportToCSV(data, filename = 'export.csv', headers = null) {
+  if (!data || !data.length) {
+    alert('No records available to export.');
+    return;
+  }
+  const csvString = serializeCSV(data, headers);
   const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
   
   const link = document.createElement('a');

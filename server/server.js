@@ -23,6 +23,7 @@ import * as auditCtrl from './controllers/auditController.js';
 import * as notifCtrl from './controllers/notificationController.js';
 import * as vendorCtrl from './controllers/vendorController.js';
 import * as payrollEntryCtrl from './controllers/payrollEntryController.js';
+import { invoiceHandlers } from './controllers/invoiceController.js';
 
 dotenv.config();
 
@@ -147,6 +148,9 @@ app.delete('/api/admin/vendors/:id', requireAdmin, vendorCtrl.deleteVendorDetail
 
 // Admin Payroll Entries (Monthly billing)
 app.get('/api/admin/payroll-entries', requireAdmin, payrollEntryCtrl.getAllPayrollEntries);
+app.get('/api/admin/employee-invoices', requireAdmin, invoiceHandlers.list);
+app.post('/api/admin/employee-invoices', requireAdmin, invoiceHandlers.save);
+app.put('/api/admin/employee-invoices/:id', requireAdmin, invoiceHandlers.save);
 app.post('/api/admin/payroll-entries', requireAdmin, payrollEntryCtrl.createPayrollEntry);
 app.put('/api/admin/payroll-entries/:id', requireAdmin, payrollEntryCtrl.updatePayrollEntry);
 app.delete('/api/admin/payroll-entries/:id', requireAdmin, payrollEntryCtrl.deletePayrollEntry);
