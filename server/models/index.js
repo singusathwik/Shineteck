@@ -201,6 +201,8 @@ const PayrollEntrySchema = new mongoose.Schema({
   employee_id: { type: String, required: true, index: true },
   employee_name: { type: String, required: true },
   payroll_month: { type: String, required: true },
+  start_date: { type: String },
+  end_date: { type: String },
   vendor_name: { type: String, default: '' },
   client_name: { type: String, default: '' },
   total_hours: { type: Number, required: true },

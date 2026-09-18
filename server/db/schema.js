@@ -165,6 +165,8 @@ export function initSchema() {
       employee_id TEXT NOT NULL,
       employee_name TEXT NOT NULL,
       payroll_month TEXT NOT NULL,
+      start_date TEXT,
+      end_date TEXT,
       vendor_name TEXT DEFAULT '',
       client_name TEXT DEFAULT '',
       total_hours REAL NOT NULL,
@@ -293,6 +295,10 @@ export function initSchema() {
       db.exec("ALTER TABLE employees ADD COLUMN annual_salary REAL DEFAULT 1000000;");
     }
 
+    const entryColumns = db.prepare('PRAGMA table_info(payroll_entries)').all().map(c => c.name);
+    for (const column of ['start_date', 'end_date']) {
+      if (!entryColumns.includes(column)) db.exec(`ALTER TABLE payroll_entries ADD COLUMN ${column} TEXT`);
+    }
     const payColumns = db.prepare("PRAGMA table_info(payroll_records)").all().map(c => c.name);
     if (!payColumns.includes('currency')) {
       db.exec("ALTER TABLE payroll_records ADD COLUMN currency TEXT DEFAULT 'USD';");

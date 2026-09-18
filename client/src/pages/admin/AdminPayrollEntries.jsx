@@ -1,709 +1,111 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowUpRight, Calendar, Download, Edit3, Plus, Search, Trash2, X } from 'lucide-react';
 import { api } from '../../services/api.js';
 import { exportToCSV } from '../../utils/csvExport.js';
+import { invoiceAmounts } from '../../utils/invoiceAmounts.js';
+import { overlapsPeriod, payrollPeriod } from '../../utils/payrollPeriods.js';
+import { payrollDemoEmployee, payrollDemoEntries } from '../../utils/payrollDemo.js';
 import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
-import {
-  Receipt, Search, Plus, X, Edit3, Trash2, DollarSign, Users,
-  ChevronDown, AlertCircle, CheckCircle2, Calendar, Calculator, Clock,
-  Globe, Layers, Download
-} from 'lucide-react';
+import { EmployeePayrollHistory } from '../../components/payroll/EmployeePayrollHistory.jsx';
+import '../../components/payroll/invoice-ledger.css';
 
-function formatMoney(amount, currency = 'USD') {
-  const num = parseFloat(amount) || 0;
-  if (currency === 'INR') {
-    return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const money = (value, currency) => new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency }).format(value || 0);
+const date = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not recorded';
+const currencyOf = employee => employee.country === 'India' ? 'INR' : 'USD';
+
+function PayrollEntryEditor({ entry, employees, vendors, currency, onCancel, onSaved }) {
+  const [form, setForm] = useState(() => entry ? { ...entry, ...payrollPeriod(entry) } : { employee_id: '', employee_name: '', start_date: '', end_date: '', total_hours: '', bill_rate: '', emp_bill_rate: '', vendor_name: '', client_name: '', currency });
+  const [saving, setSaving] = useState(false);
+  const panel = useRef(null);
+  useEffect(() => { panel.current?.focus(); }, []);
+  const [error, setError] = useState('');
+  const change = (key, value) => setForm(previous => ({ ...previous, [key]: value }));
+  function chooseEmployee(id) {
+    const employee = employees.find(item => item.employee_id === id);
+    const vendor = vendors.find(item => item.employee_id === id);
+    setForm(previous => ({ ...previous, employee_id: id, employee_name: employee?.full_name || '', currency: employee ? currencyOf(employee) : currency, vendor_name: vendor?.vendor_name || '', client_name: vendor?.client_name || '', bill_rate: vendor?.hourly_bill_rate ?? '', emp_bill_rate: vendor?.employee_rate ?? '' }));
   }
-  return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  async function save(event) {
+    event.preventDefault();
+    if (form.start_date > form.end_date) { setError('End date must be on or after start date.'); return; }
+    setSaving(true); setError('');
+    try {
+      if (entry) await api.updatePayrollEntry(entry._id || entry.id, form);
+      else await api.createPayrollEntry(form);
+      onSaved();
+    } catch (err) { setError(err.message); setSaving(false); }
+  }
+  const field = (key, label, type = 'text', required = true) => <label className="il-field" key={key}><span>{label}</span><input type={type} value={form[key] ?? ''} onChange={event => change(key, event.target.value)} onInput={event => change(key, event.target.value)} required={required} {...(type === 'number' ? { min: 0, max: 1000000, step: '.01' } : {})} {...(key === 'end_date' ? { min: form.start_date } : {})} /></label>;
+  return <section className="il-editor" ref={panel} tabIndex={-1} aria-label={entry ? 'Edit payroll entry' : 'Add payroll entry'}><div className="il-section-heading"><h2>{entry ? 'Edit payroll entry' : 'Add payroll entry'} · {currency}</h2><button className="il-icon-button" onClick={onCancel} disabled={saving} aria-label="Close payroll editor"><X size={20} /></button></div><form onSubmit={save}><fieldset disabled={saving}><div className="il-form-grid">
+    <label className="il-field"><span>Employee</span><select required value={form.employee_id} onChange={event => chooseEmployee(event.target.value)}><option value="">Select employee</option>{employees.map(employee => <option key={employee.employee_id} value={employee.employee_id}>{employee.full_name} · {employee.employee_id}</option>)}{entry && !employees.some(employee => employee.employee_id === entry.employee_id) && <option value={entry.employee_id}>{entry.employee_name}</option>}</select></label>
+    {field('start_date', 'Payroll start date', 'date')}{field('end_date', 'Payroll end date', 'date')}
+    {field('vendor_name', 'Vendor', 'text', false)}{field('client_name', 'Client', 'text', false)}{field('total_hours', 'Total hours', 'number')}
+    {field('bill_rate', `Client bill rate (${form.currency}/hour)`, 'number')}{field('emp_bill_rate', `Employee rate (${form.currency}/hour)`, 'number')}
+    <div className="il-field"><span>Gross amount · hours × employee rate</span><strong>{money(invoiceAmounts(form.total_hours, form.emp_bill_rate).invoice_amount, form.currency)}</strong></div>
+  </div></fieldset>{entry?.period_inferred && <p className="il-help">This older record only stored a month. Confirm the inferred start and end dates before saving.</p>}{error && <p role="alert" className="il-error">{error}</p>}<div className="il-form-footer"><p className="il-help">Full dates are saved for this payroll period.</p><div className="il-actions"><button type="button" className="il-button" disabled={saving} onClick={onCancel}>Cancel</button><button className="il-button il-primary" disabled={saving}>{saving ? 'Saving…' : 'Save payroll entry'}</button></div></div></form></section>;
 }
 
 export function AdminPayrollEntries() {
   const [entries, setEntries] = useState([]);
-  const [summary, setSummary] = useState({
-    inrGross: 0, inrHours: 0, inrCount: 0,
-    usdGross: 0, usdHours: 0, usdCount: 0,
-    totalGross: 0, totalHours: 0, totalEntries: 0
-  });
   const [employees, setEmployees] = useState([]);
   const [vendors, setVendors] = useState([]);
-  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'INR' | 'USD'
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterMonth, setFilterMonth] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  // Form state
-  const [form, setForm] = useState({
-    employee_id: '', employee_name: '',
-    payroll_month: '',
-    vendor_name: '', client_name: '',
-    total_hours: '', bill_rate: '', emp_bill_rate: '',
-    currency: 'USD'
-  });
-
-  // Employee search dropdown
-  const [empSearch, setEmpSearch] = useState('');
-  const [showEmpDropdown, setShowEmpDropdown] = useState(false);
-  const empDropdownRef = useRef(null);
-
-  const fetchData = async () => {
-    try {
-      const params = {};
-      if (searchQuery) params.search = searchQuery;
-      if (filterMonth) params.month = filterMonth;
-      if (activeTab !== 'ALL') params.currency = activeTab;
-
-      const [entryData, empData, vendorData] = await Promise.all([
-        api.getAllPayrollEntries(params),
-        api.getAllEmployees(),
-        api.getAllVendorDetails()
-      ]);
-      setEntries(entryData.entries || []);
-      if (entryData.summary) {
-        setSummary(entryData.summary);
-      }
-      setEmployees(empData.employees || []);
-      setVendors(vendorData.vendors || []);
-    } catch (err) {
-      console.error('Failed to load payroll entries:', err);
-    }
-  };
-
-  useEffect(() => { fetchData(); }, [activeTab]);
+  const [region, setRegion] = useState('INR');
+  const [search, setSearch] = useState('');
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [revision, setRevision] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [editor, setEditor] = useState(undefined);
+  const [notice, setNotice] = useState('');
+  const [deleting, setDeleting] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const deletePanel = useRef(null);
+  useEffect(() => { if (deleting) deletePanel.current?.focus(); }, [deleting]);
   useEffect(() => {
-    const t = setTimeout(() => fetchData(), 300);
-    return () => clearTimeout(t);
-  }, [searchQuery, filterMonth]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (empDropdownRef.current && !empDropdownRef.current.contains(e.target)) {
-        setShowEmpDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  // Auto-calculations
-  const totalHours = parseFloat(form.total_hours) || 0;
-  const empBillRate = parseFloat(form.emp_bill_rate) || 0;
-  const grossAmount = totalHours * empBillRate;
-  const totalBill = totalHours * (parseFloat(form.bill_rate) || 0);
-
-  const filteredEmps = employees.filter(e =>
-    e.employee_id?.toLowerCase().includes(empSearch.toLowerCase()) ||
-    e.full_name?.toLowerCase().includes(empSearch.toLowerCase())
-  );
-
-  const resetForm = () => {
-    setForm({
-      employee_id: '', employee_name: '',
-      payroll_month: '',
-      vendor_name: '', client_name: '',
-      total_hours: '', bill_rate: '', emp_bill_rate: '',
-      currency: 'USD'
-    });
-    setEmpSearch('');
-  };
-
-  const openCreate = () => {
-    resetForm();
-    setEditingEntry(null);
-    setIsModalOpen(true);
-  };
-
-  const openEdit = (entry) => {
-    const cur = entry.currency || (entry.country === 'India' ? 'INR' : 'USD');
-    setForm({
-      employee_id: entry.employee_id,
-      employee_name: entry.employee_name,
-      payroll_month: entry.payroll_month,
-      vendor_name: entry.vendor_name || '',
-      client_name: entry.client_name || '',
-      total_hours: String(entry.total_hours),
-      bill_rate: String(entry.bill_rate),
-      emp_bill_rate: String(entry.emp_bill_rate),
-      currency: cur
-    });
-    setEmpSearch(`${entry.employee_id} — ${entry.employee_name}`);
-    setEditingEntry(entry);
-    setIsModalOpen(true);
-  };
-
-  // Auto-fill vendor/client when employee is selected
-  const selectEmployee = (emp) => {
-    const isIndia = emp.country === 'India';
-    const cur = isIndia ? 'INR' : 'USD';
-
-    setForm(f => ({
-      ...f,
-      employee_id: emp.employee_id,
-      employee_name: emp.full_name,
-      currency: cur
-    }));
-    setEmpSearch(`${emp.employee_id} — ${emp.full_name} (${isIndia ? 'India' : 'US/Global'})`);
-    setShowEmpDropdown(false);
-
-    // Try to auto-fill vendor/client from vendor details
-    const vendorRecord = vendors.find(v => v.employee_id === emp.employee_id);
-    if (vendorRecord) {
-      setForm(f => ({
-        ...f,
-        vendor_name: vendorRecord.vendor_name || '',
-        client_name: vendorRecord.client_name || '',
-        bill_rate: String(vendorRecord.hourly_bill_rate || ''),
-        emp_bill_rate: String(vendorRecord.employee_rate || '')
-      }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.employee_id || !form.payroll_month) {
-      setStatusMessage({ type: 'error', text: 'Employee and Payroll Month are required.' });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      if (editingEntry) {
-        await api.updatePayrollEntry(editingEntry._id || editingEntry.id, form);
-        setStatusMessage({ type: 'success', text: 'Payroll entry updated successfully.' });
-      } else {
-        await api.createPayrollEntry(form);
-        setStatusMessage({ type: 'success', text: 'Payroll entry created successfully.' });
-      }
-      setIsModalOpen(false);
-      resetForm();
-      await fetchData();
-    } catch (err) {
-      setStatusMessage({ type: 'error', text: err.message || 'Failed to save payroll entry.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await api.deletePayrollEntry(id);
-      setStatusMessage({ type: 'success', text: 'Payroll entry deleted.' });
-      setDeleteConfirm(null);
-      await fetchData();
-    } catch (err) {
-      setStatusMessage({ type: 'error', text: err.message || 'Failed to delete.' });
-    }
-  };
-
-  const fmtMonth = (m) => {
-    if (!m) return '—';
-    const [y, mo] = m.split('-');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[parseInt(mo) - 1] || mo} ${y}`;
-  };
-
-  const handleExportCSV = () => {
-    const formattedData = entries.map(ent => ({
-      'Employee ID': ent.employee_id,
-      'Employee Name': ent.employee_name,
-      'Payroll Month': ent.payroll_month,
-      'Total Hours': ent.total_hours,
-      'Client Bill Rate': ent.bill_rate,
-      'Employee Bill Rate': ent.emp_bill_rate,
-      'Gross Amount': ent.gross_amount,
-      'Currency': ent.currency,
-      'Vendor Name': ent.vendor_name || 'N/A',
-      'Client Name': ent.client_name || 'N/A'
-    }));
-    exportToCSV(formattedData, `Shineteck_Payroll_Report_${new Date().toISOString().slice(0, 10)}.csv`);
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="enterprise-header-banner p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5 font-display">
-              <Receipt className="w-6 h-6 text-emerald-700" />
-              Payroll Information & Billing Records
-            </h1>
-            <p className="text-xs text-slate-600 mt-1 font-medium">
-              Monthly payroll billing records — hours, rates, and gross amount calculations for Indian & Global consultants.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="enterprise-btn-secondary"
-              title="Download payroll entries as CSV"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export CSV</span>
-            </button>
-            <button
-              onClick={openCreate}
-              className="enterprise-btn-primary"
-            >
-              <Plus className="w-4 h-4" /> Add Payroll Entry
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* India Total Billing */}
-        <div className="enterprise-card p-4.5 bg-amber-50/80 border-amber-300 rounded-2xl shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-              <span>🇮🇳</span>
-              <span>Indian Billing (INR)</span>
-            </span>
-            <span className="px-2 py-0.5 bg-amber-200 text-amber-950 rounded-full font-bold font-mono text-[10px]">
-              {summary.inrCount} entries
-            </span>
-          </div>
-          <div className="text-xl font-black font-mono text-amber-950 font-display">
-            {formatMoney(summary.inrGross, 'INR')}
-          </div>
-          <p className="text-[11px] text-amber-900 mt-1 font-medium">
-            Total Hours: <span className="font-bold font-mono text-amber-950">{summary.inrHours.toFixed(1)} hrs</span>
-          </p>
-        </div>
-
-        {/* US & Foreign Total Billing */}
-        <div className="enterprise-card p-4.5 bg-blue-50/80 border-blue-300 rounded-2xl shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
-              <span>🌐</span>
-              <span>US & Global (USD)</span>
-            </span>
-            <span className="px-2 py-0.5 bg-blue-200 text-blue-950 rounded-full font-bold font-mono text-[10px]">
-              {summary.usdCount} entries
-            </span>
-          </div>
-          <div className="text-xl font-black font-mono text-blue-950 font-display">
-            {formatMoney(summary.usdGross, 'USD')}
-          </div>
-          <p className="text-[11px] text-blue-900 mt-1 font-medium">
-            Total Hours: <span className="font-bold font-mono text-blue-950">{summary.usdHours.toFixed(1)} hrs</span>
-          </p>
-        </div>
-
-        {/* Global Total Hours */}
-        <div className="enterprise-card p-4.5 bg-purple-50/80 border-purple-300 rounded-2xl shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-200 text-purple-900 border border-purple-300 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-purple-900 uppercase tracking-wider font-display">Global Billable Hours</p>
-              <p className="text-xl font-black text-purple-950 font-display font-mono">{summary.totalHours.toFixed(1)} <span className="text-xs font-bold font-sans">hrs</span></p>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Records */}
-        <div className="enterprise-card p-4.5 bg-emerald-50/80 border-emerald-300 rounded-2xl shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-200 text-emerald-900 border border-emerald-300 flex items-center justify-center shrink-0">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider font-display">All Billing Records</p>
-              <p className="text-xl font-black text-emerald-950 font-display font-mono">{summary.totalEntries}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs (Rich Segmented Bar) */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-200/90 rounded-2xl border border-slate-300 shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setActiveTab('INR')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-            activeTab === 'INR'
-              ? 'bg-orange-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
-          }`}
-        >
-          <span className="text-base leading-none">🇮🇳</span>
-          <span>Indian Employees (INR ₹)</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-            activeTab === 'INR' ? 'bg-orange-900 text-orange-100' : 'bg-slate-300 text-slate-800'
-          }`}>
-            {summary.inrCount}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('USD')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-            activeTab === 'USD'
-              ? 'bg-blue-700 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
-          }`}
-        >
-          <span className="text-base leading-none">🌐</span>
-          <span>US & Foreign Employees (USD $)</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-            activeTab === 'USD' ? 'bg-blue-900 text-blue-100' : 'bg-slate-300 text-slate-800'
-          }`}>
-            {summary.usdCount}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('ALL')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-            activeTab === 'ALL'
-              ? 'bg-[#0f2b48] text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-300/70'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>All Payroll Entries</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-            activeTab === 'ALL' ? 'bg-slate-900 text-slate-100' : 'bg-slate-300 text-slate-800'
-          }`}>
-            {summary.totalEntries}
-          </span>
-        </button>
-      </div>
-
-      {/* Status Message */}
-      {statusMessage && (
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold border shadow-2xs ${
-          statusMessage.type === 'success'
-            ? 'bg-emerald-100/80 text-emerald-950 border-emerald-300'
-            : 'bg-rose-100/80 text-rose-950 border-rose-300'
-        }`}>
-          {statusMessage.type === 'success'
-            ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-700" />
-            : <AlertCircle className="w-4 h-4 shrink-0 text-rose-700" />}
-          <span>{statusMessage.text}</span>
-          <button onClick={() => setStatusMessage(null)} className="ml-auto p-0.5 hover:opacity-70 cursor-pointer">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="enterprise-card p-4 bg-slate-100/90 border-slate-300 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="flex items-center gap-2 flex-1">
-          <Search className="w-4 h-4 text-slate-400 shrink-0" />
-          <input
-            type="text"
-            placeholder="Search by Employee ID, Name, Vendor, or Client..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 text-sm border-none outline-none bg-transparent text-slate-800 placeholder:text-slate-400"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="p-1 text-slate-400 hover:text-slate-600">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Calendar className="w-4 h-4 text-slate-400" />
-          <input
-            type="month"
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-          {filterMonth && (
-            <button onClick={() => setFilterMonth('')} className="text-xs text-slate-400 hover:text-slate-600 font-medium">Clear</button>
-          )}
-        </div>
-      </div>
-
-      {/* Payroll Entries Table */}
-      <div className="table-container shadow-sm">
-        <table className="enterprise-table">
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Region / Currency</th>
-              <th>Month</th>
-              <th>Vendor</th>
-              <th>Client</th>
-              <th className="text-right">Hours</th>
-              <th className="text-right">Bill Rate</th>
-              <th className="text-right">Emp Rate</th>
-              <th className="text-right">Gross Amount</th>
-              <th className="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
-                  <Receipt className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                  <p className="font-semibold">No payroll billing entries found</p>
-                  <p className="text-xs mt-1">Click "Add Payroll Entry" to create one.</p>
-                </td>
-              </tr>
-            ) : entries.map((entry) => {
-              const recCur = entry.currency || (entry.country === 'India' ? 'INR' : 'USD');
-              const isIndia = recCur === 'INR' || entry.country === 'India';
-
-              return (
-                <tr key={entry._id || entry.id} className="hover:bg-blue-50/70 transition-colors">
-                  <td>
-                    <div className="flex items-center gap-2.5">
-                      <EmployeeAvatar
-                        name={entry.employee_name || entry.employee_id}
-                        size="md"
-                      />
-                      <div>
-                        <div className="font-bold text-slate-900 text-xs font-display">{entry.employee_name || entry.employee_id}</div>
-                        <div className="font-mono text-[10.5px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 inline-block mt-0.5">{entry.employee_id}</div>
-                      </div>
-                    </div>
-                  </td>
-                    <td className="px-4 py-3">
-                      {isIndia ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-800 border border-orange-200 rounded-md font-semibold text-[11px]">
-                          <span>🇮🇳</span> India (INR)
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-md font-semibold text-[11px]">
-                          <span>🌐</span> US / Global (USD)
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
-                        <Calendar className="w-3 h-3 text-slate-500" />
-                        {fmtMonth(entry.payroll_month)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs font-medium text-slate-700">{entry.vendor_name || '—'}</td>
-                    <td className="px-4 py-3 text-xs font-medium text-slate-700">{entry.client_name || '—'}</td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-slate-800 text-xs">{entry.total_hours}</td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-600 text-xs">{formatMoney(entry.bill_rate, recCur)}/hr</td>
-                    <td className="px-4 py-3 text-right font-mono text-slate-600 text-xs">{formatMoney(entry.emp_bill_rate, recCur)}/hr</td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="font-mono font-bold text-emerald-700 text-sm">{formatMoney(entry.gross_amount, recCur)}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => openEdit(entry)} className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Edit">
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => setDeleteConfirm(entry._id || entry.id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Delete">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-slate-900">Delete Payroll Entry?</h3>
-            <p className="text-sm text-slate-600">This action cannot be undone. The payroll billing entry will be permanently removed.</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Cancel</button>
-              <button onClick={() => handleDelete(deleteConfirm)} className="px-4 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create / Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-[#0f2b48] text-white">
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-emerald-400" />
-                {editingEntry ? 'Edit Payroll Billing Entry' : 'Add New Payroll Billing Entry'}
-              </h3>
-              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs">
-              {/* Employee Search Dropdown */}
-              <div ref={empDropdownRef} className="relative">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1.5">
-                  <Users className="w-3.5 h-3.5 text-slate-400" />
-                  Employee Name (ID, Name) <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={empSearch}
-                    onChange={(e) => { setEmpSearch(e.target.value); setShowEmpDropdown(true); }}
-                    onFocus={() => setShowEmpDropdown(true)}
-                    placeholder="Search by Employee ID or Name..."
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all pr-8"
-                  />
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                </div>
-                {showEmpDropdown && filteredEmps.length > 0 && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                    {filteredEmps.map(emp => (
-                      <button
-                        key={emp.employee_id}
-                        type="button"
-                        onClick={() => selectEmployee(emp)}
-                        className="w-full text-left px-3 py-2.5 hover:bg-emerald-50 text-xs border-b border-slate-50 last:border-none transition-colors"
-                      >
-                        <span className="font-mono font-bold text-blue-700">{emp.employee_id}</span>
-                        <span className="mx-2 text-slate-300">—</span>
-                        <span className="font-semibold text-slate-800">{emp.full_name}</span>
-                        <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">
-                          {emp.country === 'India' ? '🇮🇳 India' : '🌐 US'}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Currency & Region Selector */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Billing Currency & Structure
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, currency: 'INR' }))}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border font-semibold text-xs transition-all ${
-                      form.currency === 'INR'
-                        ? 'bg-orange-100 border-orange-400 text-orange-950 ring-2 ring-orange-200'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>🇮🇳</span>
-                    <span>Indian Rupee (INR ₹/hr)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, currency: 'USD' }))}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border font-semibold text-xs transition-all ${
-                      form.currency === 'USD'
-                        ? 'bg-blue-100 border-blue-400 text-blue-950 ring-2 ring-blue-200'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>🌐</span>
-                    <span>US Dollar (USD $/hr)</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Month & Vendor/Client */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" /> Payroll Month <span className="text-rose-500">*</span>
-                  </label>
-                  <input type="month" value={form.payroll_month} onChange={e => setForm(f => ({ ...f, payroll_month: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Vendor Name</label>
-                  <input type="text" value={form.vendor_name} onChange={e => setForm(f => ({ ...f, vendor_name: e.target.value }))}
-                    placeholder="e.g. TCS / Apex Systems"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Client Name</label>
-                  <input type="text" value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
-                    placeholder="e.g. Google / Fintech Corp"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none" />
-                </div>
-              </div>
-
-              {/* Billing & Gross Amount Section */}
-              <div className="p-4 bg-gradient-to-br from-emerald-50/80 via-slate-50 to-blue-50/50 rounded-2xl border border-emerald-200 space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200/60 pb-2">
-                  <Calculator className="w-4 h-4 text-emerald-700" />
-                  Hours, Rates & Gross Amount Calculation ({form.currency === 'INR' ? '₹ INR' : '$ USD'})
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Total Hours <span className="text-rose-500">*</span></label>
-                    <input type="number" step="0.5" min="0" value={form.total_hours}
-                      onChange={e => setForm(f => ({ ...f, total_hours: e.target.value }))}
-                      placeholder="160"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">
-                      Bill Rate ({form.currency === 'INR' ? '₹/hr' : '$/hr'}) <span className="text-rose-500">*</span>
-                    </label>
-                    <input type="number" step="0.01" min="0" value={form.bill_rate}
-                      onChange={e => setForm(f => ({ ...f, bill_rate: e.target.value }))}
-                      placeholder={form.currency === 'INR' ? '1500' : '95'}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">
-                      Emp Rate ({form.currency === 'INR' ? '₹/hr' : '$/hr'}) <span className="text-rose-500">*</span>
-                    </label>
-                    <input type="number" step="0.01" min="0" value={form.emp_bill_rate}
-                      onChange={e => setForm(f => ({ ...f, emp_bill_rate: e.target.value }))}
-                      placeholder={form.currency === 'INR' ? '1156.25' : '65'}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 mb-1 block">Gross Amount</label>
-                    <div className="px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-mono font-bold text-emerald-800">
-                      {formatMoney(grossAmount, form.currency)}
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Hours × Emp Rate</p>
-                  </div>
-                </div>
-
-                {/* Total Bill summary */}
-                <div className="flex items-center justify-between bg-white/80 rounded-xl border border-slate-200 px-4 py-2.5">
-                  <span className="text-xs font-medium text-slate-600">Total Client Invoicing (Hours × Bill Rate):</span>
-                  <span className="font-mono font-bold text-blue-700">{formatMoney(totalBill, form.currency)}</span>
-                </div>
-              </div>
-
-              {/* Submit */}
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-                <button type="button" onClick={() => { setIsModalOpen(false); resetForm(); }}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-lg shadow-sm transition-colors inline-flex items-center gap-2">
-                  {isSubmitting ? (
-                    <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
-                  ) : (
-                    <>{editingEntry ? 'Update Payroll Entry' : 'Create Payroll Entry'}</>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    let active = true;
+    setLoading(true); setError('');
+    Promise.all([api.getAllPayrollEntries(), api.getAllEmployees(), api.getAllVendorDetails()]).then(([payroll, staff, vendor]) => {
+      if (!active) return;
+      setEntries(payroll.entries || []);
+      setEmployees((staff.employees || []).filter(employee => !employee.employee_id?.startsWith('ADMIN')));
+      setVendors(vendor.vendors || []);
+    }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [revision]);
+  const query = search.trim().toLowerCase();
+  const invalidRange = start && end && start > end;
+  const regionalEmployees = employees.filter(employee => currencyOf(employee) === region);
+  const regionalEntries = entries.filter(entry => (entry.currency || currencyOf(entry)) === region);
+  const visibleEntries = invalidRange ? [] : regionalEntries.filter(entry => overlapsPeriod(entry, start, end) && [entry.employee_id, entry.employee_name, entry.vendor_name, entry.client_name].some(value => String(value || '').toLowerCase().includes(query)));
+  const visibleEmployees = regionalEmployees.filter(employee => !query || `${employee.full_name} ${employee.employee_id}`.toLowerCase().includes(query) || visibleEntries.some(entry => entry.employee_id === employee.employee_id));
+  const totalGross = visibleEntries.reduce((sum, entry) => sum + Math.round(entry.gross_amount * 100), 0) / 100;
+  function openHistory(employee) { setSelected(employee); setNotice(''); }
+  function employeeFor(entry) { return employees.find(employee => employee.employee_id === entry.employee_id) || { employee_id: entry.employee_id, full_name: entry.employee_name, country: entry.country || (entry.currency === 'INR' ? 'India' : 'United States') }; }
+  function changeRegion(value) { setRegion(value); setSearch(''); setStart(''); setEnd(''); setNotice(''); }
+  async function deleteEntry() {
+    setBusy(true); setError('');
+    try { await api.deletePayrollEntry(deleting._id || deleting.id); setDeleting(null); setRevision(value => value + 1); setNotice('Payroll entry deleted.'); }
+    catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+  if (selected) return <EmployeePayrollHistory key={selected.employee_id} employee={selected} entries={selected.is_demo ? payrollDemoEntries : entries.filter(entry => entry.employee_id === selected.employee_id)} onBack={() => setSelected(null)} />;
+  return <div className="invoice-ledger">
+    <header className="il-page-heading"><div><p className="il-eyebrow">Finance & payroll</p><h1>Payroll information</h1><p>Separate regional payroll records, full date ranges, and employee payment history.</p></div><button className="il-button il-primary" onClick={() => setEditor(null)} disabled={loading || Boolean(error) || editor !== undefined}><Plus size={16} /> Add payroll entry</button></header>
+    <div className="il-region-tabs" role="group" aria-label="Payroll region"><button aria-pressed={region === 'INR'} onClick={() => changeRegion('INR')} disabled={editor !== undefined}>Indian employees <small>INR · ₹</small></button><button aria-pressed={region === 'USD'} onClick={() => changeRegion('USD')} disabled={editor !== undefined}>U.S. / foreign employees <small>USD · $</small></button></div>
+    {notice && <p className="il-success" role="status">{notice}</p>}
+    {error && <p className="il-error" role="alert">{error}<button className="il-button" onClick={() => setRevision(value => value + 1)}>Try again</button></p>}
+    {editor !== undefined && <PayrollEntryEditor entry={editor} employees={regionalEmployees} vendors={vendors} currency={region} onCancel={() => setEditor(undefined)} onSaved={() => { setEditor(undefined); setNotice('Payroll entry saved.'); setStart(''); setEnd(''); setSearch(''); setRevision(value => value + 1); }} />}
+    <div className="il-register-toolbar"><label className="il-search"><Search size={17} /><input aria-label="Search payroll" placeholder="Employee ID, name, vendor, or client" value={search} onChange={event => setSearch(event.target.value)} /></label><div className="il-actions"><label className="il-filter">Start date<input aria-label="Filter start date" type="date" value={start} onChange={event => setStart(event.target.value)} onInput={event => setStart(event.target.value)} /></label><label className="il-filter">End date<input aria-label="Filter end date" type="date" min={start} value={end} onChange={event => setEnd(event.target.value)} onInput={event => setEnd(event.target.value)} /></label>{(start || end || search) && <button className="il-back" onClick={() => { setStart(''); setEnd(''); setSearch(''); }}>Clear filters</button>}</div></div>
+    {invalidRange && <p className="il-error" role="alert">End date must be on or after start date.</p>}
+    {loading ? <div className="il-loading" role="status">Loading payroll information…<div /><div /></div> : !error && <>
+      <section className="il-summary"><div><p>{region === 'INR' ? 'Indian' : 'U.S. / foreign'} billing gross · filtered records</p><strong>{money(totalGross, region)}</strong></div><div><p>Payroll records</p><strong>{visibleEntries.length}</strong></div><div><p>Employees in this region</p><strong>{regionalEmployees.length}</strong></div></section>
+      <section aria-label="Employee payment histories"><div className="il-section-heading"><div><h2>Employee payment history</h2><p className="il-help">Click an employee to see all years, monthly gross earnings, and invoice payments. Date filters apply to billing records only.</p></div>{region === 'USD' && <button className="il-button" onClick={() => openHistory(payrollDemoEmployee)} disabled={editor !== undefined}>View demo · 24 sample invoices <ArrowUpRight size={15} /></button>}</div><div className="il-employee-grid il-history-grid">{visibleEmployees.map(employee => <button className="il-employee-card" key={employee.employee_id} onClick={() => openHistory(employee)} disabled={editor !== undefined}><EmployeeAvatar name={employee.full_name} /><div><h3>{employee.full_name}</h3><p>{employee.employee_id}</p><span>View year-wise payments</span></div><ArrowUpRight size={17} /></button>)}</div>{!visibleEmployees.length && <p className="il-help">No employees match this region and search.</p>}</section>
+      <section className="il-register il-billing-register"><div className="il-register-toolbar"><div><h2>{region === 'INR' ? 'Indian' : 'U.S. / foreign'} payroll records</h2><p>Records overlapping the selected date range. All amounts in {region}.</p></div><button className="il-button" disabled={!visibleEntries.length} onClick={() => exportToCSV(visibleEntries.map(entry => ({ Employee: entry.employee_name, 'Employee ID': entry.employee_id, 'Start date': payrollPeriod(entry).start_date, 'End date': payrollPeriod(entry).end_date, 'Inferred dates': payrollPeriod(entry).period_inferred ? 'Yes' : 'No', Vendor: entry.vendor_name, Client: entry.client_name, Hours: entry.total_hours, 'Bill rate': entry.bill_rate, 'Employee rate': entry.emp_bill_rate, 'Gross amount': entry.gross_amount, Currency: entry.currency })), `payroll-${region}.csv`)}><Download size={16} /> Export CSV</button></div>
+      <div className="il-table-scroll" tabIndex={0} role="region" aria-label="Payroll billing records"><table><thead><tr>{['Employee', 'Start date', 'End date', 'Vendor / client', 'Hours', 'Bill rate', 'Employee rate', 'Gross amount', 'Actions'].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{visibleEntries.map(entry => { const period = payrollPeriod(entry); return <tr key={entry._id || entry.id}><td data-label="Employee"><button className="il-edit" onClick={() => openHistory(employeeFor(entry))} disabled={editor !== undefined}>{entry.employee_name}<ArrowUpRight size={14} /></button><small className="il-currency">{entry.employee_id}</small></td><td data-label="Start date">{date(period.start_date)}{period.period_inferred && <small className="il-currency">Inferred from month</small>}</td><td data-label="End date">{date(period.end_date)}</td><td data-label="Vendor / client">{entry.vendor_name || '—'}<small className="il-currency">{entry.client_name || '—'}</small></td><td data-label="Hours">{entry.total_hours}</td><td data-label="Bill rate">{money(entry.bill_rate, region)}</td><td data-label="Employee rate">{money(entry.emp_bill_rate, region)}</td><td data-label="Gross amount"><strong>{money(entry.gross_amount, region)}</strong></td><td data-label="Actions"><div className="il-actions"><button className="il-icon-button" aria-label={`Edit payroll for ${entry.employee_name} ${period.start_date}`} disabled={editor !== undefined} onClick={() => setEditor(entry)}><Edit3 size={15} /></button><button className="il-icon-button" aria-label={`Delete payroll for ${entry.employee_name} ${period.start_date}`} disabled={editor !== undefined} onClick={() => setDeleting(entry)}><Trash2 size={15} /></button></div></td></tr>; })}</tbody></table></div>{!visibleEntries.length && <div className="il-empty"><Calendar size={28} /><h3>No payroll records found</h3><p>Add a payroll entry or change the date range and search.</p></div>}</section>
+    </>}
+    {deleting && <div className="il-editor" ref={deletePanel} tabIndex={-1} role="alertdialog" aria-labelledby="delete-payroll-title"><h2 id="delete-payroll-title">Delete payroll entry?</h2><p className="il-help">Delete {deleting.employee_name}’s billing entry for {date(payrollPeriod(deleting).start_date)}? This cannot be undone.</p><div className="il-form-footer"><button className="il-button" disabled={busy} onClick={() => setDeleting(null)}>Cancel</button><button className="il-button" disabled={busy} onClick={deleteEntry}>{busy ? 'Deleting…' : 'Delete entry'}</button></div></div>}
+  </div>;
 }
 
