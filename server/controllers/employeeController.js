@@ -5,6 +5,9 @@ import { validateAddressInfo } from '../data/addressData.js';
 import { Employee as MongoEmployee, User as MongoUser, Notification as MongoNotif, Timesheet as MongoTimesheet } from '../models/index.js';
 import { isMongoConnected } from '../db/mongo.js';
 import { generateNextEmployeeIdSync } from './settingsController.js';
+import { createEmployeeProfileReader } from '../services/employeeProfileReader.js';
+
+const findEmployeeProfile = createEmployeeProfileReader({ db, Employee: MongoEmployee, isMongoConnected });
 
 // Admin: Create new employee directly
 export async function createEmployeeByAdmin(req, res) {
@@ -203,7 +206,7 @@ export async function createEmployeeByAdmin(req, res) {
 }
 
 // Get profile of employee (self or admin)
-export function getEmployeeProfile(req, res) {
+export async function getEmployeeProfile(req, res) {
   try {
     const employeeId = req.params.employeeId || req.user.employeeId;
 
@@ -211,16 +214,13 @@ export function getEmployeeProfile(req, res) {
       return res.status(403).json({ error: 'Unauthorized to view this employee profile.' });
     }
 
-    const employee = db.prepare(`
-      SELECT e.*, u.role, u.status as account_status
-      FROM employees e
-      LEFT JOIN users u ON u.employee_id = e.employee_id
-      WHERE e.employee_id = ?
-    `).get(employeeId);
+    const profile = await findEmployeeProfile(employeeId);
 
-    if (!employee) {
+    if (!profile) {
       return res.status(404).json({ error: 'Employee not found.' });
     }
+    const account = db.prepare('SELECT role, status FROM users WHERE employee_id = ?').get(employeeId);
+    const employee = { ...profile, role: account?.role, account_status: account?.status };
 
     const documents = db.prepare(`
       SELECT id, document_type, file_name, file_size, mime_type, status, review_notes, uploaded_at, reviewed_at

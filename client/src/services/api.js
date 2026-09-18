@@ -81,7 +81,7 @@ export const api = {
   uploadDocument: (formData) => request('/upload/document', { method: 'POST', body: formData }),
 
   // Employee Portal
-  getProfile: () => request('/employee/profile'),
+  getProfile: () => request('/employee/profile', { signal: AbortSignal.timeout(45000) }),
   updateProfile: (data) => request('/employee/profile', { method: 'PUT', body: data }),
   getMyDocuments: () => request('/documents'),
   uploadDocAuth: (formData) => request('/documents/upload', { method: 'POST', body: formData }),

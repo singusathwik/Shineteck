@@ -24,6 +24,8 @@ import {
 export function EmployeeProfile() {
   const { user, refreshUser } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [phone, setPhone] = useState('');
@@ -41,8 +43,11 @@ export function EmployeeProfile() {
   const [showBadgePrintModal, setShowBadgePrintModal] = useState(false);
 
   const fetchProfile = async () => {
+    setIsLoading(true);
+    setLoadError('');
     try {
       const data = await api.getProfile();
+      if (!data?.employee) throw new Error('The server did not return your employee profile. Please contact HR.');
       setProfile(data.employee);
       setPhone(data.employee.phone || '');
       setAddressData({
@@ -54,6 +59,11 @@ export function EmployeeProfile() {
       });
     } catch (err) {
       console.error('Failed to load profile:', err);
+      setLoadError(err.name === 'TimeoutError'
+        ? 'The server is taking too long to respond. Please try again.'
+        : err.message || 'Unable to load your employee profile. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -91,12 +101,23 @@ export function EmployeeProfile() {
     window.print();
   };
 
+  if (isLoading && !profile) {
+    return <div role="status" className="p-8 text-center text-xs text-slate-400">Loading employee profile...</div>;
+  }
+
   if (!profile) {
-    return <div className="p-8 text-center text-xs text-slate-400">Loading employee profile...</div>;
+    return (
+      <div role="alert" className="enterprise-card p-6 space-y-3">
+        <h1 className="text-lg font-bold text-slate-900">Unable to load your profile</h1>
+        <p className="text-sm text-slate-600">{loadError || 'Your employee profile is unavailable. Please contact HR.'}</p>
+        <button type="button" className="enterprise-btn-primary" onClick={fetchProfile}>Try again</button>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
+      {loadError && <div role="alert" className="enterprise-card p-4 text-sm text-rose-700">{loadError} <button type="button" className="underline" disabled={isLoading} onClick={fetchProfile}>Try again</button></div>}
       {/* Profile Overview Card */}
       <div className="enterprise-header-banner p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">

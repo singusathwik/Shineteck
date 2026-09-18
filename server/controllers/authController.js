@@ -8,6 +8,9 @@ import { generateNextEmployeeIdSync } from './settingsController.js';
 import { validateAddressInfo } from '../data/addressData.js';
 import { User as MongoUser, Employee as MongoEmployee, Document as MongoDoc, Notification as MongoNotif } from '../models/index.js';
 import { isMongoConnected } from '../db/mongo.js';
+import { createEmployeeProfileReader, withEmployeeProfile } from '../services/employeeProfileReader.js';
+
+const findEmployeeProfile = createEmployeeProfileReader({ db, Employee: MongoEmployee, isMongoConnected });
 
 export async function register(req, res) {
   try {
@@ -432,6 +435,10 @@ export async function login(req, res) {
       return res.status(401).json({ error: 'Invalid credentials. Please verify your corporate email and password.' });
     }
 
+    if (!user.full_name) {
+      user = withEmployeeProfile(user, await findEmployeeProfile(user.employee_id));
+    }
+
     const token = jwt.sign(
       { id: user.id, employeeId: user.employee_id, email: user.email, role: user.role },
       JWT_SECRET,
@@ -468,9 +475,9 @@ export async function login(req, res) {
   }
 }
 
-export function getMe(req, res) {
+export async function getMe(req, res) {
   try {
-    const user = db.prepare(`
+    let user = db.prepare(`
       SELECT u.id, u.employee_id, u.email, u.role, u.status,
              e.first_name, e.last_name, e.middle_initial, e.full_name, e.phone, e.gender, e.designation, e.date_of_birth,
              e.country, e.state, e.city, e.zip_code, e.zip_code_part1, e.zip_code_part2,
@@ -486,6 +493,10 @@ export function getMe(req, res) {
 
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (!user.full_name) {
+      user = withEmployeeProfile(user, await findEmployeeProfile(user.employee_id));
     }
 
     const unreadCount = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE employee_id = ? AND is_read = 0')
