@@ -51,7 +51,10 @@
 .il-table-scroll td { padding: 18px 16px; border-bottom: 1px solid #e8edf3; }
 .il-table-scroll tbody tr:hover { background: #f9fbfd; }
 .il-table-scroll .il-number { text-align: right; }
-.il-table-scroll th:nth-child(3), .il-table-scroll th:nth-child(4), .il-table-scroll th:nth-child(5), .il-table-scroll th:nth-child(9), .il-table-scroll th:nth-child(10), .il-table-scroll th:nth-child(11) { text-align: right; }
+.il-history-toolbar { padding-inline: 0; align-items: flex-end; }
+.il-history-controls { align-items: flex-end; gap: 12px; }
+.il-history-controls .il-filter select { min-width: 90px; height: 40px; }
+.il-history-controls > .il-button { height: 40px; }
 .il-table-scroll th:first-child, .il-table-scroll td:first-child { position: sticky; left: 0; background: #f8fafc; z-index: 1; border-right: 1px solid #e1e8f0; }
 .il-currency { display: block; color: #738399; font-size: 10px; font-weight: 400; margin-top: 4px; }
 .il-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: 600; }
