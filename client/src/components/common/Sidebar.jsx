@@ -1,3 +1,4 @@
+import { useCompany } from '../../context/CompanyContext.jsx';
 import React from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import {
@@ -21,6 +22,7 @@ import {
 import { ShineteckLogo } from './ShineteckLogo.jsx';
 
 export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
+  const { isSuperAdmin } = useCompany();
   const { user, isAdmin } = useAuth();
 
   const employeeGroups = [
@@ -43,6 +45,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
   ];
 
   const adminGroups = [
+    ...(isSuperAdmin ? [{ groupTitle: 'SUPER ADMIN', items: [{ id: 'company-access', label: 'Super Admin', icon: ShieldCheck }] }] : []),
     {
       groupTitle: 'OPERATIONS',
       items: [
@@ -74,7 +77,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
     }
   ];
 
-  const navGroups = isAdmin ? adminGroups : employeeGroups;
+  const navGroups = isAdmin ? adminGroups.filter(group => isSuperAdmin || group.groupTitle !== 'SYSTEM & AUDIT') : employeeGroups;
 
   return (
     <>

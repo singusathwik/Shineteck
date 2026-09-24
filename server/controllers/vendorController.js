@@ -187,12 +187,12 @@ export async function updateVendorDetail(req, res) {
         SET employee_id = ?, employee_name = ?, vendor_name = ?, vendor_address = ?,
             client_name = ?, client_address = ?, hourly_bill_rate = ?, employee_rate = ?,
             bu_margin = ?, visa_type = ?, tax_percent = ?, net_margin = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ? OR employee_id = ?
+        WHERE id = ?
       `).run(
         employee_id, employee_name, vendor_name, vendor_address || '',
         client_name, client_address || '', billRate, empRate,
         buMargin, vType, taxPct, parseFloat(netMargin.toFixed(2)),
-        id, employee_id
+        id
       );
       if (!vendor) {
         vendor = db.prepare('SELECT * FROM vendor_details WHERE id = ?').get(id);

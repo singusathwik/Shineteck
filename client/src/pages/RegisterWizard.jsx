@@ -366,6 +366,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
       const docsArray = Object.keys(documents).filter(k => documents[k]).map(k => ({
         documentType: k,
         fileName: documents[k].fileName || `${k}_upload.pdf`,
+        uploadToken: documents[k].uploadToken,
         filePath: documents[k].filePath || `${k}_file`,
         fileSize: documents[k].fileSize || 1024,
         mimeType: documents[k].mimeType || 'application/pdf'

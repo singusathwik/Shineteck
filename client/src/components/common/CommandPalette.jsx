@@ -1,3 +1,4 @@
+import { useCompany } from '../../context/CompanyContext.jsx';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import {
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 
 export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
+  const { isSuperAdmin } = useCompany();
   const { user, isAdmin, isEmployee, logout } = useAuth();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -55,6 +57,7 @@ export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
       { id: 'adm-time', title: 'Timesheet Approvals', subtitle: 'Authorize periodic consultant hours', category: 'Admin Suite', icon: Clock, tab: 'timesheets' },
       { id: 'adm-ven', title: 'Vendor Placements & Billing', subtitle: 'Client contracts and billing rates', category: 'Admin Suite', icon: Building2, tab: 'vendors' },
       { id: 'adm-paye', title: 'Dual-Currency Payroll Repository', subtitle: 'Monthly gross and net disbursement entries', category: 'Admin Suite', icon: DollarSign, tab: 'payroll-entries' },
+      { id: 'adm-access', title: 'Super Admin', subtitle: 'Employee companies and administrator permissions', category: 'Admin Suite', icon: Building2, tab: 'company-access' },
       { id: 'adm-set', title: 'Sequential ID Generator Settings', subtitle: 'Configure Prefix, Digits, and Next Counter', category: 'Admin Suite', icon: Sliders, tab: 'settings' },
       { id: 'adm-aud', title: 'Security Audit Logs', subtitle: 'Track user sessions and compliance events', category: 'Admin Suite', icon: ShieldAlert, tab: 'audit' }
     ] : []),
@@ -65,6 +68,7 @@ export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
 
   // Filter actions based on query
   const filteredActions = allActions.filter(item => {
+    if (!isSuperAdmin && ['settings', 'audit', 'company-access'].includes(item.tab)) return false;
     if (!query.trim()) return true;
     const q = query.toLowerCase().trim();
     return (

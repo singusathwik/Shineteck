@@ -1,3 +1,4 @@
+import { createUploadReceipt } from '../services/uploadReceipt.js';
 import path from 'path';
 import fs from 'fs';
 import { db } from '../db/schema.js';
@@ -61,8 +62,8 @@ export function uploadEmployeeDocument(req, res) {
       return res.status(400).json({ error: 'No document file was uploaded.' });
     }
 
-    const { documentType, employeeId } = req.body;
-    const targetEmployeeId = req.user ? req.user.employeeId : employeeId;
+    const { documentType } = req.body;
+    const targetEmployeeId = req.user ? req.user.employeeId : null;
 
     if (!documentType || !ALLOWED_DOC_TYPES.includes(documentType.toLowerCase())) {
       // Remove temporary file if invalid type
@@ -183,7 +184,7 @@ export function uploadEmployeeDocument(req, res) {
     // If uploading before final registration submission (wizard step 4)
     res.json({
       message: 'Document uploaded temporarily for registration.',
-      document: docData
+      document: { ...docData, uploadToken: createUploadReceipt(docData) }
     });
   } catch (err) {
     console.error('[uploadEmployeeDocument Error]', err);

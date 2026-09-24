@@ -1,3 +1,5 @@
+import { CompanyProvider, CompanySelector, useCompany } from './context/CompanyContext.jsx';
+import { AdminCompanyAccess } from './pages/admin/AdminCompanyAccess.jsx';
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { Header } from './components/common/Header.jsx';
@@ -29,13 +31,17 @@ import { AdminVendorDetails } from './pages/admin/AdminVendorDetails.jsx';
 import { AdminPayrollEntries } from './pages/admin/AdminPayrollEntries.jsx';
 
 function MainApp() {
+  const companyWorkspace = useCompany();
+  const { isSuperAdmin } = companyWorkspace;
   const { user, loading, isAuthenticated, isAdmin, isEmployee } = useAuth();
 
   // Public views: 'login' | 'register' | 'forgot-password'
   const [publicView, setPublicView] = useState('login');
 
   // Authenticated Tabs
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [employeeTab, setEmployeeTab] = useState('dashboard');
+  const activeTab = isAdmin ? companyWorkspace.activeTab : employeeTab;
+  const setActiveTab = isAdmin ? companyWorkspace.setActiveTab : setEmployeeTab;
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -118,6 +124,7 @@ function MainApp() {
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 overflow-y-auto bg-slate-100/70 custom-scrollbar">
           <div className="page-content mx-auto p-4 sm:p-6 lg:p-8">
+            {isAdmin && <CompanySelector />}
             {/* Employee Views */}
             {isEmployee && (
               <>
@@ -176,8 +183,9 @@ function MainApp() {
                 {activeTab === 'payroll' && <AdminPayroll />}
                 {activeTab === 'vendors' && <AdminVendorDetails />}
                 {activeTab === 'payroll-entries' && <AdminPayrollEntries />}
-                {activeTab === 'settings' && <AdminSettings />}
-                {activeTab === 'audit' && <AdminAuditLogs />}
+                {isSuperAdmin && activeTab === 'company-access' && <AdminCompanyAccess />}
+                {isSuperAdmin && activeTab === 'settings' && <AdminSettings />}
+                {isSuperAdmin && activeTab === 'audit' && <AdminAuditLogs />}
               </>
             )}
           </div>
@@ -200,7 +208,7 @@ function MainApp() {
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <CompanyProvider><MainApp /></CompanyProvider>
     </AuthProvider>
   );
 }

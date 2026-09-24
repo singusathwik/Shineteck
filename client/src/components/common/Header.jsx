@@ -88,7 +88,7 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
                       </span>
                       {user.role === 'admin' ? (
                         <span className="bg-blue-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold inline-flex items-center gap-0.5 uppercase tracking-wider">
-                          <ShieldCheck className="w-2.5 h-2.5" /> Admin
+                          <ShieldCheck className="w-2.5 h-2.5" /> {user.isSuperAdmin ? 'Super Admin' : 'Admin'}
                         </span>
                       ) : (
                         <span className="bg-slate-700 text-slate-200 text-[10px] px-1.5 py-0.2 rounded font-semibold font-mono border border-slate-600">

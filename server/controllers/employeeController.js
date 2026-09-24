@@ -1,3 +1,4 @@
+import { accessStore } from '../services/companyAccessStore.js';
 import bcrypt from 'bcryptjs';
 import { db } from '../db/schema.js';
 import { logAudit } from '../middleware/audit.js';
@@ -193,6 +194,7 @@ export async function createEmployeeByAdmin(req, res) {
       ipAddress: req.ip
     });
 
+    await accessStore.set(`assignment:${newEmployeeId}`, { employeeId: newEmployeeId, companyId: req.newEmployeeCompanyId || null, updatedAt: new Date().toISOString() });
     const newEmp = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(newEmployeeId);
 
     res.status(201).json({

@@ -6,6 +6,9 @@ export const API_BASE = import.meta.env.VITE_API_URL
     ? 'https://shineteck.onrender.com/api'
     : '/api';
 
+let companyScope = 'all';
+export function setCompanyScope(value) { companyScope = value; }
+
 export function getAuthToken() {
   return localStorage.getItem('shinetek_token');
 }
@@ -14,6 +17,7 @@ export function setAuthToken(token) {
   if (token) {
     localStorage.setItem('shinetek_token', token);
   } else {
+    companyScope = 'all';
     localStorage.removeItem('shinetek_token');
   }
 }
@@ -29,6 +33,7 @@ export function getTimesheetDownloadUrl(tsId, token = getAuthToken()) {
 export async function request(endpoint, options = {}) {
   const token = getAuthToken();
   const headers = { ...options.headers };
+  if (endpoint.startsWith('/admin/') && endpoint !== '/admin/company-context' && !endpoint.startsWith('/admin/access')) headers['X-Company-Id'] = companyScope;
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -54,6 +59,7 @@ export async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 403 && endpoint.startsWith('/admin/') && endpoint !== '/admin/company-context') window.dispatchEvent(new Event('company-access-denied'));
     const errorMsg = data && data.error ? data.error : (typeof data === 'string' ? data : 'An error occurred');
     throw new Error(errorMsg);
   }

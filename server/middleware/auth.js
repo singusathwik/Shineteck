@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'node:crypto';
 import { db } from '../db/schema.js';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'shinetek-enterprise-secret-key-2026';
+export const JWT_SECRET = process.env.JWT_SECRET || randomBytes(48).toString('hex');
 
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -21,7 +22,7 @@ export function authenticateToken(req, res, next) {
     
     // Verify user still exists and is active
     const user = db.prepare('SELECT id, employee_id, email, role, status FROM users WHERE id = ?').get(decoded.id);
-    if (!user) {
+    if (!user || user.employee_id !== decoded.employeeId || user.email !== decoded.email) {
       return res.status(401).json({ error: 'User no longer exists.' });
     }
 

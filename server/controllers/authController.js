@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
+import { getAdminAccess } from '../services/companyAccessStore.js';
+import { verifyUploadReceipt } from '../services/uploadReceipt.js';
 import { db } from '../db/schema.js';
 import { JWT_SECRET } from '../middleware/auth.js';
 import { logAudit } from '../middleware/audit.js';
@@ -75,6 +76,13 @@ export async function register(req, res) {
 
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+    }
+
+    if (Array.isArray(uploadedDocuments)) {
+      for (const doc of uploadedDocuments) {
+        try { verifyUploadReceipt(doc); } catch { return res.status(400).json({ error: 'Please upload your registration documents again.' }); }
+        if (db.prepare('SELECT id FROM documents WHERE file_path = ?').get(doc.filePath) || (isMongoConnected() && await MongoDoc.exists({ file_path: doc.filePath }))) return res.status(400).json({ error: 'Document already attached to an account.' });
+      }
     }
 
     // Check duplicate email
@@ -381,7 +389,7 @@ export async function login(req, res) {
           }
 
           user = {
-            id: mUser._id.toString(),
+            id: db.prepare('SELECT id FROM users WHERE employee_id = ?').get(mUser.employee_id)?.id,
             employee_id: mUser.employee_id,
             email: mUser.email,
             password_hash: mUser.password_hash,
@@ -415,13 +423,7 @@ export async function login(req, res) {
       return res.status(403).json({ error: 'Your account is suspended. Please contact Shinetek HR.' });
     }
 
-    let isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch && user.role === 'admin' && (password === 'Admin@123' || password === 'Admin@1234')) {
-      isMatch = true;
-    }
-    if (!isMatch && user.role === 'employee' && (password === 'Password@123' || password === 'Password@1234')) {
-      isMatch = true;
-    }
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       logAudit({
         userId: user.employee_id,
@@ -439,6 +441,8 @@ export async function login(req, res) {
       user = withEmployeeProfile(user, await findEmployeeProfile(user.employee_id));
     }
 
+    const access = user.role === 'admin' ? await getAdminAccess(user) : {};
+    if (user.role === 'admin' && !access.enabled) return res.status(403).json({ error: 'Administrator access is disabled. Contact the super admin.' });
     const token = jwt.sign(
       { id: user.id, employeeId: user.employee_id, email: user.email, role: user.role },
       JWT_SECRET,
@@ -463,7 +467,8 @@ export async function login(req, res) {
         employeeId: user.employee_id,
         email: user.email,
         role: user.role,
-        fullName: user.full_name || (user.role === 'admin' ? 'Administrator' : 'Employee'),
+        isSuperAdmin: access.isSuperAdmin === true,
+        fullName: user.full_name || access.name || (user.role === 'admin' ? 'Administrator' : 'Employee'),
         designation: user.designation || (user.role === 'admin' ? 'System Administrator' : 'Staff'),
         profileImageUrl: user.profile_image_url,
         registrationStatus: user.registration_status || (user.role === 'admin' ? 'Approved' : 'Pending Review')
@@ -510,10 +515,11 @@ export async function getMe(req, res) {
         employeeId: user.employee_id,
         email: user.email,
         role: user.role,
+        isSuperAdmin: req.user.isSuperAdmin === true,
         firstName: user.first_name,
         lastName: user.last_name,
         middleInitial: user.middle_initial,
-        fullName: user.full_name || (user.role === 'admin' ? 'System Administrator' : 'Employee'),
+        fullName: user.full_name || req.user.adminName || (user.role === 'admin' ? 'System Administrator' : 'Employee'),
         phone: user.phone,
         gender: user.gender,
         designation: user.designation || (user.role === 'admin' ? 'System Administrator' : 'Staff'),
@@ -553,99 +559,9 @@ export async function getMe(req, res) {
 }
 
 export function forgotPassword(req, res) {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email address is required.' });
-    }
-
-    const user = db.prepare('SELECT id, employee_id, email FROM users WHERE email = ?').get(email.trim().toLowerCase());
-    if (!user) {
-      // Return neutral message for security
-      return res.json({ message: 'If an account with this email exists, password reset instructions have been generated.' });
-    }
-
-    const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour
-
-    db.prepare(`
-      INSERT INTO password_resets (email, token, expires_at, used)
-      VALUES (?, ?, ?, 0)
-    `).run(user.email, token, expiresAt);
-
-    logAudit({
-      userId: user.employee_id,
-      userName: user.email,
-      userRole: 'employee',
-      action: 'PASSWORD_RESET_REQUESTED',
-      details: `Password reset token generated for ${user.email}`,
-      ipAddress: req.ip
-    });
-
-    res.json({
-      message: 'Password reset link generated successfully.',
-      resetToken: token,
-      expiresAt
-    });
-  } catch (err) {
-    console.error('[forgotPassword Error]', err);
-    res.status(500).json({ error: 'Failed to process password reset request.' });
-  }
+  res.json({ message: 'Contact your administrator to recover your account. Self-service email recovery is not configured.' });
 }
 
 export async function resetPassword(req, res) {
-  try {
-    const { token, newPassword, confirmPassword } = req.body;
-    if (!token || !newPassword) {
-      return res.status(400).json({ error: 'Token and new password are required.' });
-    }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ error: 'Passwords do not match.' });
-    }
-
-    if (newPassword.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
-    }
-
-    const resetRecord = db.prepare(`
-      SELECT id, email, expires_at, used
-      FROM password_resets
-      WHERE token = ? AND used = 0
-    `).get(token);
-
-    if (!resetRecord) {
-      return res.status(400).json({ error: 'Invalid or already used reset token.' });
-    }
-
-    if (new Date(resetRecord.expires_at) < new Date()) {
-      return res.status(400).json({ error: 'Reset token has expired. Please request a new one.' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(newPassword, salt);
-
-    const updateTx = db.transaction(() => {
-      db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?')
-        .run(passwordHash, resetRecord.email);
-      db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?')
-        .run(resetRecord.id);
-    });
-
-    updateTx();
-
-    logAudit({
-      userId: resetRecord.email,
-      userName: resetRecord.email,
-      userRole: 'user',
-      action: 'PASSWORD_RESET_COMPLETED',
-      details: `Password successfully updated for ${resetRecord.email}`,
-      ipAddress: req.ip
-    });
-
-    res.json({ message: 'Password has been reset successfully. You can now log in with your new password.' });
-  } catch (err) {
-    console.error('[resetPassword Error]', err);
-    res.status(500).json({ error: 'Failed to reset password.' });
-  }
+  res.status(403).json({ error: 'Contact your administrator to recover your account.' });
 }

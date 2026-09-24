@@ -1,3 +1,4 @@
+import { useCompany } from '../../context/CompanyContext.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, Download, Plus, Receipt, Search, X } from 'lucide-react';
 import { api, request } from '../../services/api.js';
@@ -50,6 +51,8 @@ function InvoiceEditor({ employee, invoice, onClose, onSaved }) {
 }
 
 export function EmployeeInvoiceLedger({ initialEmployee = null, readOnly = false, onBack } = {}) {
+  const { isSuperAdmin, selected: selectedCompany } = useCompany();
+  const showDemo = isSuperAdmin && selectedCompany === 'all';
   const [employees, setEmployees] = useState([]);
   const [employee, setEmployee] = useState(initialEmployee);
   const [search, setSearch] = useState('');
@@ -66,9 +69,9 @@ export function EmployeeInvoiceLedger({ initialEmployee = null, readOnly = false
     let active = true;
     setLoading(true); setError('');
     const load = employee?.is_demo ? Promise.resolve({ invoices: payrollDemoInvoices }) : employee ? request(`/admin/employee-invoices?employee_id=${encodeURIComponent(employee.employee_id)}`) : api.getAllEmployees();
-    load.then(data => { if (active) { if (employee) setInvoices(data.invoices || []); else setEmployees([...(data.employees || []).filter(item => !item.employee_id?.startsWith('ADMIN')), payrollDemoEmployee]); } }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
+    load.then(data => { if (active) { if (employee) setInvoices(data.invoices || []); else setEmployees([...(data.employees || []).filter(item => !item.employee_id?.startsWith('ADMIN')), ...(showDemo ? [payrollDemoEmployee] : [])]); } }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [employee, retry]);
+  }, [employee, retry, showDemo]);
   const visibleEmployees = employees.filter(item => `${item.full_name} ${item.employee_id} ${item.designation}`.toLowerCase().includes(search.toLowerCase()));
   const visibleInvoices = invoices.filter(item => (!filterMonth || item.month === filterMonth) && (filterStatus === 'All' || item.status === filterStatus));
   const totals = [...new Set(visibleInvoices.map(item => item.currency))].map(currency => {

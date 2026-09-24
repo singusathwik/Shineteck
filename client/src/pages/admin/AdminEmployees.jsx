@@ -1,3 +1,4 @@
+import { useCompany } from '../../context/CompanyContext.jsx';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
@@ -31,6 +32,7 @@ import {
 } from 'lucide-react';
 
 export function AdminEmployees({ onSelectEmployee }) {
+  const { companies, selected: selectedCompany } = useCompany();
   const [employees, setEmployees] = useState([]);
   const [counts, setCounts] = useState({ all: 0, active: 0, inactive: 0 });
   const [employmentTab, setEmploymentTab] = useState('ALL'); // 'ALL' | 'Active' | 'Inactive'
@@ -58,6 +60,7 @@ export function AdminEmployees({ onSelectEmployee }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const initialAddFormData = {
+    companyId: companies?.some(company => company.id === selectedCompany) ? selectedCompany : '',
     firstName: '',
     lastName: '',
     middleInitial: '',
@@ -206,6 +209,7 @@ export function AdminEmployees({ onSelectEmployee }) {
     const formattedData = employees.map(emp => ({
       'Employee ID': emp.employee_id,
       'Full Name': emp.full_name,
+      'Company': emp.company_name,
       'Email': emp.email,
       'Phone': emp.phone || 'N/A',
       'Designation': emp.designation,
@@ -442,7 +446,7 @@ export function AdminEmployees({ onSelectEmployee }) {
                         />
                         <div className="min-w-0">
                           <div className="font-bold text-slate-900 text-xs font-display flex items-center gap-1.5">
-                            <span>{emp.full_name}</span>
+                            <span>{emp.full_name}<small className="block text-xs font-normal text-slate-500">{emp.company_name}</small></span>
                             {emp.country === 'India' ? (
                               <span className="text-[10px]" title="India Operations">🇮🇳</span>
                             ) : (
@@ -685,6 +689,9 @@ export function AdminEmployees({ onSelectEmployee }) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Company
+                      <select required value={addFormData.companyId} onChange={event => setAddFormData({ ...addFormData, companyId: event.target.value })} className="w-full border border-slate-300 rounded-lg p-2 mb-3"><option value="">Select company</option>{companies?.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select>
+                    </label>
                     <label className="block font-semibold text-slate-700 mb-1">First Name *</label>
                     <input
                       type="text"

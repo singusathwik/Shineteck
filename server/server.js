@@ -24,6 +24,8 @@ import * as notifCtrl from './controllers/notificationController.js';
 import * as vendorCtrl from './controllers/vendorController.js';
 import * as payrollEntryCtrl from './controllers/payrollEntryController.js';
 import { invoiceHandlers } from './controllers/invoiceController.js';
+import { companyGuard } from './middleware/companyScope.js';
+import * as accessCtrl from './controllers/companyAccessController.js';
 
 dotenv.config();
 
@@ -31,13 +33,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.enable('case sensitive routing');
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Company-Id']
 }));
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
@@ -82,6 +85,13 @@ app.post('/api/upload/document', uploadDocument.single('document'), docCtrl.uplo
 // Protected Routes (Employees & Admins)
 // -------------------------------------------------------------
 app.use('/api', authenticateToken);
+app.use('/api', companyGuard);
+app.get('/api/admin/access/admins', requireAdmin, accessCtrl.listAdmins);
+app.post('/api/admin/access/admins', requireAdmin, accessCtrl.createAdmin);
+app.put('/api/admin/access/admins/:employeeId', requireAdmin, accessCtrl.updateAdmin);
+app.get('/api/admin/access/assignments', requireAdmin, accessCtrl.listAssignments);
+app.put('/api/admin/access/assignments', requireAdmin, accessCtrl.assignEmployees);
+app.get('/api/admin/access/audit', requireAdmin, accessCtrl.accessAudit);
 
 // Auth Me
 app.get('/api/auth/me', authCtrl.getMe);
