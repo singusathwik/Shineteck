@@ -78,7 +78,7 @@ export async function seedDatabase() {
         'Approved', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'System Root')
     `).run(adminRes.lastInsertRowid);
 
-    console.log('[DB] Admin user created (admin@shinetek.com / Admin@1234)');
+    console.log('[DB] Admin user created.');
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -192,11 +192,11 @@ export async function seedDatabase() {
 
   // 2. Ensure Sample Documents exist for pending applicants
   const sampleDocs = [
-    { empId: 'SH-2012', type: 'passport', name: 'India_Passport_Amitabh.pdf', path: 'sample_passport_johnathan.jpg', size: 1450000, mime: 'application/pdf', status: 'Pending Review' },
-    { empId: 'SH-2012', type: 'w4', name: 'Form16_Tax_Amitabh.pdf', path: 'sample_w4_johnathan.pdf', size: 245000, mime: 'application/pdf', status: 'Pending Review' },
-    { empId: 'SH-2013', type: 'i9', name: 'Form_I9_Sarah.pdf', path: 'sample_i9_johnathan.pdf', size: 310000, mime: 'application/pdf', status: 'Pending Review' },
-    { empId: 'SH-2013', type: 'visa', name: 'Work_Authorization_Sarah.pdf', path: 'sample_visa_johnathan.pdf', size: 420000, mime: 'application/pdf', status: 'Pending Review' },
-    { empId: 'SH-2014', type: 'w4', name: 'Tax_Document_Deepak.pdf', path: 'sample_w4_emily.pdf', size: 180000, mime: 'application/pdf', status: 'Needs Correction' }
+    { empId: 'SH-2012', type: 'passport', name: 'India_Passport_Amitabh.pdf', path: 'sample_passport_johnathan.jpg', size: 1450000, mime: 'application/pdf', status: 'Uploaded' },
+    { empId: 'SH-2012', type: 'w4', name: 'Form16_Tax_Amitabh.pdf', path: 'sample_w4_johnathan.pdf', size: 245000, mime: 'application/pdf', status: 'Uploaded' },
+    { empId: 'SH-2013', type: 'i9', name: 'Form_I9_Sarah.pdf', path: 'sample_i9_johnathan.pdf', size: 310000, mime: 'application/pdf', status: 'Uploaded' },
+    { empId: 'SH-2013', type: 'visa', name: 'Work_Authorization_Sarah.pdf', path: 'sample_visa_johnathan.pdf', size: 420000, mime: 'application/pdf', status: 'Uploaded' },
+    { empId: 'SH-2014', type: 'w4', name: 'Tax_Document_Deepak.pdf', path: 'sample_w4_emily.pdf', size: 180000, mime: 'application/pdf', status: 'Needs Replacement' }
   ];
 
   for (const d of sampleDocs) {

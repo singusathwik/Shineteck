@@ -134,7 +134,7 @@ async function seedMongoDefaults() {
         reviewed_by: 'System Root'
       });
 
-      console.log('[MongoDB] Default Admin created: admin@shinetek.com / Admin@1234');
+      console.log('[MongoDB] Default Admin created.');
     }
 
     // 3. Sample Employee: Johnathan Vance (SH-2005)
