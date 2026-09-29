@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
-import { DocumentUploadCard } from '../../components/registration/DocumentUploadCard.jsx';
+import { useCompany } from '../../context/CompanyContext.jsx';
 import { DocumentDownloadMenu } from '../../components/documents/DocumentDownloadMenu.jsx';
 import {
   FileText,
@@ -39,153 +39,24 @@ const GLOBAL_DOCS = [
   { key: 'e_verify', title: 'E-Verify Document / Verification Record', desc: 'DHS E-Verify case verification documentation or reference document', required: false }
 ];
 
+const FORMS = { w4: 'https://www.irs.gov/pub/irs-pdf/fw4.pdf', w9: 'https://www.irs.gov/pub/irs-pdf/fw9.pdf', i9: 'https://www.uscis.gov/i-9' };
 export function EmployeeDocuments() {
   const { user } = useAuth();
-  const [documents, setDocuments] = useState([]);
-  const [previewDoc, setPreviewDoc] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [statusMessage, setStatusMessage] = useState(null);
-
-  const fetchDocuments = async () => {
-    try {
-      const data = await api.getMyDocuments();
-      setDocuments(data.documents || []);
-    } catch (err) {
-      console.error('Failed to load documents:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
-
-  const handleUploadAuth = async (docType, file) => {
-    setStatusMessage(null);
-    try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('documentType', docType);
-
-      const res = await api.uploadDocAuth(formData);
-      setStatusMessage(res.message);
-      await fetchDocuments();
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const isIndia = (user?.country || '').trim().toLowerCase() === 'india';
-  const currentDocTypes = isIndia ? INDIA_DOCS : GLOBAL_DOCS;
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="enterprise-header-banner p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">Required Documents Center</h1>
-            <p className="text-xs text-slate-600 mt-1 font-medium">
-              View compliance verification statuses and upload updated or replacement documents requested by HR
-            </p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-900 self-start">
-            <Globe className="w-4 h-4 text-blue-600" />
-            <span>Region: {user?.country || (isIndia ? 'India' : 'United States')}</span>
-          </div>
-        </div>
-      </div>
-
-      {statusMessage && (
-        <div className="flex items-center gap-2 p-3 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{statusMessage}</span>
-        </div>
-      )}
-
-      {/* Grid of Dynamic Document Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {currentDocTypes.map((dt) => {
-          const doc = documents.find(d => d.document_type === dt.key);
-          return (
-            <div key={dt.key} className="space-y-2">
-              <DocumentUploadCard
-                docKey={dt.key}
-                title={dt.title}
-                description={dt.desc}
-                required={dt.required}
-                uploadedDoc={doc ? {
-                  id: doc.id,
-                  fileName: doc.file_name,
-                  fileSize: doc.file_size,
-                  uploadedAt: doc.uploaded_at,
-                  status: doc.status
-                } : null}
-                onUpload={handleUploadAuth}
-                onPreview={() => doc && setPreviewDoc(doc)}
-              />
-
-              {doc?.review_notes && doc.status === 'Needs Replacement' && (
-                <div className="p-3 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-900 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">HR Correction Note: </span>
-                    <span>{doc.review_notes}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Secure Document Preview Modal */}
-      {previewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 bg-slate-50 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-700" />
-                <h3 className="text-sm font-bold text-slate-900 font-display">
-                  {previewDoc.document_type?.toUpperCase()} — {previewDoc.file_name}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPreviewDoc(null)}
-                className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-6 text-center space-y-4">
-              <p className="text-xs text-slate-600">
-                Document Status: <StatusBadge status={previewDoc.status} size="sm" />
-              </p>
-
-              <div className="p-8 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center">
-                <FileText className="w-16 h-16 text-slate-400 mb-3" />
-                <p className="font-semibold text-xs text-slate-800">{previewDoc.file_name}</p>
-                <p className="text-[11px] text-slate-500 mb-4">Secure Shinetek Document Vault</p>
-                <div className="flex flex-wrap items-center justify-center gap-2.5">
-                  <a
-                    href={getDocumentStreamUrl(previewDoc.id)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0f2b48] hover:bg-[#1a416b] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View in Secure Browser Viewer
-                  </a>
-                  <DocumentDownloadMenu doc={previewDoc} variant="full" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const { companies = [], selected } = useCompany();
+  const [documents, setDocuments] = useState([]), [expiry, setExpiry] = useState({}), [busy, setBusy] = useState(''), [error, setError] = useState(''), [message, setMessage] = useState(''), [loading, setLoading] = useState(true);
+  const load = async () => { const data = await api.getMyDocuments(); setDocuments(data.documents || []); };
+  useEffect(() => { load().catch(err => setError(err.message)).finally(() => setLoading(false)); }, []);
+  const company = companies.find(c => c.id === selected);
+  const currentDocTypes = (user?.country || '').toLowerCase() === 'india' ? INDIA_DOCS : [...GLOBAL_DOCS.map(dt => dt.key === 'w4' ? { ...dt, title: 'Form W-4' } : dt), { key: 'w9', title: 'Form W-9', required: false }];
+  async function upload(type, file) {
+    if (!file) return; setBusy(type); setError(''); setMessage('');
+    try { if (!company) throw new Error('Select a company in the workspace before uploading.'); const body = new FormData(); body.append('documentType', type); body.append('expiryDate', expiry[type] ?? documents.find(doc => doc.document_type === type)?.expiry_date ?? ''); body.append('document', file); await api.uploadDocAuth(body); await load(); setMessage('Document uploaded successfully.'); } catch (err) { setError(err.message); } finally { setBusy(''); }
+  }
+  return <div className="company-access"><h1>Document Vault</h1><p>Upload the documents required for {company?.name || 'your assigned companies'}. Set the expiry date before uploading, where applicable.</p>{error && <p role="alert" className="company-error company-notice">{error}</p>}{message && <p role="status" className="company-notice">{message}</p>}
+    <div className="company-panel company-table-wrap"><table className="portal-doc-table"><thead><tr>{['Document Name', 'Form to Download', 'Upload', 'Date Uploaded', 'Document Type', 'Expiry Date'].map(title => <th key={title}>{title}</th>)}</tr></thead><tbody>{currentDocTypes.map(type => {
+      const matches = documents.filter(doc => doc.document_type === type.key).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)));
+      const doc = matches[0];
+      return <tr key={type.key}><td><strong>{type.title}</strong>{doc ? <><small><a className="underline" href={getDocumentStreamUrl(doc.id)} target="_blank" rel="noreferrer">{doc.file_name}</a></small><small>{doc.status}{doc.review_notes ? ` · ${doc.review_notes}` : ''}</small></> : <small>{loading ? 'Loading…' : 'Not uploaded'}</small>}{!company && matches.length > 1 && <small>Select a company to see its document.</small>}</td><td>{FORMS[type.key] ? <a className="underline" href={FORMS[type.key]} target="_blank" rel="noreferrer">Download form</a> : <span>{['passport', 'visa', 'driver_license', 'aadhaar', 'pan', 'ssn_copy', 'i94', 'e_verify'].includes(type.key) ? 'No blank form required' : 'Provided by your HR team'}</span>}</td><td><label><span className="sr-only">Upload {type.title}</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.txt" disabled={Boolean(busy) || !company} onChange={e => { upload(type.key, e.target.files?.[0]); e.target.value = ''; }} /></label>{busy === type.key && <small>Uploading…</small>}</td><td>{doc?.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '—'}</td><td>{type.key.replaceAll('_', ' ').toUpperCase()}</td><td><label><span className="sr-only">Expiry date for {type.title}</span><input type="date" disabled={!company || Boolean(busy)} value={expiry[type.key] ?? doc?.expiry_date ?? ''} onChange={e => setExpiry({ ...expiry, [type.key]: e.target.value })} /></label>{doc?.expiry_date && <small>Saved: {doc.expiry_date}</small>}</td></tr>;
+    })}</tbody></table></div><p>Identity records do not have blank forms. Obtain company-specific agreements and forms from your HR team.</p>
+  </div>;
 }

@@ -28,6 +28,7 @@ export function EmployeeProfile() {
   const [loadError, setLoadError] = useState('');
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [workLocation, setWorkLocation] = useState('');
   const [phone, setPhone] = useState('');
   const [addressData, setAddressData] = useState({
     country: '',
@@ -49,6 +50,7 @@ export function EmployeeProfile() {
       const data = await api.getProfile();
       if (!data?.employee) throw new Error('The server did not return your employee profile. Please contact HR.');
       setProfile(data.employee);
+      setWorkLocation(data.employee.work_location_address || '');
       setPhone(data.employee.phone || '');
       setAddressData({
         country: data.employee.country || 'United States',
@@ -79,6 +81,7 @@ export function EmployeeProfile() {
     try {
       await api.updateProfile({
         phone,
+        workLocationAddress: workLocation,
         country: addressData.country,
         state: addressData.state,
         city: addressData.city,
@@ -263,19 +266,6 @@ export function EmployeeProfile() {
                     {profile.start_date || 'N/A'}
                   </div>
                 </div>
-                <div>
-                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider block mb-1 font-display">WORKING STATUS</span>
-                  <div className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-slate-800 flex items-center justify-between">
-                    {profile.end_date ? (
-                      <span className="font-mono text-rose-700 font-semibold">{profile.end_date}</span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-status-pulse"></span>
-                        Currently Working (Active)
-                      </span>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -350,6 +340,7 @@ export function EmployeeProfile() {
           </div>
 
           <div className="space-y-4 text-xs">
+            <label className="block">Work Location Address{isEditingAddress ? <textarea className="mt-1 w-full border border-slate-300 rounded-lg p-3" maxLength={1000} rows={3} value={workLocation} onChange={e => setWorkLocation(e.target.value)} /> : <div className="mt-1 p-3 rounded-lg bg-slate-50 border border-slate-200">{profile.work_location_address || 'Not provided'}</div>}</label>
             <div>
               <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider font-display text-[10.5px]">Primary Contact Phone</label>
               {isEditingAddress ? (

@@ -47,6 +47,7 @@ export async function getMyPayroll(req, res) {
       `).all(employeeId);
     }
 
+    if (req.allowsEmployeeRecord) records = records.filter(req.allowsEmployeeRecord);
     const currentYear = new Date().getFullYear();
     const empInfo = db.prepare('SELECT annual_salary, country, designation, full_name FROM employees WHERE employee_id = ?').get(employeeId);
     let annualSummary = null;
@@ -273,6 +274,7 @@ export function createPayrollRecord(req, res) {
       ipAddress: req.ip
     });
 
+    db.prepare('UPDATE payroll_records SET company_id=? WHERE id=?').run(req.recordCompanyId || null, result.lastInsertRowid);
     const newRecord = db.prepare('SELECT * FROM payroll_records WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({
       message: 'Payroll record created successfully.',
@@ -313,7 +315,7 @@ export async function getEmployeeCompensationLedger(req, res) {
         pay_period_start LIKE ?
       )
       ORDER BY payment_date ASC, id ASC
-    `).all(employeeId, `${year}-%`, `${year}-%`);
+    `).all(employeeId, `${year}-%`, `${year}-%`).filter(row => !req.companyScope || req.companyScope.allowsRecord(row));
 
     // Map records to months (1 to 12)
     const monthMap = {};
@@ -589,6 +591,7 @@ export function disburseMonthlySalary(req, res) {
       ipAddress: req.ip
     });
 
+    db.prepare('UPDATE payroll_records SET company_id=? WHERE id=?').run(req.recordCompanyId || null, result.lastInsertRowid);
     const newRecord = db.prepare('SELECT * FROM payroll_records WHERE id = ?').get(result.lastInsertRowid);
 
     res.status(201).json({

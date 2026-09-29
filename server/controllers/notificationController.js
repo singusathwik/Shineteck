@@ -3,13 +3,14 @@ import { db } from '../db/schema.js';
 export function getMyNotifications(req, res) {
   try {
     const employeeId = req.user.employeeId;
-    const notifications = db.prepare(`
+    const allNotifications = db.prepare(`
       SELECT * FROM notifications
       WHERE employee_id = ?
       ORDER BY created_at DESC
       LIMIT 50
     `).all(employeeId);
 
+    const notifications = allNotifications.filter(row => !row.company_id || !req.allowsEmployeeRecord || req.allowsEmployeeRecord(row));
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
     res.json({

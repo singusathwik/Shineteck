@@ -1,3 +1,4 @@
+import { listExpenses, saveExpense } from './controllers/expenseController.js';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -25,6 +26,7 @@ import * as vendorCtrl from './controllers/vendorController.js';
 import * as payrollEntryCtrl from './controllers/payrollEntryController.js';
 import { invoiceHandlers } from './controllers/invoiceController.js';
 import { companyGuard } from './middleware/companyScope.js';
+import * as invitationCtrl from './controllers/invitationController.js';
 import * as accessCtrl from './controllers/companyAccessController.js';
 
 dotenv.config();
@@ -72,6 +74,8 @@ app.get('/api/address/cities/:country/:state', addressCtrl.getCitiesByState);
 app.post('/api/address/validate', addressCtrl.validateAddress);
 
 // Authentication
+app.post('/api/auth/invitation', invitationCtrl.inspect);
+app.post('/api/auth/invitation/accept', invitationCtrl.acceptAdmin);
 app.post('/api/auth/register', authCtrl.register);
 app.post('/api/auth/login', authCtrl.login);
 app.post('/api/auth/forgot-password', authCtrl.forgotPassword);
@@ -86,6 +90,11 @@ app.post('/api/upload/document', uploadDocument.single('document'), docCtrl.uplo
 // -------------------------------------------------------------
 app.use('/api', authenticateToken);
 app.use('/api', companyGuard);
+app.get('/api/admin/access/companies', requireAdmin, accessCtrl.listCompanies);
+app.post('/api/admin/access/companies', requireAdmin, accessCtrl.saveCompany);
+app.put('/api/admin/access/companies/:id', requireAdmin, accessCtrl.saveCompany);
+app.post('/api/admin/invitations', requireAdmin, invitationCtrl.invite);
+app.get('/api/admin/timesheet-hours', requireAdmin, timeCtrl.getMonthlyHours);
 app.get('/api/admin/access/admins', requireAdmin, accessCtrl.listAdmins);
 app.post('/api/admin/access/admins', requireAdmin, accessCtrl.createAdmin);
 app.put('/api/admin/access/admins/:employeeId', requireAdmin, accessCtrl.updateAdmin);
@@ -122,6 +131,8 @@ app.post('/api/notifications/read-all', notifCtrl.markAllNotificationsRead);
 // -------------------------------------------------------------
 // Protected Admin Routes
 // -------------------------------------------------------------
+app.get('/api/admin/expenses', requireAdmin, listExpenses);
+app.post('/api/admin/expenses', requireAdmin, saveExpense);
 app.get('/api/admin/dashboard', requireAdmin, empCtrl.getDashboardStats);
 
 // Admin Employee Management
@@ -151,6 +162,8 @@ app.get('/api/admin/settings', requireAdmin, settingsCtrl.getSettings);
 app.put('/api/admin/settings', requireAdmin, settingsCtrl.updateSettings);
 
 // Admin Vendor Details
+app.post('/api/admin/vendors/:id/files/:type', requireAdmin, uploadDocument.single('document'), vendorCtrl.uploadVendorFile);
+app.get('/api/admin/vendors/:id/files/:type', requireAdmin, vendorCtrl.downloadVendorFile);
 app.get('/api/admin/vendors', requireAdmin, vendorCtrl.getAllVendorDetails);
 app.post('/api/admin/vendors', requireAdmin, vendorCtrl.createVendorDetail);
 app.put('/api/admin/vendors/:id', requireAdmin, vendorCtrl.updateVendorDetail);
@@ -231,4 +244,5 @@ process.on('unhandledRejection', (reason) => {
   console.error('[Unhandled Rejection]', reason);
 });
 
-startServer();
+export { app };
+if (process.env.NODE_ENV !== 'test') startServer();

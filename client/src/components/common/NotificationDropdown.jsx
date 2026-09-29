@@ -63,6 +63,7 @@ export function NotificationDropdown() {
         className="relative p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer shadow-2xs hover:border-slate-600"
         title="Notifications"
         aria-label="View notifications"
+        aria-expanded={isOpen}
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
@@ -73,7 +74,7 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2.5 w-80 sm:w-96 bg-slate-900/98 backdrop-blur-xl text-slate-100 rounded-2xl shadow-2xl border border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="portal-notifications fixed top-16 inset-x-3 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2.5 sm:w-96 bg-slate-900/98 backdrop-blur-xl text-slate-100 rounded-2xl shadow-2xl border border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-850 rounded-t-xl">
             <div className="flex items-center gap-2">
               <h4 className="text-xs font-bold text-white font-display">System Notifications</h4>

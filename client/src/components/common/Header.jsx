@@ -11,9 +11,9 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
   return (
     <header className="glass-header sticky top-0 z-40 transition-all">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Left: Brand & Mobile Toggle */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             {onToggleSidebar && (
               <button
                 type="button"
@@ -25,9 +25,9 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
               </button>
             )}
 
-            <div className="flex items-center gap-3">
-              <ShineteckLogo size="sm" textColor="white" />
-              <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-700/80">
+            <div className="flex items-center gap-3 min-w-0">
+              <ShineteckLogo size="sm" textColor="white" className="portal-header-logo" />
+              <div className="hidden xl:flex items-center gap-2 pl-3 border-l border-slate-700/80 shrink-0">
                 <span className="text-[11px] font-bold tracking-wider text-slate-300 uppercase font-display">
                   {isAdmin ? 'Operations Hub' : 'Employee Portal'}
                 </span>
@@ -40,17 +40,17 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
 
           {/* Center: Command Palette Trigger */}
           {onOpenCommandPalette && (
-            <div className="hidden md:flex flex-1 max-w-md mx-auto">
+            <div className="hidden xl:flex flex-1 min-w-0 max-w-md mx-auto">
               <button
                 type="button"
                 onClick={onOpenCommandPalette}
                 className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs text-slate-400 transition-all shadow-2xs group cursor-pointer"
               >
-                <span className="flex items-center gap-2 text-slate-300 group-hover:text-white">
-                  <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 transition-colors" />
-                  <span>Search commands, directory, or records...</span>
+                <span className="flex items-center gap-2 min-w-0 text-slate-300 group-hover:text-white">
+                  <Search className="w-3.5 h-3.5 shrink-0 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                  <span className="truncate">Search commands, directory, or records...</span>
                 </span>
-                <kbd className="inline-flex items-center gap-0.5 font-mono text-[10.5px] font-bold text-slate-300 bg-slate-700 border border-slate-600 px-1.5 py-0.5 rounded shadow-2xs">
+                <kbd className="inline-flex shrink-0 ml-2 items-center gap-0.5 font-mono text-[10.5px] font-bold text-slate-300 bg-slate-700 border border-slate-600 px-1.5 py-0.5 rounded shadow-2xs">
                   Ctrl K
                 </kbd>
               </button>
@@ -58,12 +58,13 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
           )}
 
           {/* Right: Notification & User Profile Actions */}
-          <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {onOpenCommandPalette && (
               <button
                 type="button"
                 onClick={onOpenCommandPalette}
-                className="p-2 md:hidden text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-all border border-slate-700/60"
+                className="p-2 xl:hidden text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-all border border-slate-700/60"
+                aria-label="Search commands"
                 title="Search Command Palette (Ctrl+K)"
               >
                 <Search className="w-4 h-4" />
@@ -73,8 +74,8 @@ export function Header({ onToggleSidebar, onOpenCommandPalette, activePortal = '
             <NotificationDropdown />
 
             {user && (
-              <div className="flex items-center gap-3 pl-2.5 sm:pl-3.5 border-l border-slate-700/80">
-                <div className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-slate-800/90 border border-slate-700 shadow-2xs hover:bg-slate-800 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 sm:pl-3.5 sm:border-l border-slate-700/80">
+                <div className="hidden sm:flex items-center gap-2.5 p-1 sm:pr-3 rounded-full bg-slate-800/90 border border-slate-700 shadow-2xs hover:bg-slate-800 transition-colors">
                   <EmployeeAvatar
                     name={user.fullName}
                     imageUrl={user.profileImageUrl}

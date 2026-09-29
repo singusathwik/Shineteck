@@ -23,17 +23,17 @@ export function setAuthToken(token) {
 }
 
 export function getDocumentStreamUrl(docId, token = getAuthToken()) {
-  return `${API_BASE}/documents/stream/${docId}${token ? `?token=${token}` : ''}`;
+  return `${API_BASE}/documents/stream/${docId}${token ? `?token=${token}&companyId=${encodeURIComponent(companyScope)}` : ''}`;
 }
 
 export function getTimesheetDownloadUrl(tsId, token = getAuthToken()) {
-  return `${API_BASE}/timesheets/download/${tsId}${token ? `?token=${token}` : ''}`;
+  return `${API_BASE}/timesheets/download/${tsId}${token ? `?token=${token}&companyId=${encodeURIComponent(companyScope)}` : ''}`;
 }
 
 export async function request(endpoint, options = {}) {
   const token = getAuthToken();
   const headers = { ...options.headers };
-  if (endpoint.startsWith('/admin/') && endpoint !== '/admin/company-context' && !endpoint.startsWith('/admin/access')) headers['X-Company-Id'] = companyScope;
+  if (!endpoint.includes('company-context') && !endpoint.startsWith('/admin/access') && !endpoint.startsWith('/auth/')) headers['X-Company-Id'] = companyScope;
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -59,8 +59,9 @@ export async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    if (response.status === 403 && endpoint.startsWith('/admin/') && endpoint !== '/admin/company-context') window.dispatchEvent(new Event('company-access-denied'));
-    const errorMsg = data && data.error ? data.error : (typeof data === 'string' ? data : 'An error occurred');
+    // Refresh employee permissions too; context requests must not trigger a retry loop.
+    if (response.status === 403 && token && !endpoint.startsWith('/auth/') && !endpoint.includes('company-context')) window.dispatchEvent(new Event('company-access-denied'));
+    const errorMsg = data && data.error ? data.error : 'The service is unavailable. Please try again shortly.';
     throw new Error(errorMsg);
   }
 

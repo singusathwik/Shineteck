@@ -1,3 +1,4 @@
+import { MonthlyHours } from '../../components/timesheet/MonthlyHours.jsx';
 import { useCompany } from '../../context/CompanyContext.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight, Calendar, Download, Edit3, Plus, Search, Trash2, X } from 'lucide-react';
@@ -15,7 +16,9 @@ const date = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString('
 const currencyOf = employee => employee.country === 'India' ? 'INR' : 'USD';
 
 function PayrollEntryEditor({ entry, employees, vendors, currency, onCancel, onSaved }) {
-  const [form, setForm] = useState(() => entry ? { ...entry, ...payrollPeriod(entry) } : { employee_id: '', employee_name: '', start_date: '', end_date: '', total_hours: '', bill_rate: '', emp_bill_rate: '', vendor_name: '', client_name: '', currency });
+  const { companies, selected } = useCompany();
+  const employeeCompanies = id => companies.filter(c => c.enabled && (employees.find(e => e.employee_id === id)?.company_ids || []).includes(c.id) && (selected === 'all' || c.id === selected));
+  const [form, setForm] = useState(() => entry ? { ...entry, ...payrollPeriod(entry) } : { company_id: '', employee_id: '', employee_name: '', start_date: '', end_date: '', total_hours: '', bill_rate: '', emp_bill_rate: '', vendor_name: '', client_name: '', currency });
   const [saving, setSaving] = useState(false);
   const panel = useRef(null);
   useEffect(() => { panel.current?.focus(); }, []);
@@ -23,8 +26,10 @@ function PayrollEntryEditor({ entry, employees, vendors, currency, onCancel, onS
   const change = (key, value) => setForm(previous => ({ ...previous, [key]: value }));
   function chooseEmployee(id) {
     const employee = employees.find(item => item.employee_id === id);
-    const vendor = vendors.find(item => item.employee_id === id);
-    setForm(previous => ({ ...previous, employee_id: id, employee_name: employee?.full_name || '', currency: employee ? currencyOf(employee) : currency, vendor_name: vendor?.vendor_name || '', client_name: vendor?.client_name || '', bill_rate: vendor?.hourly_bill_rate ?? '', emp_bill_rate: vendor?.employee_rate ?? '' }));
+    const choices = employeeCompanies(id);
+    const company_id = choices.length === 1 ? choices[0].id : '';
+    const vendor = vendors.find(item => item.employee_id === id && item.company_id === company_id);
+    setForm(previous => ({ ...previous, employee_id: id, company_id, employee_name: employee?.full_name || '', currency: employee ? currencyOf(employee) : currency, vendor_name: vendor?.vendor_name || '', client_name: vendor?.client_name || '', bill_rate: vendor?.hourly_bill_rate ?? '', emp_bill_rate: vendor?.employee_rate ?? '' }));
   }
   async function save(event) {
     event.preventDefault();
@@ -38,7 +43,8 @@ function PayrollEntryEditor({ entry, employees, vendors, currency, onCancel, onS
   }
   const field = (key, label, type = 'text', required = true) => <label className="il-field" key={key}><span>{label}</span><input type={type} value={form[key] ?? ''} onChange={event => change(key, event.target.value)} onInput={event => change(key, event.target.value)} required={required} {...(type === 'number' ? { min: 0, max: 1000000, step: '.01' } : {})} {...(key === 'end_date' ? { min: form.start_date } : {})} /></label>;
   return <section className="il-editor" ref={panel} tabIndex={-1} aria-label={entry ? 'Edit payroll entry' : 'Add payroll entry'}><div className="il-section-heading"><h2>{entry ? 'Edit payroll entry' : 'Add payroll entry'} · {currency}</h2><button className="il-icon-button" onClick={onCancel} disabled={saving} aria-label="Close payroll editor"><X size={20} /></button></div><form onSubmit={save}><fieldset disabled={saving}><div className="il-form-grid">
-    <label className="il-field"><span>Employee</span><select required value={form.employee_id} onChange={event => chooseEmployee(event.target.value)}><option value="">Select employee</option>{employees.map(employee => <option key={employee.employee_id} value={employee.employee_id}>{employee.full_name} · {employee.employee_id}</option>)}{entry && !employees.some(employee => employee.employee_id === entry.employee_id) && <option value={entry.employee_id}>{entry.employee_name}</option>}</select></label>
+    <label className="il-field"><span>Employee</span><select required disabled={Boolean(entry)} value={form.employee_id} onChange={event => chooseEmployee(event.target.value)}><option value="">Select employee</option>{employees.map(employee => <option key={employee.employee_id} value={employee.employee_id}>{employee.full_name} · {employee.employee_id}</option>)}{entry && !employees.some(employee => employee.employee_id === entry.employee_id) && <option value={entry.employee_id}>{entry.employee_name}</option>}</select></label>
+    <label className="il-field"><span>Company</span><select required disabled={Boolean(entry?.company_id)} value={form.company_id || ''} onChange={event => { const company_id = event.target.value; const vendor = vendors.find(v => v.employee_id === form.employee_id && v.company_id === company_id); setForm(previous => ({ ...previous, company_id, vendor_name: vendor?.vendor_name || '', client_name: vendor?.client_name || '', bill_rate: vendor?.hourly_bill_rate ?? '', emp_bill_rate: vendor?.employee_rate ?? '' })); }}><option value="">Select company</option>{employeeCompanies(form.employee_id).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>{form.employee_id && !employeeCompanies(form.employee_id).length && <small>Ask the super admin to assign an enabled company first.</small>}</label>
     {field('start_date', 'Payroll start date', 'date')}{field('end_date', 'Payroll end date', 'date')}
     {field('vendor_name', 'Vendor', 'text', false)}{field('client_name', 'Client', 'text', false)}{field('total_hours', 'Total hours', 'number')}
     {field('bill_rate', `Client bill rate (${form.currency}/hour)`, 'number')}{field('emp_bill_rate', `Employee rate (${form.currency}/hour)`, 'number')}
@@ -93,7 +99,7 @@ export function AdminPayrollEntries() {
     finally { setBusy(false); }
   }
   if (selected) return <EmployeePayrollHistory key={selected.employee_id} employee={selected} entries={selected.is_demo ? payrollDemoEntries : entries.filter(entry => entry.employee_id === selected.employee_id)} onBack={() => setSelected(null)} />;
-  return <div className="invoice-ledger">
+  return <div className="invoice-ledger"><MonthlyHours />
     <header className="il-page-heading"><div><p className="il-eyebrow">Finance & payroll</p><h1>Payroll information</h1><p>Separate regional payroll records, full date ranges, and employee payment history.</p></div><button className="il-button il-primary" onClick={() => setEditor(null)} disabled={loading || Boolean(error) || editor !== undefined}><Plus size={16} /> Add payroll entry</button></header>
     <div className="il-region-tabs" role="group" aria-label="Payroll region"><button aria-pressed={region === 'INR'} onClick={() => changeRegion('INR')} disabled={editor !== undefined}>Indian employees <small>INR · ₹</small></button><button aria-pressed={region === 'USD'} onClick={() => changeRegion('USD')} disabled={editor !== undefined}>U.S. / foreign employees <small>USD · $</small></button></div>
     {notice && <p className="il-success" role="status">{notice}</p>}

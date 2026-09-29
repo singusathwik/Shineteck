@@ -1,3 +1,7 @@
+import { AdminExpenses } from './pages/admin/AdminExpenses.jsx';
+import { AdminCompanies } from './pages/admin/AdminCompanies.jsx';
+import { InvitationForm } from './components/common/InvitationForm.jsx';
+import { InvitationPage } from './pages/InvitationPage.jsx';
 import { CompanyProvider, CompanySelector, useCompany } from './context/CompanyContext.jsx';
 import { AdminCompanyAccess } from './pages/admin/AdminCompanyAccess.jsx';
 import React, { useState, useEffect } from 'react';
@@ -15,7 +19,6 @@ import { EmployeeDashboard } from './pages/employee/EmployeeDashboard.jsx';
 import { EmployeeProfile } from './pages/employee/EmployeeProfile.jsx';
 import { EmployeeTimesheets } from './pages/employee/EmployeeTimesheets.jsx';
 import { EmployeeDocuments } from './pages/employee/EmployeeDocuments.jsx';
-import { EmployeePayroll } from './pages/employee/EmployeePayroll.jsx';
 import { EmployeeNotifications } from './pages/employee/EmployeeNotifications.jsx';
 
 // Admin Pages
@@ -36,7 +39,9 @@ function MainApp() {
   const { user, loading, isAuthenticated, isAdmin, isEmployee } = useAuth();
 
   // Public views: 'login' | 'register' | 'forgot-password'
+  const [inviteToken, setInviteToken] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('invite'));
   const [publicView, setPublicView] = useState('login');
+  const returnToLogin = () => { history.replaceState(null, '', window.location.pathname); setInviteToken(null); setPublicView('login'); };
 
   // Authenticated Tabs
   const [employeeTab, setEmployeeTab] = useState('dashboard');
@@ -72,6 +77,7 @@ function MainApp() {
 
   // If user is not authenticated, show Login (or Register / Forgot Password)
   if (!isAuthenticated) {
+    if (inviteToken) return <InvitationPage token={inviteToken} onNavigateLogin={returnToLogin} />;
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-blue-600 selection:text-white">
         {publicView === 'login' && (
@@ -124,7 +130,7 @@ function MainApp() {
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 overflow-y-auto bg-slate-100/70 custom-scrollbar">
           <div className="page-content mx-auto p-4 sm:p-6 lg:p-8">
-            {isAdmin && <CompanySelector />}
+            {!(isAdmin && ['company-management', 'company-access', 'invite-admin'].includes(activeTab)) && <CompanySelector />}
             {/* Employee Views */}
             {isEmployee && (
               <>
@@ -132,7 +138,7 @@ function MainApp() {
                 {activeTab === 'profile' && <EmployeeProfile />}
                 {activeTab === 'timesheet' && <EmployeeTimesheets />}
                 {activeTab === 'documents' && <EmployeeDocuments />}
-                {activeTab === 'payroll' && <EmployeePayroll />}
+
                 {activeTab === 'notifications' && <EmployeeNotifications />}
               </>
             )}
@@ -179,10 +185,15 @@ function MainApp() {
                   )
                 )}
 
+                {activeTab === 'us-expenses' && <AdminExpenses key="US" region="US" />}
+                {activeTab === 'india-expenses' && <AdminExpenses key="India" region="India" />}
                 {activeTab === 'timesheets' && <AdminTimesheets />}
                 {activeTab === 'payroll' && <AdminPayroll />}
                 {activeTab === 'vendors' && <AdminVendorDetails />}
                 {activeTab === 'payroll-entries' && <AdminPayrollEntries />}
+                {activeTab === 'invite-employee' && <InvitationForm />}
+                {isSuperAdmin && activeTab === 'invite-admin' && <InvitationForm role="admin" />}
+                {isSuperAdmin && activeTab === 'company-management' && <AdminCompanies />}
                 {isSuperAdmin && activeTab === 'company-access' && <AdminCompanyAccess />}
                 {isSuperAdmin && activeTab === 'settings' && <AdminSettings />}
                 {isSuperAdmin && activeTab === 'audit' && <AdminAuditLogs />}

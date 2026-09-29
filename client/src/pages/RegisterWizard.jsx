@@ -110,17 +110,18 @@ const GLOBAL_DOCS = [
   { key: 'e_verify', title: 'E-Verify Document / Verification Record', desc: 'DHS E-Verify case verification documentation or reference document.', required: false }
 ];
 
-export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
+export function RegisterWizard({ onNavigateLogin, onRegistrationComplete, invitation }) {
   const { login } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [nextIdPreview, setNextIdPreview] = useState('SH-2008');
 
   // Step 1: Personal Info & Emergency Details
+  const [registrationCompany, setRegistrationCompany] = useState(invitation?.companies?.[0]?.id || '');
   const [personalInfo, setPersonalInfo] = useState({
-    lastName: '',
-    firstName: '',
+    lastName: invitation?.lastName || '',
+    firstName: invitation?.firstName || '',
     middleInitial: '',
-    email: '',
+    email: invitation?.email || '',
     phone: '',
     gender: '',
     password: '',
@@ -400,6 +401,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
       );
 
       const payload = {
+        invitationToken: invitation?.token, companyId: registrationCompany,
         lastName: personalInfo.lastName.trim(),
         firstName: personalInfo.firstName.trim(),
         middleInitial: personalInfo.middleInitial.trim(),
@@ -909,10 +911,11 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete }) {
 
                     {/* Work & Contact */}
                     <div className="enterprise-card bg-white p-6 space-y-5">
+                      {invitation && <label className="block mb-4">Company for onboarding documents<select className="block w-full border p-3 rounded-lg" value={registrationCompany} onChange={e => setRegistrationCompany(e.target.value)}>{invitation.companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><span className="text-xs text-slate-500">You can switch between all your assigned companies after registration.</span></label>}
                       <SectionHeader icon={Briefcase} title="Work & Contact Details" desc="Corporate email, designation, and phone number for HR records" />
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <FieldGroup label="Work / Corporate Email" icon={Mail} required error={errors.email}>
-                          <input type="email" placeholder="e.g. j.vance@shinetek.com" value={personalInfo.email}
+                          <input type="email" readOnly={Boolean(invitation)} placeholder="Your invited email" value={personalInfo.email}
                             onChange={e => handlePersonalChange('email', e.target.value)}
                             className={inputCls(errors.email)} />
                         </FieldGroup>

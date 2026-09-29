@@ -6,7 +6,6 @@ import {
   User,
   Clock,
   FileText,
-  DollarSign,
   Bell,
   Users,
   UserCheck,
@@ -38,36 +37,35 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
       groupTitle: 'WORK & COMPLIANCE',
       items: [
         { id: 'timesheet', label: 'Timesheets', icon: Clock },
-        { id: 'documents', label: 'Document Vault', icon: FileText },
-        { id: 'payroll', label: 'Pay Stubs & Statements', icon: DollarSign }
+        { id: 'documents', label: 'Document Vault', icon: FileText }
       ]
     }
   ];
 
   const adminGroups = [
-    ...(isSuperAdmin ? [{ groupTitle: 'SUPER ADMIN', items: [{ id: 'company-access', label: 'Super Admin', icon: ShieldCheck }] }] : []),
+    ...(isSuperAdmin ? [{ groupTitle: 'SUPER ADMIN', items: [{ id: 'company-management', label: 'Company Management', icon: Building2 }, { id: 'company-access', label: 'Administrators & Access', icon: ShieldCheck }, { id: 'invite-admin', label: 'Add Domain Admin', icon: UserCheck }] }] : []),
     {
       groupTitle: 'OPERATIONS',
       items: [
         { id: 'dashboard', label: 'Admin Dashboard', icon: LayoutDashboard },
-        { id: 'approvals', label: 'Employee Approvals', icon: UserCheck }
+        { id: 'approvals', label: 'Employee Approvals', icon: UserCheck },
+        { id: 'invite-employee', label: 'Add Employee', icon: UserCheck }
       ]
     },
     {
       groupTitle: 'STAFF & PLACEMENTS',
       items: [
         { id: 'employees', label: 'Employee Directory', icon: Users },
-        { id: 'vendors', label: 'Vendor Placements', icon: Building2 },
-        { id: 'timesheets', label: 'Timesheet Approvals', icon: Clock }
+        { id: 'vendors', label: 'Vendor Placements', icon: Building2 }
       ]
     },
     {
-      groupTitle: 'FINANCE & PAYROLL',
+      groupTitle: 'TIMESHEET & PAYROLL',
       items: [
-        { id: 'payroll-entries', label: 'Payroll Information', icon: Receipt },
-        { id: 'payroll', label: 'Payroll Management', icon: DollarSign }
+        { id: 'timesheets', label: 'Timesheet Approvals', icon: Clock }
       ]
     },
+    { groupTitle: 'FINANCE', items: [{ id: 'us-expenses', label: 'US Expenses', icon: Receipt }, { id: 'india-expenses', label: 'India Expenses', icon: Receipt }] },
     {
       groupTitle: 'SYSTEM & AUDIT',
       items: [
@@ -91,8 +89,8 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
 
       {/* Sidebar Panel - Executive Slate/Navy Theme */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#071524] text-slate-300 border-r border-slate-800 transition-transform duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] lg:translate-x-0 lg:static lg:z-0 ${
-          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 shrink-0 bg-[#071524] text-slate-300 border-r border-slate-800 transition-transform duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] lg:translate-x-0 lg:static lg:z-0 lg:visible ${
+          isOpen ? 'translate-x-0 shadow-2xl visible' : '-translate-x-full invisible'
         } flex flex-col`}
       >
         {/* Mobile Header in Sidebar */}
@@ -101,6 +99,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close navigation menu"
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -126,7 +125,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
         </div>
 
         {/* Grouped Navigation List */}
-        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto custom-scrollbar">
+        <nav aria-label="Main navigation" className="flex-1 min-h-0 px-3 py-4 space-y-5 overflow-y-auto custom-scrollbar">
           {navGroups.map((group, idx) => (
             <div key={idx} className="space-y-1">
               <div className="px-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider font-display">
@@ -139,6 +138,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
                   <button
                     key={item.id}
                     type="button"
+                    aria-current={isActive ? 'page' : undefined}
                     onClick={() => {
                       onSelectTab(item.id);
                       if (onClose) onClose();
@@ -167,7 +167,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
             <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-status-pulse" />
             <span>Shineteck Enterprise</span>
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5 font-mono">SOC-2 & 256-Bit SSL Protected</p>
+          <p className="text-[10px] text-slate-400 mt-0.5 font-mono">Company Employee Portal</p>
         </div>
       </aside>
     </>

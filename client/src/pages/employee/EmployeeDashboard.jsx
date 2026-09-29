@@ -25,22 +25,19 @@ export function EmployeeDashboard({ onNavigateTab }) {
   const [profile, setProfile] = useState(null);
   const [timesheets, setTimesheets] = useState([]);
   const [documents, setDocuments] = useState([]);
-  const [payroll, setPayroll] = useState([]);
   const [isTimesheetModalOpen, setIsTimesheetModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
     try {
-      const [profData, timeData, docData, payData] = await Promise.all([
+      const [profData, timeData, docData] = await Promise.all([
         api.getProfile(),
         api.getMyTimesheets(),
-        api.getMyDocuments(),
-        api.getMyPayroll()
+        api.getMyDocuments()
       ]);
       setProfile(profData.employee);
       setTimesheets(timeData.timesheets || []);
       setDocuments(docData.documents || []);
-      setPayroll(payData.payrollRecords || []);
     } catch (err) {
       console.error('Failed to load employee dashboard data:', err);
     } finally {
@@ -129,9 +126,9 @@ export function EmployeeDashboard({ onNavigateTab }) {
       </div>
 
       {/* KPI Cards with Eye-Friendly Tonal Accents */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
         <div
-          onClick={() => onNavigateTab('timesheets')}
+          onClick={() => onNavigateTab('timesheet')}
           className="enterprise-card p-4.5 bg-[#e3effa] border-[#b4d3f2] hover:border-[#6fa9e4] hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
         >
           <div className="flex items-center justify-between text-[#0c3660] mb-2">
@@ -162,39 +159,10 @@ export function EmployeeDashboard({ onNavigateTab }) {
           </p>
         </div>
 
-        <div
-          onClick={() => onNavigateTab('payroll')}
-          className="enterprise-card p-4.5 bg-[#e2f6eb] border-[#9ee3bc] hover:border-[#52c283] hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
-        >
-          <div className="flex items-center justify-between text-[#084824] mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#084824] font-display">Pay Stubs</span>
-            <div className="w-7 h-7 rounded-lg bg-[#047857] text-white flex items-center justify-center shadow-2xs">
-              <DollarSign className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-[#05351a] font-display">{payroll.length}</div>
-          <p className="text-[11px] text-[#084824] font-semibold mt-1">Statements issued</p>
-        </div>
-
-        <div
-          onClick={() => onNavigateTab('profile')}
-          className="enterprise-card p-4.5 bg-[#eaeffc] border-[#bac8f8] hover:border-[#7a93ef] hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs group"
-        >
-          <div className="flex items-center justify-between text-[#1c296d] mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1c296d] font-display">Account</span>
-            <div className="w-7 h-7 rounded-lg bg-[#4338ca] text-white flex items-center justify-center shadow-2xs">
-              <UserCheck className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-sm font-bold text-[#141e52] mt-1 truncate font-display">
-            {profile?.employment_status || 'Active'}
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1 font-medium">Managed by Shineteck Inc.</p>
-        </div>
       </div>
 
       {/* Split Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Recent Timesheets */}
         <div className="enterprise-card p-5 sm:p-6 bg-white flex flex-col justify-between">
           <div>
@@ -207,7 +175,7 @@ export function EmployeeDashboard({ onNavigateTab }) {
               </div>
               <button
                 type="button"
-                onClick={() => onNavigateTab('timesheets')}
+                onClick={() => onNavigateTab('timesheet')}
                 className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer transition-colors"
               >
                 All Timesheets <ArrowRight className="w-3.5 h-3.5" />
@@ -254,72 +222,11 @@ export function EmployeeDashboard({ onNavigateTab }) {
           </div>
         </div>
 
-        {/* Recent Pay Statements */}
-        <div className="enterprise-card p-5 sm:p-6 bg-white flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-display">
-                  Payment Statements
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => onNavigateTab('payroll')}
-                className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                All Statements <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {payroll.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  <DollarSign className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50 stroke-1" />
-                  <p className="font-medium">No pay stubs generated yet for your account.</p>
-                </div>
-              ) : (
-                payroll.slice(0, 4).map((p) => {
-                  const curr = p.currency || 'USD';
-                  const symbol = curr === 'INR' ? '₹' : '$';
-                  return (
-                    <div
-                      key={p.id || p._id}
-                      className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 flex items-center justify-between gap-3 text-xs shadow-2xs"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-900">
-                          {p.pay_period_start} &rarr; {p.pay_period_end}
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
-                          Net Payout: <span className="font-bold font-mono text-slate-900">{symbol}{parseFloat(p.net_pay || 0).toLocaleString()}</span>
-                        </p>
-                      </div>
-                      <StatusBadge status={p.payment_status || 'Paid'} size="sm" />
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3.5 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
-            <span>Direct Deposit Status: Active</span>
-            <button
-              type="button"
-              onClick={() => onNavigateTab('payroll')}
-              className="text-blue-600 font-bold hover:underline cursor-pointer"
-            >
-              View Statement Details &rarr;
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Timesheet Submission Modal */}
       {isTimesheetModalOpen && (
-        <TimesheetUploadModal
+        <TimesheetUploadModal isOpen
           onClose={() => setIsTimesheetModalOpen(false)}
           onSuccess={() => {
             setIsTimesheetModalOpen(false);

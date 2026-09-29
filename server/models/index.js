@@ -23,6 +23,7 @@ export const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
 // 3. Employee Profile Schema
 const EmployeeSchema = new mongoose.Schema({
+  work_location_address: String,
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   employee_id: { type: String, required: true, unique: true, index: true },
   first_name: { type: String },
@@ -73,6 +74,7 @@ export const Employee = mongoose.models.Employee || mongoose.model('Employee', E
 
 // 4. Document Schema
 const DocumentSchema = new mongoose.Schema({
+  company_id: String, expiry_date: String,
   employee_id: { type: String, required: true, index: true },
   document_type: { type: String, required: true },
   file_name: { type: String, required: true },
@@ -93,6 +95,7 @@ export const Document = mongoose.models.Document || mongoose.model('Document', D
 
 // 5. Timesheet Schema
 const TimesheetSchema = new mongoose.Schema({
+  company_id: String, daily_hours: [{ _id: false, date: String, hours: Number }],
   employee_id: { type: String, required: true, index: true },
   employee_name: { type: String },
   vendor_name: { type: String, default: '' },
@@ -116,6 +119,7 @@ export const Timesheet = mongoose.models.Timesheet || mongoose.model('Timesheet'
 
 // 6. Payroll Record Schema
 const PayrollSchema = new mongoose.Schema({
+  company_id: String,
   employee_id: { type: String, required: true, index: true },
   pay_period_start: { type: String, required: true },
   pay_period_end: { type: String, required: true },
@@ -179,6 +183,7 @@ export const PasswordReset = mongoose.models.PasswordReset || mongoose.model('Pa
 
 // 10. Vendor Detail Schema
 const VendorDetailSchema = new mongoose.Schema({
+  company_id: String, po_start_date: String, po_end_date: String, msa_file: String, po_file: String,
   employee_id: { type: String, required: true, index: true },
   employee_name: { type: String, required: true },
   vendor_name: { type: String, required: true },
@@ -188,7 +193,7 @@ const VendorDetailSchema = new mongoose.Schema({
   hourly_bill_rate: { type: Number, required: true },
   employee_rate: { type: Number, required: true },
   bu_margin: { type: Number, required: true },
-  visa_type: { type: String, enum: ['H-1B', 'OPT'], default: 'H-1B' },
+  visa_type: { type: String, enum: ['H-1B', 'OPT', 'CPT', 'H-4 EAD', 'Green Card', 'US Citizen'], default: 'H-1B' },
   tax_percent: { type: Number, required: true },
   net_margin: { type: Number, required: true },
   created_at: { type: Date, default: Date.now },
@@ -198,6 +203,7 @@ export const VendorDetail = mongoose.models.VendorDetail || mongoose.model('Vend
 
 // 11. Payroll Entry Schema (Monthly billing & payroll)
 const PayrollEntrySchema = new mongoose.Schema({
+  company_id: String,
   employee_id: { type: String, required: true, index: true },
   employee_name: { type: String, required: true },
   payroll_month: { type: String, required: true },

@@ -8,9 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Ensure storage directories exist
-export const AVATAR_DIR = path.resolve(__dirname, '../uploads/avatars');
-export const PRIVATE_DOCS_DIR = path.resolve(__dirname, '../uploads/private/documents');
-export const TIMESHEET_DIR = path.resolve(__dirname, '../uploads/timesheets');
+export const AVATAR_DIR = path.resolve(process.env.SHINETECK_UPLOAD_DIR || path.resolve(__dirname, '../uploads'), 'avatars');
+export const PRIVATE_DOCS_DIR = path.resolve(process.env.SHINETECK_UPLOAD_DIR || path.resolve(__dirname, '../uploads'), 'private/documents');
+export const TIMESHEET_DIR = path.resolve(process.env.SHINETECK_UPLOAD_DIR || path.resolve(__dirname, '../uploads'), 'timesheets');
 
 [AVATAR_DIR, PRIVATE_DOCS_DIR, TIMESHEET_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) {

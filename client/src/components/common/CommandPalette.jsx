@@ -45,21 +45,27 @@ export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
       { id: 'emp-prof', title: 'My Profile & ID Badge', subtitle: 'View contact details and holographic badge', category: 'Navigation', icon: User, tab: 'profile' },
       { id: 'emp-time', title: 'Work Timesheets', subtitle: 'Submit hours and view status', category: 'Navigation', icon: Clock, tab: 'timesheet' },
       { id: 'emp-doc', title: 'Document Vault', subtitle: 'W-4, I-9, Passport, and Visa files', category: 'Navigation', icon: FileText, tab: 'documents' },
-      { id: 'emp-pay', title: 'Pay Statements', subtitle: 'Earnings history and net payouts', category: 'Navigation', icon: DollarSign, tab: 'payroll' },
       { id: 'emp-notif', title: 'Notifications Center', subtitle: 'Read corporate alerts', category: 'Navigation', icon: Bell, tab: 'notifications' }
     ] : []),
 
     // Admin Suite
     ...(isAdmin ? [
       { id: 'adm-dash', title: 'Executive Operations Dashboard', subtitle: 'Workforce KPIs and approval feeds', category: 'Admin Suite', icon: LayoutDashboard, tab: 'dashboard' },
-      { id: 'adm-emp', title: 'Employee Directory & Lifecycle', subtitle: 'Manage all consultant records', category: 'Admin Suite', icon: Users, tab: 'employees' },
+      { id: 'adm-emp', title: 'Employee Directory', subtitle: 'Manage all consultant records', category: 'Staff & Placements', icon: Users, tab: 'employees' },
       { id: 'adm-app', title: 'Onboarding Approvals Dossier', subtitle: 'Review pending applications and verify IDs', category: 'Admin Suite', icon: UserCheck, tab: 'approvals' },
-      { id: 'adm-time', title: 'Timesheet Approvals', subtitle: 'Authorize periodic consultant hours', category: 'Admin Suite', icon: Clock, tab: 'timesheets' },
-      { id: 'adm-ven', title: 'Vendor Placements & Billing', subtitle: 'Client contracts and billing rates', category: 'Admin Suite', icon: Building2, tab: 'vendors' },
-      { id: 'adm-paye', title: 'Dual-Currency Payroll Repository', subtitle: 'Monthly gross and net disbursement entries', category: 'Admin Suite', icon: DollarSign, tab: 'payroll-entries' },
+      { id: 'adm-time', title: 'Timesheet Approvals', subtitle: 'Authorize periodic consultant hours', category: 'Timesheet & Payroll', icon: Clock, tab: 'timesheets' },
+      { id: 'adm-ven', title: 'Vendor Placements', subtitle: 'Client contracts, MSA and purchase orders', category: 'Staff & Placements', icon: Building2, tab: 'vendors' },
       { id: 'adm-access', title: 'Super Admin', subtitle: 'Employee companies and administrator permissions', category: 'Admin Suite', icon: Building2, tab: 'company-access' },
       { id: 'adm-set', title: 'Sequential ID Generator Settings', subtitle: 'Configure Prefix, Digits, and Next Counter', category: 'Admin Suite', icon: Sliders, tab: 'settings' },
       { id: 'adm-aud', title: 'Security Audit Logs', subtitle: 'Track user sessions and compliance events', category: 'Admin Suite', icon: ShieldAlert, tab: 'audit' }
+    ] : []),
+
+    ...(isAdmin ? [
+      { id: 'invite-employee', title: 'Add Employee', subtitle: 'Send a registration invitation', category: 'Admin Suite', icon: UserCheck, tab: 'invite-employee' },
+      { id: 'us-expenses', title: 'US Expenses', subtitle: 'Manage company expenses in USD', category: 'Finance', icon: DollarSign, tab: 'us-expenses' },
+      { id: 'india-expenses', title: 'India Expenses', subtitle: 'Manage company expenses in INR', category: 'Finance', icon: DollarSign, tab: 'india-expenses' },
+      { id: 'company-management', title: 'Company Management', subtitle: 'Add, enable or disable companies', category: 'Super Admin', icon: Building2, tab: 'company-management' },
+      { id: 'invite-admin', title: 'Add Domain Admin', subtitle: 'Invite an admin and select their companies', category: 'Super Admin', icon: UserCheck, tab: 'invite-admin' }
     ] : []),
 
     // System Actions
@@ -68,7 +74,7 @@ export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
 
   // Filter actions based on query
   const filteredActions = allActions.filter(item => {
-    if (!isSuperAdmin && ['settings', 'audit', 'company-access'].includes(item.tab)) return false;
+    if (!isSuperAdmin && ['settings', 'audit', 'company-access', 'company-management', 'invite-admin'].includes(item.tab)) return false;
     if (!query.trim()) return true;
     const q = query.toLowerCase().trim();
     return (

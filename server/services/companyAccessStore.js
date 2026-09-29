@@ -30,29 +30,63 @@ export function createAccessStore({ database = db, model = AccessRecord, connect
     const rows = backend() === 'mongo' ? await model.find({ key: { $regex: `^${prefix}` } }).lean() : database.prepare('SELECT * FROM company_access_records WHERE key LIKE ?').all(`${prefix}%`).map(row => ({ ...row, value: JSON.parse(row.value) }));
     return rows.map(row => ({ key: row.key, ...row.value }));
   }
-  return { get, set, list };
+  async function claim(key, field = 'usedAt') {
+    const at = new Date().toISOString();
+    if (backend() === 'mongo') {
+      const result = await model.updateOne({ key, [`value.${field}`]: null }, { $set: { [`value.${field}`]: at } });
+      return result.modifiedCount === 1;
+    }
+    return database.transaction(() => {
+      const row = database.prepare('SELECT value FROM company_access_records WHERE key = ?').get(key);
+      if (!row) return false;
+      const value = JSON.parse(row.value);
+      if (value[field]) return false;
+      value[field] = at;
+      database.prepare('UPDATE company_access_records SET value = ? WHERE key = ?').run(JSON.stringify(value), key);
+      return true;
+    })();
+  }
+  return { get, set, list, claim };
 }
 export const accessStore = createAccessStore();
+
+export async function getCompanies(store = accessStore) {
+  const saved = await store.get('catalog:companies');
+  return saved?.companies || COMPANIES.map(company => ({ ...company, enabled: true }));
+}
+export const assignmentCompanies = row => row?.companyIds || (row?.companyId ? [row.companyId] : []);
 
 export async function getAdminAccess(user, store = accessStore) {
   if (user.role !== 'admin') return { isSuperAdmin: false, companyIds: [], enabled: false };
   // Reading the store even for the root account prevents an outage from changing authority.
   const grant = await store.get(`grant:${user.employeeId || user.employee_id}`);
-  if ((user.employeeId || user.employee_id) === ROOT_ADMIN_ID) return { isSuperAdmin: true, companyIds: COMPANIES.map(company => company.id), enabled: true };
-  return { isSuperAdmin: false, name: grant?.name, companyIds: grant?.companyIds || [], enabled: grant?.enabled === true };
+  const companies = await getCompanies(store);
+  if ((user.employeeId || user.employee_id) === ROOT_ADMIN_ID) return { isSuperAdmin: true, companyIds: companies.map(company => company.id), companies, enabled: true };
+  return { isSuperAdmin: false, name: grant?.name, companies, companyIds: (grant?.companyIds || []).filter(id => companies.some(company => company.id === id && company.enabled)), enabled: grant?.enabled === true };
 }
 
 export function buildCompanyScope(access, assignments, selection = 'all') {
   if (!access.enabled) throw accessError('Your administrator access has been revoked. Contact the super admin.');
-  if (typeof selection !== 'string' || (selection !== 'all' && selection !== 'unassigned' && !COMPANIES.some(company => company.id === selection))) throw accessError('Invalid company selection.', 400);
+  const companies = access.companies || COMPANIES;
+  if (typeof selection !== 'string' || (selection !== 'all' && selection !== 'unassigned' && !companies.some(company => company.id === selection))) throw accessError('Invalid company selection.', 400);
   if (!access.isSuperAdmin && selection !== 'all' && !access.companyIds.includes(selection)) throw accessError('You do not have access to this company.');
-  const map = new Map(assignments.map(row => [row.employeeId, row.companyId]));
+  const legacy = new Map(assignments.map(row => [row.employeeId, Object.hasOwn(row, 'legacyCompanyId') ? row.legacyCompanyId : assignmentCompanies(row).length === 1 ? assignmentCompanies(row)[0] : null]));
+  const map = new Map(assignments.map(row => [row.employeeId, assignmentCompanies(row)]));
   const allows = employeeId => {
     if (typeof employeeId !== 'string' || !employeeId) return false;
-    const company = map.get(employeeId);
-    if (selection === 'unassigned') return access.isSuperAdmin && !company;
-    if (selection !== 'all' && company !== selection) return false;
-    return access.isSuperAdmin || Boolean(company && access.companyIds.includes(company));
+    const ids = map.get(employeeId) || [];
+    if (selection === 'unassigned') return access.isSuperAdmin && !ids.length;
+    if (selection !== 'all' && !ids.includes(selection)) return false;
+    return access.isSuperAdmin || ids.some(id => access.companyIds.includes(id));
   };
-  return { ...access, selection, allows, companyFor: employeeId => map.get(employeeId) || null };
+  const allowsCompany = id => Boolean(id && (selection === 'all' || selection === id) && (access.isSuperAdmin || access.companyIds.includes(id)));
+  const allowsRecord = row => {
+    if (!allows(row.employee_id)) return false;
+    if (row.company_id) return allowsCompany(row.company_id);
+    const ids = map.get(row.employee_id) || [];
+    // Ambiguous historical records stay private to the root until classified.
+    const historicalCompany = legacy.get(row.employee_id);
+    return historicalCompany ? allowsCompany(historicalCompany) : access.isSuperAdmin && selection === 'all';
+  };
+  return { ...access, selection, allows, allowsCompany, allowsRecord, legacyCompanyFor: employeeId => legacy.get(employeeId) || null, companiesFor: employeeId => map.get(employeeId) || [], companyFor: employeeId => (map.get(employeeId) || [])[0] || null };
 }

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { db as defaultDb } from '../db/schema.js';
 import { Employee, User } from '../models/index.js';
 import { isMongoConnected as defaultMongoConnected } from '../db/mongo.js';
-import { accessStore as defaultStore, ROOT_ADMIN_ID, accessError } from '../services/companyAccessStore.js';
+import { accessStore as defaultStore, ROOT_ADMIN_ID, accessError, getCompanies, assignmentCompanies } from '../services/companyAccessStore.js';
 import { COMPANIES, companyName } from '../../client/src/utils/companyCatalog.js';
 
 const handle = action => async (req, res) => {
@@ -15,9 +15,9 @@ const handle = action => async (req, res) => {
     res.status(duplicate ? 409 : error.status || 500).json({ error: duplicate ? 'An account with this email already exists.' : error.status ? error.message : 'Unable to update access. Please try again.' });
   }
 };
-export function validateGrant(body) {
+export function validateGrant(body, companies = COMPANIES) {
   if (!body || !Array.isArray(body.companyIds) || typeof body.enabled !== 'boolean') throw accessError('Provide company access and an enabled status.', 400);
-  if (body.companyIds.some(id => !COMPANIES.some(company => company.id === id))) throw accessError('Unknown company.', 400);
+  if (body.companyIds.some(id => !companies.some(company => company.id === id))) throw accessError('Unknown company.', 400);
   return { companyIds: [...new Set(body.companyIds)], enabled: body.enabled };
 }
 export function createCompanyAccessHandlers({ database: db = defaultDb, store: accessStore = defaultStore, mongoConnected: isMongoConnected = defaultMongoConnected } = {}) {
@@ -32,16 +32,17 @@ async function adminAccounts() {
 }
 
 const listAdmins = handle(async (req, res) => {
+  const companies = await getCompanies(accessStore);
   const grants = new Map((await accessStore.list('grant:')).map(row => [row.employeeId, row]));
   res.json({ admins: (await adminAccounts()).map(user => {
     const root = user.employee_id === ROOT_ADMIN_ID;
     const grant = grants.get(user.employee_id);
-    return { employeeId: user.employee_id, email: user.email, name: grant?.name || (root ? 'Primary super admin' : user.email), isSuperAdmin: root, enabled: root || grant?.enabled === true, companyIds: root ? COMPANIES.map(company => company.id) : grant?.companyIds || [] };
-  }), companies: COMPANIES });
+    return { employeeId: user.employee_id, email: user.email, name: grant?.name || (root ? 'Primary super admin' : user.email), isSuperAdmin: root, enabled: root || grant?.enabled === true, companyIds: root ? companies.map(company => company.id) : grant?.companyIds || [] };
+  }), companies });
 });
 
 const createAdmin = handle(async (req, res) => {
-  const grant = validateGrant(req.body);
+  const grant = validateGrant(req.body, await getCompanies(accessStore));
   const { name, email, password } = req.body;
   if (typeof name !== 'string' || !name.trim() || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || typeof password !== 'string' || password.length < 12 || password.length > 128) throw accessError('Enter a name, valid email, and a password of 12–128 characters.', 400);
   const cleanEmail = email.trim().toLowerCase();
@@ -61,7 +62,7 @@ const updateAdmin = handle(async (req, res) => {
   const id = req.params.employeeId;
   if (id === ROOT_ADMIN_ID) throw accessError('The primary super admin cannot be disabled or have company access removed.', 409);
   if (!(await adminAccounts()).some(user => user.employee_id === id)) throw accessError('Administrator not found.', 404);
-  const grant = validateGrant(req.body);
+  const grant = validateGrant(req.body, await getCompanies(accessStore));
   const before = await accessStore.get(`grant:${id}`);
   const after = { ...before, ...grant, employeeId: id, updatedAt: new Date().toISOString() };
   await accessStore.set(`grant:${id}`, after);
@@ -78,17 +79,21 @@ async function employeeDirectory() {
   return [...new Map([...local, ...cloud].map(row => [row.employee_id, row])).values()].filter(row => !row.employee_id.startsWith('ADMIN'));
 }
 const listAssignments = handle(async (req, res) => {
-  const assignments = new Map((await accessStore.list('assignment:')).map(row => [row.employeeId, row.companyId]));
-  res.json({ companies: COMPANIES, employees: (await employeeDirectory()).map(row => ({ ...row, company_id: assignments.get(row.employee_id) || null, company_name: companyName(assignments.get(row.employee_id)) })) });
+  const companies = await getCompanies(accessStore);
+  const assignments = new Map((await accessStore.list('assignment:')).map(row => [row.employeeId, assignmentCompanies(row)]));
+  res.json({ companies, employees: (await employeeDirectory()).map(row => ({ ...row, company_ids: assignments.get(row.employee_id) || [], company_id: assignments.get(row.employee_id)?.[0] || null, company_name: (assignments.get(row.employee_id) || []).map(id => companies.find(c => c.id === id)?.name || id).join(', ') || 'Unassigned' })) });
 });
 const assignEmployees = handle(async (req, res) => {
   const { employeeIds, companyId } = req.body;
-  if (!Array.isArray(employeeIds) || !employeeIds.length || employeeIds.length > 200 || !employeeIds.every(id => typeof id === 'string') || (companyId !== null && !COMPANIES.some(company => company.id === companyId))) throw accessError('Select up to 200 employees and a valid company (or Unassigned).', 400);
+  const companies = await getCompanies(accessStore);
+  const companyIds = req.body.companyIds ?? (companyId ? [companyId] : []);
+  if (!Array.isArray(employeeIds) || !employeeIds.length || employeeIds.length > 200 || !employeeIds.every(id => typeof id === 'string') || (!Array.isArray(companyIds) || companyIds.some(id => !companies.some(c => c.id === id)))) throw accessError('Select up to 200 employees and a valid company (or Unassigned).', 400);
   const directory = new Set((await employeeDirectory()).map(row => row.employee_id));
   for (const id of employeeIds) if (!directory.has(id)) throw accessError('One or more employees were not found.', 404);
   for (const employeeId of new Set(employeeIds)) {
     const before = await accessStore.get(`assignment:${employeeId}`);
-    const after = { employeeId, companyId, updatedAt: new Date().toISOString() };
+    const legacyCompanyId = before && Object.hasOwn(before, 'legacyCompanyId') ? before.legacyCompanyId : assignmentCompanies(before).length === 1 ? assignmentCompanies(before)[0] : companyIds.length === 1 ? companyIds[0] : null;
+    const after = { employeeId, legacyCompanyId, companyId: companyIds[0] || null, companyIds: [...new Set(companyIds)], updatedAt: new Date().toISOString() };
     await accessStore.set(`assignment:${employeeId}`, after);
     await audit(req, 'EMPLOYEE_COMPANY_CHANGED', employeeId, before, after);
   }
@@ -98,6 +103,24 @@ const accessAudit = handle(async (req, res) => {
   res.json({ events: (await accessStore.list('audit:')).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 200) });
 });
 
-return { listAdmins, createAdmin, updateAdmin, listAssignments, assignEmployees, accessAudit };
+const listCompanies = handle(async (req, res) => res.json({ companies: await getCompanies(accessStore) }));
+const saveCompany = handle(async (req, res) => {
+  const companies = await getCompanies(accessStore);
+  const before = companies.find(c => c.id === req.params.id);
+  if (req.params.id) {
+    if (!before) throw accessError('Company not found.', 404);
+    if (typeof req.body.enabled !== 'boolean') throw accessError('Choose Enable or Disable.', 400);
+    before.enabled = req.body.enabled;
+  } else {
+    const name = String(req.body.name || '').trim();
+    if (!name || name.length > 150) throw accessError('Enter a company name up to 150 characters.', 400);
+    if (companies.some(c => c.name.toLowerCase() === name.toLowerCase())) throw accessError('Company already exists.', 409);
+    companies.push({ id: `company-${randomUUID()}`, name, enabled: true });
+  }
+  await accessStore.set('catalog:companies', { companies });
+  await audit(req, 'COMPANY_UPDATED', req.params.id || companies.at(-1).id, null, req.params.id ? before : companies.at(-1));
+  res.json({ companies, message: 'Company saved. Existing records are retained.' });
+});
+return { listCompanies, saveCompany, listAdmins, createAdmin, updateAdmin, listAssignments, assignEmployees, accessAudit };
 }
-export const { listAdmins, createAdmin, updateAdmin, listAssignments, assignEmployees, accessAudit } = createCompanyAccessHandlers();
+export const { listCompanies, saveCompany, listAdmins, createAdmin, updateAdmin, listAssignments, assignEmployees, accessAudit } = createCompanyAccessHandlers();

@@ -431,3 +431,25 @@ button:hover .btn-icon-bubble {
   opacity: 0.85;
 }
 
+
+/* Shared keyboard and responsive shell safeguards. */
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+.portal-header-logo { min-width: 0; }
+.portal-header-logo img { max-width: 100%; height: auto; max-height: 28px; }
+.portal-notifications { max-height: calc(100dvh - 80px); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 639px) {
+  .portal-header-logo { max-width: 120px; }
+  .portal-header-logo img { max-height: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -37,7 +37,7 @@ async function getAllPayrollEntries(req, res) {
 
 async function createPayrollEntry(req, res) {
   try {
-    const values = validatePayrollEntry(req.body);
+    const values = { ...validatePayrollEntry(req.body), ...(req.recordCompanyId ? { company_id: req.recordCompanyId } : {}) };
     if (mongoConfigured() && !mongoConnected()) return res.status(503).json({ error: 'Cloud database is unavailable. Try again shortly.' });
     let entry;
     if (mongoConnected()) entry = await model.create(values);
@@ -53,7 +53,7 @@ async function createPayrollEntry(req, res) {
 async function updatePayrollEntry(req, res) {
   try {
     const { id } = req.params;
-    const values = validatePayrollEntry(req.body);
+    const values = { ...validatePayrollEntry(req.body), ...(req.recordCompanyId ? { company_id: req.recordCompanyId } : {}) };
     if (mongoConfigured() && !mongoConnected()) return res.status(503).json({ error: 'Cloud database is unavailable. Try again shortly.' });
     let entry;
     if (/^[a-f\d]{24}$/i.test(id)) {

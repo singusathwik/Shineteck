@@ -23,29 +23,14 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [activeRoleTab, setActiveRoleTab] = useState('employee'); // 'employee' | 'admin'
-
   const canvasRef = useRef(null);
-
-  // Quick fill handler for demo
-  const handleQuickFill = (role) => {
-    setActiveRoleTab(role);
-    if (role === 'admin') {
-      setIdentifier('admin@shinetek.com');
-      setPassword('Admin@1234');
-    } else {
-      setIdentifier('johnathan.vance@shinetek.com');
-      setPassword('Password@123');
-    }
-    setErrorMsg(null);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
 
     if (!identifier.trim() || !password) {
-      setErrorMsg('Please enter your corporate email and password.');
+      setErrorMsg('Enter your username (email or employee ID) and password.');
       return;
     }
 
@@ -266,54 +251,19 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
         <div className="rounded-2xl p-1 bg-slate-100/90 border border-slate-200/80 shadow-2xl shadow-slate-200/80">
           {/* Inner White Card Core */}
           <div className="relative bg-white rounded-xl p-6 sm:p-8 border border-slate-200/70 space-y-6">
-            
+
             {/* Top Corporate Branding & Title */}
             <div className="flex flex-col items-center text-center space-y-2.5">
               <ShineteckLogo size="md" />
-              
+
               <div className="pt-1">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-display">
                   Corporate Portal Sign In
                 </h1>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Single Sign-On (SSO) & Workforce Governance
+                  Sign in with your assigned account
                 </p>
               </div>
-            </div>
-
-            {/* High-End Segmented Role Control */}
-            <div className="p-1 bg-slate-100/80 border border-slate-200 rounded-xl grid grid-cols-2 gap-1 text-xs font-semibold font-display">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveRoleTab('employee');
-                  setErrorMsg(null);
-                }}
-                className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeRoleTab === 'employee'
-                    ? 'bg-[#0f2b48] text-white shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Employee Portal</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveRoleTab('admin');
-                  setErrorMsg(null);
-                }}
-                className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeRoleTab === 'admin'
-                    ? 'bg-[#0f2b48] text-white shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin Suite</span>
-              </button>
             </div>
 
             {/* Error Message */}
@@ -326,24 +276,24 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
 
             {/* Authentication Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Corporate Email Input */}
+              {/* Username Input */}
               <div className="space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-700 uppercase tracking-wider font-display text-[11px]">
-                    Corporate Email
+                  <label htmlFor="login-username" className="font-bold text-slate-700 uppercase tracking-wider font-display text-[11px]">
+                    Username (email or employee ID)
                   </label>
-                  {activeRoleTab === 'employee' && (
-                    <span className="text-[10.5px] text-blue-600 font-mono font-medium">e.g. j.vance@shinetek.com</span>
-                  )}
+
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <Mail className="w-4 h-4" />
                   </div>
                   <input
-                    type="email"
+                    type="text"
                     required
-                    placeholder={activeRoleTab === 'admin' ? 'admin@shinetek.com' : 'e.g. j.vance@shinetek.com'}
+                    placeholder="Email address or employee ID"
+                    id="login-username"
+                    autoComplete="username"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 text-xs font-medium bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs"
@@ -354,7 +304,7 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
               {/* Password Input */}
               <div className="space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-700 uppercase tracking-wider font-display text-[11px]">
+                  <label htmlFor="login-password" className="font-bold text-slate-700 uppercase tracking-wider font-display text-[11px]">
                     Password
                   </label>
                   <button
@@ -373,12 +323,13 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
                     type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="Enter your security password"
-                    value={password}
+                    id="login-password" autoComplete="current-password" value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10 pr-10 py-2.5 text-xs font-medium bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-600/12 focus:border-blue-600 transition-all shadow-2xs"
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
@@ -398,54 +349,9 @@ export function LoginPage({ onNavigateRegister, onNavigateForgotPassword }) {
               </button>
             </form>
 
-            {/* 1-Click Demo Quick Fill */}
-            <div className="pt-4 border-t border-slate-100 space-y-2">
-              <div className="flex items-center justify-between text-[10.5px] text-slate-400 font-bold uppercase tracking-wider font-display">
-                <span>Quick Demo Credentials</span>
-                <span className="text-slate-400 font-normal">Click to fill</span>
-              </div>
+            <p className="text-xs text-slate-500 text-center">New here? Open the invitation email from your administrator to register.</p>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('employee')}
-                  className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-                >
-                  <Mail className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Employee Fill</span>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('admin')}
-                  className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Admin Fill</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Onboarding Registration Link */}
-            <div className="pt-2 text-center text-xs text-slate-500">
-              New consultant joining Shineteck?{' '}
-              <button
-                type="button"
-                onClick={onNavigateRegister}
-                className="text-blue-600 hover:text-blue-800 font-bold underline transition-colors cursor-pointer"
-              >
-                Start Onboarding Registration
-              </button>
-            </div>
-
-            {/* Bottom Security Compliance Strip */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[10.5px] text-slate-400 font-mono">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-status-pulse" />
-                256-Bit TLS Encryption
-              </span>
-              <span>SOC-2 Certified</span>
-            </div>
 
           </div>
         </div>

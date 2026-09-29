@@ -15,7 +15,7 @@ if (!fs.existsSync(dbDir)) {
   }
 }
 
-const dbPath = path.resolve(dbDir, 'shinetek.db');
+const dbPath = process.env.SHINETECK_DB_PATH || path.resolve(dbDir, 'shinetek.db');
 let db;
 try {
   db = new Database(dbPath);
@@ -350,5 +350,17 @@ export function initSchema() {
     console.warn('[DB Migration Warning]', migErr.message);
   }
 
+  const additions = {
+    employees: { work_location_address: 'TEXT' },
+    notifications: { company_id: 'TEXT' },
+    timesheets: { company_id: 'TEXT', daily_hours: 'TEXT' },
+    documents: { company_id: 'TEXT', expiry_date: 'TEXT' },
+    vendor_details: { company_id: 'TEXT', po_start_date: 'TEXT', po_end_date: 'TEXT', msa_file: 'TEXT', po_file: 'TEXT' },
+    payroll_entries: { company_id: 'TEXT' }, payroll_records: { company_id: 'TEXT' }
+  };
+  for (const [table, fields] of Object.entries(additions)) {
+    const columns = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name));
+    for (const [name, type] of Object.entries(fields)) if (!columns.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+  }
   console.log('[DB] Database schema initialized.');
 }

@@ -1,6 +1,11 @@
+import mongoose from 'mongoose';
+import path from 'node:path';
+import { PRIVATE_DOCS_DIR } from '../middleware/upload.js';
+import { persistPrivateFile } from '../services/privateFiles.js';
+import { readInvitation, invitationKey } from '../services/invitations.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getAdminAccess } from '../services/companyAccessStore.js';
+import { accessStore, accessError, getCompanies, assignmentCompanies, getAdminAccess } from '../services/companyAccessStore.js';
 import { verifyUploadReceipt } from '../services/uploadReceipt.js';
 import { db } from '../db/schema.js';
 import { JWT_SECRET } from '../middleware/auth.js';
@@ -14,7 +19,12 @@ import { createEmployeeProfileReader, withEmployeeProfile } from '../services/em
 const findEmployeeProfile = createEmployeeProfileReader({ db, Employee: MongoEmployee, isMongoConnected });
 
 export async function register(req, res) {
+  let claimed = false, newEmployeeId = null, cloudCommitted = false, completed = false;
   try {
+    const invitation = await readInvitation(req.body.invitationToken);
+    if (invitation.role !== 'employee' || invitation.email !== String(req.body.email || '').trim().toLowerCase()) throw accessError('Use the email address on your employee invitation.', 400);
+    const registrationCompany = req.body.companyId;
+    if (!invitation.companyIds.includes(registrationCompany)) throw accessError('Select an assigned company for your onboarding documents.', 400);
     const {
       lastName,
       firstName,
@@ -87,7 +97,7 @@ export async function register(req, res) {
 
     // Check duplicate email
     const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim().toLowerCase());
-    if (existingUser) {
+    if (existingUser || (isMongoConnected() && await MongoUser.exists({ email: email.trim().toLowerCase() }))) {
       return res.status(400).json({ error: 'An account with this email address already exists.' });
     }
 
@@ -110,13 +120,12 @@ export async function register(req, res) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    let newEmployeeId = null;
     let userId = null;
     const todayDate = new Date().toISOString().split('T')[0];
 
     // Atomic transaction for ID generation and user/employee insertion
     const registerTx = db.transaction(() => {
-      newEmployeeId = generateNextEmployeeIdSync();
+      // ID has been reserved and checked before entering this transaction.
 
       const userInsert = db.prepare(`
         INSERT INTO users (employee_id, email, password_hash, role, status)
@@ -198,88 +207,29 @@ export async function register(req, res) {
       );
     });
 
+    for (const doc of uploadedDocuments || []) await persistPrivateFile({ path: path.join(PRIVATE_DOCS_DIR, path.basename(doc.filePath)), filename: doc.filePath });
+    if (!await accessStore.claim(invitationKey(req.body.invitationToken))) throw accessError('Invitation already used.', 409);
+    claimed = true;
+    do { newEmployeeId = generateNextEmployeeIdSync(); } while (db.prepare('SELECT id FROM users WHERE employee_id=?').get(newEmployeeId) || (isMongoConnected() && await MongoUser.exists({ employee_id: newEmployeeId })));
     registerTx();
+    await accessStore.set(`assignment:${newEmployeeId}`, { employeeId: newEmployeeId, companyIds: invitation.companyIds, companyId: invitation.companyIds[0] });
+    db.prepare('UPDATE documents SET company_id = ? WHERE employee_id = ?').run(registrationCompany, newEmployeeId);
 
-    // Sync to MongoDB if connected
+    // Publish the cloud account/profile/documents atomically; a failed transaction is retryable.
     if (isMongoConnected()) {
-      (async () => {
-        try {
-          const mUser = await MongoUser.findOneAndUpdate(
-            { employee_id: newEmployeeId },
-            {
-              employee_id: newEmployeeId,
-              email: email.toLowerCase().trim(),
-              password_hash: passwordHash,
-              role: 'employee',
-              status: 'pending'
-            },
-            { upsert: true, returnDocument: 'after' }
-          );
-
-          await MongoEmployee.findOneAndUpdate(
-            { employee_id: newEmployeeId },
-            {
-              user_id: mUser._id,
-              employee_id: newEmployeeId,
-              first_name: trimmedFirstName || null,
-              last_name: trimmedLastName || null,
-              middle_initial: trimmedMiddleInitial || null,
-              full_name: effectiveFullName,
-              email: email.toLowerCase().trim(),
-              phone: phone.trim(),
-              gender: gender || null,
-              designation: designation.trim(),
-              date_of_birth: dateOfBirth,
-              country: country ? country.trim() : '',
-              state: state ? state.trim() : '',
-              city: city ? city.trim() : '',
-              zip_code: effectiveZip,
-              zip_code_part1: zipCodePart1 ? zipCodePart1.trim() : null,
-              zip_code_part2: zipCodePart2 ? zipCodePart2.trim() : null,
-              address: effectiveAddress,
-              address_line_1: addressLine1 ? addressLine1.trim() : null,
-              address_line_2: addressLine2 ? addressLine2.trim() : null,
-              suite_apt: suiteApt ? suiteApt.trim() : null,
-              emergency_first_name: emergencyFirstName ? emergencyFirstName.trim() : null,
-              emergency_last_name: emergencyLastName ? emergencyLastName.trim() : null,
-              emergency_email: emergencyEmail ? emergencyEmail.trim() : null,
-              emergency_phone: emergencyPhone ? emergencyPhone.trim() : null,
-              emergency_relationship: emergencyRelationship ? emergencyRelationship.trim() : null,
-              start_date: todayDate,
-              end_date: null,
-              employment_status: 'Active',
-              profile_image_url: profileImageUrl || null,
-              registration_status: 'Pending Review',
-              submitted_at: new Date()
-            },
-            { upsert: true }
-          );
-
-          if (Array.isArray(uploadedDocuments) && uploadedDocuments.length > 0) {
-            for (const doc of uploadedDocuments) {
-              await MongoDoc.create({
-                employee_id: newEmployeeId,
-                document_type: doc.documentType,
-                file_name: doc.fileName,
-                file_path: doc.filePath,
-                file_size: doc.fileSize || 0,
-                mime_type: doc.mimeType || 'application/octet-stream',
-                status: 'Uploaded'
-              });
-            }
-          }
-
-          await MongoNotif.create({
-            employee_id: newEmployeeId,
-            title: 'Registration Submitted',
-            message: 'Your employee profile and onboarding documents have been submitted to the Shinetek Inc. HR/Admin team for review.',
-            type: 'info'
-          });
-        } catch (mErr) {
-          console.error('[MongoDB Registration Sync Error]', mErr.message);
-        }
-      })();
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const [account] = await MongoUser.create([{ employee_id: newEmployeeId, email: email.trim().toLowerCase(), password_hash: passwordHash, role: 'employee', status: 'active' }], { session });
+          const { id, user_id, ...profile } = db.prepare('SELECT * FROM employees WHERE employee_id=?').get(newEmployeeId);
+          await MongoEmployee.create([{ ...profile, user_id: account._id }], { session });
+          const docs = db.prepare('SELECT * FROM documents WHERE employee_id=?').all(newEmployeeId).map(({ id, ...doc }) => doc);
+          if (docs.length) await MongoDoc.create(docs, { session });
+        });
+        cloudCommitted = true;
+      } finally { await session.endSession(); }
     }
+    completed = true;
 
     // Log audit event
     logAudit({
@@ -318,48 +268,42 @@ export async function register(req, res) {
       employee
     });
   } catch (err) {
+    if (claimed && !completed && !cloudCommitted) {
+      try {
+        if (newEmployeeId) { db.prepare('DELETE FROM employees WHERE employee_id=?').run(newEmployeeId); db.prepare('DELETE FROM users WHERE employee_id=?').run(newEmployeeId); }
+        const current = await accessStore.get(invitationKey(req.body.invitationToken));
+        await accessStore.set(invitationKey(req.body.invitationToken), { ...current, usedAt: null });
+      } catch (cleanupError) { console.error('[Registration recovery]', cleanupError.message); }
+    }
     console.error('[Register Error]', err);
-    res.status(500).json({ error: err.message || 'An unexpected error occurred during registration.' });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Registration could not be completed. Contact your administrator before trying again.' });
   }
 }
 
 export async function login(req, res) {
   try {
-    const { identifier, password } = req.body;
+    const { identifier, password } = req.body || {};
 
-    if (!identifier || !password) {
-      return res.status(400).json({ error: 'Please enter your corporate email and password.' });
+    if (typeof identifier !== 'string' || !identifier.trim() || typeof password !== 'string' || !password) {
+      return res.status(400).json({ error: 'Enter your username (email or employee ID) and password.' });
     }
 
     const cleanIdentifier = identifier.trim().toLowerCase();
 
-    // Disallow login via Employee ID
-    if (!cleanIdentifier.includes('@')) {
-      const isEmpId = db.prepare('SELECT employee_id FROM users WHERE LOWER(employee_id) = ?').get(cleanIdentifier);
-      if (isEmpId) {
-        return res.status(400).json({
-          error: 'Login using Employee ID is disabled. Please sign in with your corporate email address.'
-        });
-      }
-      return res.status(400).json({
-        error: 'Please enter a valid corporate email address.'
-      });
-    }
-
-    // Query user strictly by corporate email
+    // Resolve the account by email or employee ID; the client cannot choose its role.
     let user = db.prepare(`
       SELECT u.id, u.employee_id, u.email, u.password_hash, u.role, u.status,
              e.full_name, e.designation, e.profile_image_url, e.registration_status
       FROM users u
       LEFT JOIN employees e ON e.employee_id = u.employee_id
-      WHERE LOWER(u.email) = ?
-    `).get(cleanIdentifier);
+      WHERE LOWER(u.email) = ? OR LOWER(u.employee_id) = ?
+    `).get(cleanIdentifier, cleanIdentifier);
 
     // If not found in SQLite, check MongoDB Atlas as fallback
     if (!user && isMongoConnected()) {
       try {
         const mUser = await MongoUser.findOne({
-          email: cleanIdentifier
+          $or: [{ email: cleanIdentifier }, { employee_id: new RegExp(`^${cleanIdentifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }]
         });
 
         if (mUser) {
@@ -416,7 +360,7 @@ export async function login(req, res) {
         ipAddress: req.ip,
         status: 'FAILURE'
       });
-      return res.status(401).json({ error: 'Invalid credentials. Please verify your corporate email and password.' });
+      return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
     if (user.status === 'suspended') {
@@ -434,7 +378,7 @@ export async function login(req, res) {
         ipAddress: req.ip,
         status: 'FAILURE'
       });
-      return res.status(401).json({ error: 'Invalid credentials. Please verify your corporate email and password.' });
+      return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
     if (!user.full_name) {

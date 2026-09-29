@@ -1,3 +1,4 @@
+import { DailyHoursBreakdown } from '../../components/timesheet/DailyHoursBreakdown.jsx';
 import React, { useState, useEffect } from 'react';
 import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
@@ -109,6 +110,7 @@ export function EmployeeTimesheets() {
             </span>
 
             <select
+              aria-label="Timesheet status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-1.5 border border-slate-300 rounded-xl bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-600/12 shadow-2xs"
@@ -121,22 +123,26 @@ export function EmployeeTimesheets() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-end gap-2 min-w-0 w-full sm:w-auto">
+            <label className="flex-1 min-w-0 sm:flex-none flex flex-col gap-1 text-slate-600">
+              Start date
             <input
               type="date"
-              placeholder="From Date"
               value={startDateFilter}
               onChange={(e) => setStartDateFilter(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-300 rounded-xl text-slate-700 font-medium text-xs shadow-2xs"
+              className="w-full min-w-0 px-2.5 py-1.5 border border-slate-300 rounded-xl text-slate-700 font-medium text-xs shadow-2xs"
             />
-            <span className="text-slate-400 font-medium">to</span>
+            </label>
+            <label className="flex-1 min-w-0 sm:flex-none flex flex-col gap-1 text-slate-600">
+              End date
             <input
               type="date"
-              placeholder="To Date"
               value={endDateFilter}
               onChange={(e) => setEndDateFilter(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-300 rounded-xl text-slate-700 font-medium text-xs shadow-2xs"
+              min={startDateFilter || undefined}
+              className="w-full min-w-0 px-2.5 py-1.5 border border-slate-300 rounded-xl text-slate-700 font-medium text-xs shadow-2xs"
             />
+            </label>
 
             {(statusFilter !== 'ALL' || startDateFilter || endDateFilter) && (
               <button
@@ -196,7 +202,7 @@ export function EmployeeTimesheets() {
                     )}
                   </td>
                   <td className="font-mono font-bold text-slate-900">
-                    {ts.total_hours} hrs
+                    {ts.total_hours} hrs<DailyHoursBreakdown timesheet={ts} />
                   </td>
                   <td>
                     <TimesheetDownloadMenu timesheet={ts} />

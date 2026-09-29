@@ -14,18 +14,20 @@ export function CompanyProvider({ children }) {
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const previous = useRef('');
+  const employeeId = user?.employeeId, role = user?.role;
   useEffect(() => {
     let live = true;
     setCompanyScope('all'); setSelected('all'); setActiveTab('dashboard'); setContext(null); setError(''); previous.current = '';
-    if (user?.role !== 'admin') return;
+    if (!employeeId) return;
     const refresh = async () => {
       try {
-        const data = await request('/admin/company-context');
+        const data = await request(role === 'admin' ? '/admin/company-context' : '/employee/company-context');
         if (!live) return;
         const signature = JSON.stringify(data);
         if (previous.current && previous.current !== signature) {
           setCompanyScope('all'); setSelected('all'); setRevision(value => value + 1);
         }
+        if (!previous.current && role !== 'admin' && data.companies.length) { setCompanyScope(data.companies[0].id); setSelected(data.companies[0].id); }
         previous.current = signature;
         setContext(data); setError('');
       } catch (err) { if (live) { setContext(null); setError(err.message); } }
@@ -35,19 +37,20 @@ export function CompanyProvider({ children }) {
     window.addEventListener('focus', refresh);
     window.addEventListener('company-access-denied', refresh);
     return () => { live = false; clearInterval(interval); window.removeEventListener('focus', refresh); window.removeEventListener('company-access-denied', refresh); };
-  }, [user?.employeeId, user?.role]);
+  }, [employeeId, role]);
   const choose = value => { setCompanyScope(value); setSelected(value); setRevision(value => value + 1); };
-  if (user?.role === 'admin' && !context) return <div className="company-access company-loading" role="status"><h1>{error ? 'Workspace unavailable' : 'Loading company access…'}</h1><p>{error || 'Checking your company permissions.'}</p>{error && <button onClick={logout}>Back to sign in</button>}</div>;
+  if (user && !context) return <div className="company-access company-loading" role="status"><h1>{error ? 'Workspace unavailable' : 'Loading company access…'}</h1><p>{error || 'Checking your company permissions.'}</p>{error && <button onClick={logout}>Back to sign in</button>}</div>;
   return <CompanyContext.Provider value={{ ...context, selected, choose, activeTab, setActiveTab, refreshWorkspace: () => setRevision(value => value + 1) }}><React.Fragment key={`${user?.employeeId}:${revision}`}>{children}</React.Fragment></CompanyContext.Provider>;
 }
 
 export function CompanySelector() {
-  const { companies, selected, choose, isSuperAdmin } = useCompany();
+  const { user } = useAuth();
+  const { companies = [], selected, choose, isSuperAdmin } = useCompany();
   return <section className="company-access company-toolbar" aria-label="Company workspace">
-    <div><strong>{isSuperAdmin ? 'Super admin workspace' : 'Company workspace'}</strong><p>{isSuperAdmin ? 'Manage all five companies or focus on one.' : 'Only employees in your assigned companies are available.'}</p></div>
+    <div><strong>{isSuperAdmin ? 'Super admin workspace' : 'Company workspace'}</strong><p>{isSuperAdmin ? 'Manage all companies or focus on one.' : user?.role === 'employee' ? 'Your documents and timesheets are organized by company.' : 'Only employees in your assigned companies are available.'}</p></div>
     <label>Company<select value={selected} onChange={event => choose(event.target.value)}>
-      <option value="all">{isSuperAdmin ? 'All employees · All companies' : 'All employees · My companies'}</option>
-      {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+      <option value="all">{isSuperAdmin ? 'All employees · All companies' : user?.role === 'employee' ? 'All my companies' : 'All employees · My companies'}</option>
+      {companies.map(company => <option key={company.id} value={company.id}>{company.name}{company.enabled === false ? ' (disabled)' : ''}</option>)}
       {isSuperAdmin && <option value="unassigned">Unassigned employees</option>}
     </select></label>
   </section>;

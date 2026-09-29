@@ -33,8 +33,6 @@ export function EmployeePayroll() {
       }
     } catch (err) {
       console.error('Failed to load payroll:', err);
-    } finally {
-      setIsLoading(false);
     }
   };
 

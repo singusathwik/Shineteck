@@ -1,228 +1,67 @@
-import { VendorDetail, Employee } from '../models/index.js';
+import { mergedRecords, vendorIdentity } from '../services/portalRecords.js';
+import fs from 'node:fs/promises';
+import { VendorDetail } from '../models/index.js';
 import { db } from '../db/schema.js';
 import { isMongoConnected } from '../db/mongo.js';
+import { accessStore, accessError } from '../services/companyAccessStore.js';
 
-// GET /api/admin/vendors
-export async function getAllVendorDetails(req, res) {
-  try {
-    const { search } = req.query;
-    let vendors = [];
-
-    if (isMongoConnected()) {
-      try {
-        let query = {};
-        if (search) {
-          const regex = new RegExp(search, 'i');
-          query = {
-            $or: [
-              { employee_id: regex },
-              { employee_name: regex },
-              { vendor_name: regex },
-              { client_name: regex }
-            ]
-          };
-        }
-        vendors = await VendorDetail.find(query).sort({ created_at: -1 }).lean();
-      } catch (mErr) {
-        console.warn('[getAllVendorDetails MongoDB fallback]', mErr.message);
-      }
-    }
-
-    if (vendors.length === 0) {
-      let sql = 'SELECT * FROM vendor_details WHERE 1=1';
-      const params = [];
-      if (search?.trim()) {
-        const term = `%${search.trim().toLowerCase()}%`;
-        sql += ' AND (LOWER(employee_id) LIKE ? OR LOWER(employee_name) LIKE ? OR LOWER(vendor_name) LIKE ? OR LOWER(client_name) LIKE ?)';
-        params.push(term, term, term, term);
-      }
-      sql += ' ORDER BY created_at DESC';
-      vendors = db.prepare(sql).all(...params);
-    }
-
-    res.json({ vendors });
-  } catch (err) {
-    console.error('[VendorController] getAllVendorDetails error:', err);
-    res.status(500).json({ error: 'Failed to fetch vendor details.' });
-  }
+export const VISA_TYPES = ['H-1B', 'OPT', 'CPT', 'H-4 EAD', 'Green Card', 'US Citizen'];
+const handle = action => async (req, res) => { try { await action(req, res); } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Unable to save vendor details. Please try again.' }); } finally { if (req.file?.path) await fs.unlink(req.file.path).catch(() => {}); } };
+async function rows() { return mergedRecords('vendor_details', VendorDetail, vendorIdentity); }
+async function find(id) { return isMongoConnected() && /^[a-f0-9]{24}$/i.test(id) ? VendorDetail.findById(id).lean() : db.prepare('SELECT * FROM vendor_details WHERE id = ?').get(id); }
+export const getAllVendorDetails = handle(async (req, res) => {
+  const term = String(req.query.search || '').toLowerCase();
+  res.json({ vendors: (await rows()).filter(row => `${row.employee_id} ${row.employee_name} ${row.vendor_name} ${row.client_name}`.toLowerCase().includes(term)) });
+});
+export const getMyVendors = handle(async (req, res) => res.json({ vendors: (await rows()).filter(row => row.employee_id === req.user.employeeId) }));
+function date(value) { return !value || /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value; }
+export function validateVendor(body, previous = {}) {
+  for (const key of ['employee_id', 'employee_name', 'vendor_name', 'client_name']) if (typeof body[key] !== 'string' || !body[key].trim()) throw accessError('Employee, vendor, and client are required.', 400);
+  if (!VISA_TYPES.includes(body.visa_type)) throw accessError('Select a valid visa type.', 400);
+  if (!date(body.po_start_date) || !date(body.po_end_date) || (body.po_start_date && body.po_end_date && body.po_start_date > body.po_end_date)) throw accessError('PO end date cannot be before the start date. Use valid dates.', 400);
+  const bill = Number(body.hourly_bill_rate), rate = Number(body.employee_rate), tax = Number(body.tax_percent ?? previous.tax_percent ?? 0);
+  if (![bill, rate, tax].every(Number.isFinite) || bill < 0 || rate < 0 || tax < 0 || tax > 100) throw accessError('Enter valid rates and a tax percentage from 0 to 100.', 400);
+  return { employee_id: body.employee_id, employee_name: body.employee_name.trim(), vendor_name: body.vendor_name.trim(), vendor_address: String(body.vendor_address || '').trim(), client_name: body.client_name.trim(), client_address: String(body.client_address || '').trim(), hourly_bill_rate: bill, employee_rate: rate, bu_margin: bill - rate, tax_percent: tax, net_margin: Math.round((bill - rate) * (1 - tax / 100) * 100) / 100, visa_type: body.visa_type, po_start_date: body.po_start_date || null, po_end_date: body.po_end_date || null };
 }
-
-// GET /api/vendors/my (Authenticated employee's assigned vendors)
-export async function getMyVendors(req, res) {
-  try {
-    const employeeId = req.user.employeeId;
-    let vendors = [];
-
-    if (isMongoConnected()) {
-      try {
-        vendors = await VendorDetail.find({ employee_id: employeeId }).sort({ created_at: -1 }).lean();
-      } catch (mErr) {}
-    }
-
-    if (vendors.length === 0) {
-      vendors = db.prepare('SELECT * FROM vendor_details WHERE employee_id = ? ORDER BY created_at DESC').all(employeeId);
-    }
-
-    res.json({ vendors });
-  } catch (err) {
-    console.error('[getMyVendors Error]', err);
-    res.status(500).json({ error: 'Failed to fetch employee vendor records.' });
+async function save(req, res) {
+  const before = req.params.id ? await find(req.params.id) : null;
+  if (req.params.id && !before) throw accessError('Vendor not found.', 404);
+  const data = validateVendor(req.body, before || {});
+  const scope = req.companyScope;
+  const company = before?.company_id || req.body.company_id || (scope.selection !== 'all' ? scope.selection : scope.companiesFor(data.employee_id).length === 1 ? scope.companyFor(data.employee_id) : null);
+  if (!company || !scope.allowsCompany(company) || !scope.companiesFor(data.employee_id).includes(company) || !scope.companies.some(c => c.id === company && c.enabled)) throw accessError('Select an enabled company assigned to this employee.', 400);
+  data.company_id = company;
+  let vendor;
+  if (isMongoConnected() && (!before || before._id)) {
+    vendor = before ? await VendorDetail.findByIdAndUpdate(before._id, { $set: data }, { new: true, runValidators: true }) : await VendorDetail.create(data);
+  } else if (before) {
+    db.prepare(`UPDATE vendor_details SET ${Object.keys(data).map(key => `${key}=@${key}`).join(',')}, updated_at=CURRENT_TIMESTAMP WHERE id=@id`).run({ ...data, id: before.id });
+    vendor = await find(before.id);
+  } else {
+    const result = db.prepare(`INSERT INTO vendor_details (${Object.keys(data).join(',')}) VALUES (${Object.keys(data).map(key => `@${key}`).join(',')})`).run(data);
+    vendor = await find(result.lastInsertRowid);
   }
+  res.status(before ? 200 : 201).json({ vendor });
 }
-
-// POST /api/admin/vendors
-export async function createVendorDetail(req, res) {
-  try {
-    const {
-      employee_id, employee_name, vendor_name, vendor_address,
-      client_name, client_address, hourly_bill_rate, employee_rate,
-      visa_type
-    } = req.body;
-
-    if (!employee_id || !employee_name || !vendor_name || !client_name) {
-      return res.status(400).json({ error: 'Employee ID, Employee Name, Vendor Name, and Client Name are required.' });
-    }
-
-    const billRate = parseFloat(hourly_bill_rate) || 0;
-    const empRate = parseFloat(employee_rate) || 0;
-    const buMargin = billRate - empRate;
-
-    const vType = visa_type === 'OPT' ? 'OPT' : 'H-1B';
-    const taxPct = vType === 'H-1B' ? 8.5 : 2.5;
-    const netMargin = buMargin - (buMargin * taxPct / 100);
-
-    let vendor = null;
-    if (isMongoConnected()) {
-      try {
-        vendor = await VendorDetail.create({
-          employee_id,
-          employee_name,
-          vendor_name,
-          vendor_address: vendor_address || '',
-          client_name,
-          client_address: client_address || '',
-          hourly_bill_rate: billRate,
-          employee_rate: empRate,
-          bu_margin: buMargin,
-          visa_type: vType,
-          tax_percent: taxPct,
-          net_margin: parseFloat(netMargin.toFixed(2))
-        });
-      } catch (mErr) {
-        console.warn('[MongoDB createVendorDetail fallback]', mErr.message);
-      }
-    }
-
-    // SQLite dual-sync
-    try {
-      const stmt = db.prepare(`
-        INSERT INTO vendor_details (
-          employee_id, employee_name, vendor_name, vendor_address,
-          client_name, client_address, hourly_bill_rate, employee_rate,
-          bu_margin, visa_type, tax_percent, net_margin
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      const r = stmt.run(
-        employee_id, employee_name, vendor_name, vendor_address || '',
-        client_name, client_address || '', billRate, empRate,
-        buMargin, vType, taxPct, parseFloat(netMargin.toFixed(2))
-      );
-      if (!vendor) {
-        vendor = db.prepare('SELECT * FROM vendor_details WHERE id = ?').get(r.lastInsertRowid);
-      }
-    } catch (sErr) {
-      console.warn('[SQLite createVendorDetail warning]', sErr.message);
-    }
-
-    res.status(201).json({ vendor });
-  } catch (err) {
-    console.error('[VendorController] createVendorDetail error:', err);
-    res.status(500).json({ error: 'Failed to create vendor detail.' });
-  }
-}
-
-// PUT /api/admin/vendors/:id
-export async function updateVendorDetail(req, res) {
-  try {
-    const { id } = req.params;
-    const {
-      employee_id, employee_name, vendor_name, vendor_address,
-      client_name, client_address, hourly_bill_rate, employee_rate,
-      visa_type
-    } = req.body;
-
-    const billRate = parseFloat(hourly_bill_rate) || 0;
-    const empRate = parseFloat(employee_rate) || 0;
-    const buMargin = billRate - empRate;
-
-    const vType = visa_type === 'OPT' ? 'OPT' : 'H-1B';
-    const taxPct = vType === 'H-1B' ? 8.5 : 2.5;
-    const netMargin = buMargin - (buMargin * taxPct / 100);
-
-    let vendor = null;
-    if (isMongoConnected()) {
-      try {
-        vendor = await VendorDetail.findByIdAndUpdate(id, {
-          employee_id,
-          employee_name,
-          vendor_name,
-          vendor_address: vendor_address || '',
-          client_name,
-          client_address: client_address || '',
-          hourly_bill_rate: billRate,
-          employee_rate: empRate,
-          bu_margin: buMargin,
-          visa_type: vType,
-          tax_percent: taxPct,
-          net_margin: parseFloat(netMargin.toFixed(2)),
-          updated_at: new Date()
-        }, { new: true });
-      } catch (mErr) {}
-    }
-
-    // SQLite fallback / sync
-    try {
-      db.prepare(`
-        UPDATE vendor_details
-        SET employee_id = ?, employee_name = ?, vendor_name = ?, vendor_address = ?,
-            client_name = ?, client_address = ?, hourly_bill_rate = ?, employee_rate = ?,
-            bu_margin = ?, visa_type = ?, tax_percent = ?, net_margin = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(
-        employee_id, employee_name, vendor_name, vendor_address || '',
-        client_name, client_address || '', billRate, empRate,
-        buMargin, vType, taxPct, parseFloat(netMargin.toFixed(2)),
-        id
-      );
-      if (!vendor) {
-        vendor = db.prepare('SELECT * FROM vendor_details WHERE id = ?').get(id);
-      }
-    } catch (sErr) {}
-
-    res.json({ vendor });
-  } catch (err) {
-    console.error('[VendorController] updateVendorDetail error:', err);
-    res.status(500).json({ error: 'Failed to update vendor detail.' });
-  }
-}
-
-// DELETE /api/admin/vendors/:id
-export async function deleteVendorDetail(req, res) {
-  try {
-    const { id } = req.params;
-    if (isMongoConnected()) {
-      try {
-        await VendorDetail.findByIdAndDelete(id);
-      } catch (mErr) {}
-    }
-    try {
-      db.prepare('DELETE FROM vendor_details WHERE id = ?').run(id);
-    } catch (sErr) {}
-
-    res.json({ success: true, message: 'Vendor detail deleted.' });
-  } catch (err) {
-    console.error('[VendorController] deleteVendorDetail error:', err);
-    res.status(500).json({ error: 'Failed to delete vendor detail.' });
-  }
-}
-
+export const createVendorDetail = handle(save), updateVendorDetail = handle(save);
+export const deleteVendorDetail = handle(async (req, res) => {
+  const row = await find(req.params.id);
+  if (!row) throw accessError('Vendor not found.', 404);
+  if (row._id) await VendorDetail.deleteOne({ _id: row._id }); else db.prepare('DELETE FROM vendor_details WHERE id = ?').run(row.id);
+  res.json({ message: 'Vendor placement removed.' });
+});
+export const uploadVendorFile = handle(async (req, res) => {
+  if (!['msa', 'po'].includes(req.params.type) || !req.file) throw accessError('Attach an MSA or PO file.', 400);
+  if (req.file.size > 8 * 1024 * 1024) throw accessError('Contract files must be 8 MB or smaller.', 400);
+  const row = await find(req.params.id);
+  if (!row) throw accessError('Vendor not found.', 404);
+  const id = String(row._id || row.id), field = `${req.params.type}_file`;
+  await accessStore.set(`contract:${id}:${req.params.type}`, { filename: req.file.originalname, mime: req.file.mimetype, content: (await fs.readFile(req.file.path)).toString('base64'), uploadedAt: new Date().toISOString() });
+  if (row._id) await VendorDetail.updateOne({ _id: row._id }, { $set: { [field]: req.file.originalname } }); else db.prepare(`UPDATE vendor_details SET ${field}=? WHERE id=?`).run(req.file.originalname, row.id);
+  res.json({ message: 'Contract uploaded.' });
+});
+export const downloadVendorFile = handle(async (req, res) => {
+  const file = await accessStore.get(`contract:${req.params.id}:${req.params.type}`);
+  if (!file) throw accessError('Contract not found.', 404);
+  res.type(file.mime).attachment(file.filename).send(Buffer.from(file.content, 'base64'));
+});

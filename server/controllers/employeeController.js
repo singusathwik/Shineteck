@@ -241,7 +241,7 @@ export async function getEmployeeProfile(req, res) {
 }
 
 // Update editable profile information
-export function updateEmployeeProfile(req, res) {
+export async function updateEmployeeProfile(req, res) {
   try {
     const employeeId = req.params.employeeId || req.user.employeeId;
 
@@ -278,7 +278,12 @@ export function updateEmployeeProfile(req, res) {
       employmentStatus // Only admin can edit
     } = req.body;
 
-    const currentEmp = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
+    let currentEmp = await findEmployeeProfile(employeeId);
+    if (currentEmp && !db.prepare('SELECT employee_id FROM employees WHERE employee_id = ?').get(employeeId)) {
+      const columns = new Set(db.prepare('PRAGMA table_info(employees)').all().map(c => c.name));
+      const data = Object.fromEntries(Object.entries(currentEmp).filter(([key, value]) => columns.has(key) && !['id', 'user_id'].includes(key) && value !== undefined).map(([key, value]) => [key, value instanceof Date ? value.toISOString() : value]));
+      db.prepare(`INSERT INTO employees (${Object.keys(data).join(',')}) VALUES (${Object.keys(data).map(key => `@${key}`).join(',')})`).run(data);
+    }
     if (!currentEmp) {
       return res.status(404).json({ error: 'Employee not found.' });
     }
@@ -342,6 +347,10 @@ export function updateEmployeeProfile(req, res) {
     const finalEmergPhone = emergencyPhone !== undefined ? emergencyPhone : currentEmp.emergency_phone;
     const finalEmergRel = emergencyRelationship !== undefined ? emergencyRelationship : currentEmp.emergency_relationship;
 
+    const workLocation = req.body.workLocationAddress === undefined ? currentEmp.work_location_address : String(req.body.workLocationAddress).trim();
+    if (workLocation && workLocation.length > 1000) return res.status(400).json({ error: 'Work location must be 1,000 characters or less.' });
+    if (isMongoConnected()) await MongoEmployee.updateOne({ employee_id: employeeId }, { $set: { work_location_address: workLocation || '' } });
+    db.prepare('UPDATE employees SET work_location_address = ? WHERE employee_id = ?').run(workLocation || '', employeeId);
     db.prepare(`
       UPDATE employees
       SET first_name = ?,
@@ -414,6 +423,7 @@ export function updateEmployeeProfile(req, res) {
     });
 
     const updated = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
+    if (isMongoConnected()) { const { id, user_id, ...profileData } = updated; await MongoEmployee.updateOne({ employee_id: employeeId }, { $set: profileData }); }
     const todayStr = new Date().toISOString().split('T')[0];
     const isStillWorking = (updated.employment_status !== 'Inactive') && (!updated.end_date || updated.end_date >= todayStr);
 
@@ -551,7 +561,7 @@ export async function getAllEmployees(req, res) {
       let query = `
         SELECT e.id, e.employee_id, e.first_name, e.last_name, e.middle_initial, e.full_name, e.email, e.phone, e.designation,
                e.date_of_birth, e.country, e.state, e.city, e.registration_status,
-               e.start_date, e.end_date, e.employment_status,
+               e.start_date, e.end_date, e.employment_status, e.work_location_address,
                e.profile_image_url, e.submitted_at, e.created_at,
                (SELECT COUNT(*) FROM documents WHERE employee_id = e.employee_id) as total_docs,
                (SELECT COUNT(*) FROM documents WHERE employee_id = e.employee_id AND status = 'Approved') as approved_docs,
@@ -720,19 +730,10 @@ export async function getEmployeeDetail(req, res) {
       is_still_working: (rawEmployee.employment_status !== 'Inactive') && (!rawEmployee.end_date || rawEmployee.end_date >= todayStr)
     };
 
-    let documents = [];
-    try {
-      documents = db.prepare(`
-        SELECT * FROM documents WHERE employee_id = ? ORDER BY uploaded_at DESC
-      `).all(employeeId);
-    } catch (e) {}
-
-    let timesheets = [];
-    try {
-      timesheets = db.prepare(`
-        SELECT * FROM timesheets WHERE employee_id = ? ORDER BY submitted_at DESC
-      `).all(employeeId);
-    } catch (e) {}
+    const { documentRows } = await import('./documentController.js');
+    const { timesheetRows } = await import('./timesheetController.js');
+    const documents = (await documentRows()).filter(row => row.employee_id === employeeId);
+    const timesheets = (await timesheetRows()).filter(row => row.employee_id === employeeId);
 
     let vendorDetails = null;
     try {
@@ -755,8 +756,8 @@ export async function getEmployeeDetail(req, res) {
       employee,
       documents,
       timesheets,
-      vendorDetails,
-      auditLogs
+      vendorDetails: vendorDetails && req.companyScope?.allowsRecord(vendorDetails) ? vendorDetails : null,
+      auditLogs: req.user.isSuperAdmin ? auditLogs : []
     });
   } catch (err) {
     console.error('[getEmployeeDetail Error]', err);

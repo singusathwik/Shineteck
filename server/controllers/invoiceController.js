@@ -9,7 +9,7 @@ const schema = new mongoose.Schema({
   id: { type: String, unique: true, required: true },
   employee_id: { type: String, required: true },
   invoice_number: { type: String, required: true },
-  month: String, currency: String, status: String,
+  company_id: String, month: String, currency: String, status: String,
   total_hours: Number, rate: Number, invoice_amount: Number,
   employee_share: Number, tax: Number, net_amount: Number,
   due_date: String, received_date: String, paid_date: String,
@@ -33,6 +33,7 @@ export function createInvoiceHandlers({ database = db, mongoConnected = isMongoC
     if (mongoConnected()) return 'mongo';
     if (mongoConfigured()) { const error = new Error('Invoice database is unavailable. Please try again shortly.'); error.status = 503; throw error; }
     database.exec(invoiceTableSQL);
+    if (!database.prepare('PRAGMA table_info(employee_invoices)').all().some(c => c.name === 'company_id')) database.exec('ALTER TABLE employee_invoices ADD COLUMN company_id TEXT');
     return 'sqlite';
   };
   const handle = action => async (req, res) => {
@@ -56,7 +57,7 @@ export function createInvoiceHandlers({ database = db, mongoConnected = isMongoC
       const employee = source === 'mongo' ? await Employee.findOne({ employee_id: values.employee_id }).lean() : database.prepare('SELECT employee_id FROM employees WHERE employee_id = ?').get(values.employee_id);
       if (!employee) { res.status(404).json({ error: 'Employee not found.' }); return; }
       const id = req.params.id || randomUUID();
-      const invoice = { ...values, id, updated_at: new Date().toISOString() };
+      const invoice = { ...values, ...(req.recordCompanyId ? { company_id: req.recordCompanyId } : {}), id, updated_at: new Date().toISOString() };
       if (source === 'mongo') {
         await Invoice.init();
         if (req.params.id) {

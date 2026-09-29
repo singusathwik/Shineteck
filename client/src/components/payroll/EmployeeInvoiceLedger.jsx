@@ -15,7 +15,10 @@ const date = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString('
 const month = value => value ? new Date(`${value}-01T12:00:00`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
 
 function InvoiceEditor({ employee, invoice, onClose, onSaved }) {
-  const [form, setForm] = useState(() => invoice || { invoice_number: '', month: '', total_hours: '', rate: '', due_date: '', status: 'Pending', received_date: '', paid_date: '', currency: employee.country === 'India' ? 'INR' : 'USD' });
+  const { companies, selected } = useCompany();
+  const available = companies.filter(c => c.enabled && (employee.company_ids || [employee.company_id]).includes(c.id) && (selected === 'all' || selected === c.id));
+  const defaultCompany = available.some(c => c.id === selected) ? selected : available.length === 1 ? available[0].id : '';
+  const [form, setForm] = useState(() => invoice ? { ...invoice, company_id: invoice.company_id || defaultCompany } : { company_id: defaultCompany, invoice_number: '', month: '', total_hours: '', rate: '', due_date: '', status: 'Pending', received_date: '', paid_date: '', currency: employee.country === 'India' ? 'INR' : 'USD' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const panel = useRef(null);
@@ -35,6 +38,7 @@ function InvoiceEditor({ employee, invoice, onClose, onSaved }) {
     <div className="il-section-heading"><div><p className="il-eyebrow">{employee.full_name} · {employee.employee_id}</p><h2 id="invoice-editor-title">{invoice ? 'Edit invoice' : 'New invoice'}</h2></div><button className="il-icon-button" onClick={onClose} disabled={saving} aria-label="Close invoice editor"><X size={20} /></button></div>
     <form onSubmit={submit}>
       <fieldset disabled={saving}><legend>01 / Invoice details</legend><div className="il-form-grid">
+        <label className="il-field"><span>Company</span><select required disabled={Boolean(invoice?.company_id)} value={form.company_id} onChange={event => change('company_id', event.target.value)}><option value="">Select company</option>{available.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>{!available.length && <small>Ask the super admin to assign an enabled company first.</small>}</label>
         {field('invoice_number', 'Inv No')}{field('month', 'Month', 'month')}
         <label className="il-field"><span>Currency</span><select value={form.currency} onChange={event => change('currency', event.target.value)}><option value="USD">USD — US dollar</option><option value="INR">INR — Indian rupee</option></select></label>
         {field('total_hours', 'Total Hours', 'number')}{field('rate', 'Rate / hour', 'number')}{field('due_date', 'Due Date', 'date')}
