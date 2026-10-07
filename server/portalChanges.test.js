@@ -397,3 +397,15 @@ test('invalid employment edits cannot suspend an employee or reverse employment 
   const expired = jwt.sign({ employeeId: 'EMP-MULTI', email: 'emp-multi@example.test' }, JWT_SECRET, { expiresIn: -1 });
   assert.equal((await call('/employee/profile', { token: expired })).status, 401);
 });
+
+
+test('employee directory and dashboard exclude administrator profiles consistently', async () => {
+  db.prepare(`INSERT INTO employees (employee_id, full_name, email, phone, designation, date_of_birth, country, state, city, zip_code, address)
+    VALUES ('ADMIN-001', 'System Administrator', 'admin-001@example.test', '5551234567', 'Administrator', '1990-01-01', 'United States', 'California', 'Los Angeles', '90001', 'Test address')`).run();
+  const directory = await call('/admin/employees');
+  const dashboard = await call('/admin/dashboard');
+  assert.equal(directory.status, 200);
+  assert.equal(dashboard.status, 200);
+  assert.ok(directory.data.employees.every(row => !row.employee_id.startsWith('ADMIN')));
+  assert.equal(directory.data.total, dashboard.data.stats.totalEmployees);
+});

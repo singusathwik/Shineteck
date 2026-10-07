@@ -14,9 +14,11 @@ Baseline: `e07878e`. This review covers source inspection, isolated API tests, d
 - API requests default to the same-origin proxy. Pages and document converters load on demand. PDF conversion uses a bundled matching worker instead of an external CDN URL.
 - Removed unused vulnerable spreadsheet parsing dependency; updated vulnerable transitive dependencies and Multer, and moved test/development tools out of runtime dependencies.
 
+- Live verification also found administrator profiles included in the employee directory but excluded from dashboard totals. Both now consistently exclude administrator profiles.
+
 ## Verification
 
-- `npm run test:portal`: **49 passed, 0 failed**. Includes company isolation/revocation, invitations, invoice arithmetic/rounding, payroll history, daily month allocation, upload receipt tampering, rejected-file cleanup, avatar storage restoration, invalid employment updates, cloud account cache restoration and failed cloud employment writes.
+- `npm run test:portal`: **50 passed, 0 failed**. Includes company isolation/revocation, invitations, invoice arithmetic/rounding, payroll history, daily month allocation, upload receipt tampering, rejected-file cleanup, avatar storage restoration, invalid employment updates, cloud account cache restoration and failed cloud employment writes.
 - `npm --prefix client run build`: passed without oversized-chunk warnings. Main entry about **229 KB** uncompressed / **72 KB** gzip, versus about 1.39 MB before on-demand loading.
 - `npm audit` and `npm --prefix client audit`: **0 known vulnerabilities** at review time.
 - Client lint: no errors. **123 nonblocking warnings remain**: 121 unused declarations/imports in existing code and two context-module Fast Refresh warnings. Runtime Hook dependency warnings were resolved; warnings have not been hidden by changing lint configuration.

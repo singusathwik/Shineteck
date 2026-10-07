@@ -587,7 +587,7 @@ export async function getAllEmployees(req, res) {
       }
     }
 
-    let allList = Array.from(empMap.values());
+    let allList = Array.from(empMap.values()).filter(employee => !employee.employee_id.startsWith('ADMIN'));
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Compute working status
