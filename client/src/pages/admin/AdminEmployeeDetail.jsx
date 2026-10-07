@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api, getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { DocumentViewerModal } from '../../components/admin/DocumentViewerModal.jsx';
@@ -41,9 +41,13 @@ export function AdminEmployeeDetail({ employeeId, onBack }) {
   const [modalReason, setModalReason] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  const fetchDetail = async () => {
+  const requestVersion = useRef(null);
+  const fetchDetail = useCallback(async () => {
+    const version = Symbol();
+    requestVersion.current = version;
     try {
       const res = await api.getEmployeeDetail(employeeId);
+      if (version !== requestVersion.current) return;
       setData(res);
       setAdminNotes(res.employee.admin_notes || '');
       setModalStartDate(res.employee.start_date || new Date().toISOString().split('T')[0]);
@@ -51,13 +55,14 @@ export function AdminEmployeeDetail({ employeeId, onBack }) {
     } catch (err) {
       console.error('Failed to load employee details:', err);
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) setIsLoading(false);
     }
-  };
+  }, [employeeId]);
 
   useEffect(() => {
     fetchDetail();
-  }, [employeeId]);
+    return () => { requestVersion.current = null; };
+  }, [fetchDetail]);
 
   const handleUpdateStatus = async (newStatus) => {
     setIsSubmittingStatus(true);

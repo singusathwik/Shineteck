@@ -1,41 +1,9 @@
 import { jsPDF } from 'jspdf';
-import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { decodeDailyHours } from './dailyHours.js';
+import { timesheetCSV } from './timesheetExport.js';
 
-// Configure pdfjs worker if available
-if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '4.10.38'}/pdf.worker.min.mjs`;
-}
-
-/**
- * Trigger download of any Blob in the browser
- */
-export function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 200);
-}
-
-/**
- * Trigger direct download of any URL
- */
-export function downloadFromUrl(url, filename) {
-  const a = document.createElement('a');
-  a.href = url;
-  if (filename) a.download = filename;
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-  }, 200);
-}
+import { downloadBlob, downloadFromUrl } from './download.js';
 
 /**
  * Export Timesheet as a High-Resolution Corporate PDF Document
@@ -53,8 +21,8 @@ export function exportTimesheetAsPdf(timesheet) {
   const startDate = timesheet.start_date || 'N/A';
   const endDate = timesheet.end_date || 'N/A';
   const totalHours = parseFloat(timesheet.total_hours) || 0;
-  const regHours = Math.min(totalHours, 40).toFixed(1);
-  const otHours = Math.max(0, totalHours - 40).toFixed(1);
+  const entries = decodeDailyHours(timesheet);
+  const daysWorked = entries.filter(row => row.hours > 0).length;
   const status = timesheet.status || 'Pending';
   const notes = timesheet.notes || 'None recorded.';
   const feedback = timesheet.admin_feedback || 'No administrative notes recorded.';
@@ -137,16 +105,16 @@ export function exportTimesheetAsPdf(timesheet) {
   doc.text(`${startDate}`, 24, y + 24);
   doc.text(`to ${endDate}`, 24, y + 30);
 
-  // Box 2: Regular & Overtime
+  // Box 2: Recorded daily entries
   doc.roundedRect(77, y + 9, 54, 34, 2, 2, 'FD');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
-  doc.text('HOURS BREAKDOWN', 81, y + 16);
+  doc.text('DAILY RECORDS', 81, y + 16);
   doc.setFontSize(9);
   doc.setTextColor(30, 41, 59);
-  doc.text(`Regular: ${regHours} hrs`, 81, y + 24);
-  doc.setTextColor(otHours > 0 ? 217 : 100, otHours > 0 ? 119 : 116, otHours > 0 ? 6 : 139);
-  doc.text(`Overtime: ${otHours} hrs`, 81, y + 31);
+  doc.text(entries.length ? `Days worked: ${daysWorked}` : 'Daily detail unavailable', 81, y + 24);
+  doc.setTextColor(100, 116, 139);
+  doc.text('See CSV for daily detail', 81, y + 31);
 
   // Box 3: Total Hours
   doc.setFillColor(238, 242, 255);
@@ -203,7 +171,7 @@ export function exportTimesheetAsPdf(timesheet) {
   doc.text('CORPORATE AUDIT CERTIFICATION', 22, y + 8);
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  const certText = 'This digital slip is an authentic export record of Shineteck Inc. Enterprise Workforce & Payroll System. Hours and approvals are tracked with cryptographic audit logging compliant with US and Indian labor standards.';
+  const certText = 'This report summarizes the saved timesheet at the time of export. Daily hours are available in the CSV export. Overtime and payroll eligibility are not calculated in this report.';
   doc.text(doc.splitTextToSize(certText, 166), 22, y + 15);
 
   doc.setFont('helvetica', 'bold');
@@ -229,8 +197,8 @@ export function exportTimesheetAsImage(timesheet) {
   const startDate = timesheet.start_date || 'N/A';
   const endDate = timesheet.end_date || 'N/A';
   const totalHours = parseFloat(timesheet.total_hours) || 0;
-  const regHours = Math.min(totalHours, 40).toFixed(1);
-  const otHours = Math.max(0, totalHours - 40).toFixed(1);
+  const entries = decodeDailyHours(timesheet);
+  const daysWorked = entries.filter(row => row.hours > 0).length;
   const status = timesheet.status || 'Pending';
 
   const canvas = document.createElement('canvas');
@@ -310,17 +278,17 @@ export function exportTimesheetAsImage(timesheet) {
 
   ctx.fillStyle = '#64748b';
   ctx.font = 'bold 14px sans-serif';
-  ctx.fillText('REGULAR HOURS (40h Base)', 480, 290);
+  ctx.fillText('DAYS WORKED', 480, 290);
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 20px sans-serif';
-  ctx.fillText(`${regHours} hrs`, 480, 320);
+  ctx.fillText(entries.length ? String(daysWorked) : 'Not recorded', 480, 320);
 
   ctx.fillStyle = '#64748b';
   ctx.font = 'bold 14px sans-serif';
-  ctx.fillText('OVERTIME HOURS', 480, 375);
-  ctx.fillStyle = otHours > 0 ? '#d97706' : '#64748b';
+  ctx.fillText('DAILY DETAIL', 480, 375);
+  ctx.fillStyle = '#64748b';
   ctx.font = 'bold 20px sans-serif';
-  ctx.fillText(`${otHours} hrs`, 480, 405);
+  ctx.fillText('Available in CSV export', 480, 405);
 
   // Column 3 - Total Hours Hero Badge
   ctx.fillStyle = '#eff6ff';
@@ -376,30 +344,8 @@ export function exportTimesheetAsImage(timesheet) {
  * Export Timesheet as CSV Spreadsheet
  */
 export function exportTimesheetAsCSV(timesheet) {
-  const empName = timesheet.employee_full_name || timesheet.employee_name || timesheet.full_name || timesheet.employee_id || 'Employee';
   const empId = timesheet.employee_id || 'N/A';
-  const safeStr = (v) => `"${String(v !== undefined && v !== null ? v : '').replace(/"/g, '""')}"`;
-  const totalH = parseFloat(timesheet.total_hours) || 0;
-  const regH = Math.min(totalH, 40).toFixed(1);
-  const otH = Math.max(0, totalH - 40).toFixed(1);
-
-  const csvRows = [
-    'Timesheet ID,Employee ID,Employee Name,Vendor / Client,Start Date,End Date,Regular Hours,Overtime Hours,Total Work Hours,Status,Submitted At,Admin Notes',
-    [
-      safeStr(timesheet.id),
-      safeStr(empId),
-      safeStr(empName),
-      safeStr(timesheet.vendor_name || 'Direct / Shineteck Inc.'),
-      safeStr(timesheet.start_date),
-      safeStr(timesheet.end_date),
-      safeStr(regH),
-      safeStr(otH),
-      safeStr(timesheet.total_hours),
-      safeStr(timesheet.status),
-      safeStr(timesheet.submitted_at || new Date().toISOString().slice(0, 10)),
-      safeStr(timesheet.admin_feedback || timesheet.notes || '')
-    ].join(',')
-  ].join('\r\n');
+  const csvRows = timesheetCSV(timesheet);
 
   const blob = new Blob([csvRows], { type: 'text/csv;charset=utf-8;' });
   const safeFilename = `Timesheet_${empId}_${timesheet.start_date}.csv`.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -487,10 +433,13 @@ export async function convertImageToPdfAndDownload(imageUrl, originalFilename = 
  * Converts page 1 of any PDF to a high-res PNG image
  */
 export async function convertPdfToImageAndDownload(pdfUrl, originalFilename = 'document.pdf') {
+  let loadingTask;
   try {
-    const loadingTask = pdfjsLib.getDocument({
+    const pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+    loadingTask = pdfjsLib.getDocument({
       url: pdfUrl,
-      withCredentials: true
+      withCredentials: false
     });
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(1);
@@ -510,15 +459,14 @@ export async function convertPdfToImageAndDownload(pdfUrl, originalFilename = 'd
 
     await page.render(renderContext).promise;
 
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const baseName = originalFilename.replace(/\.[^/.]+$/, '');
-        downloadBlob(blob, `${baseName}.png`);
-      }
-    }, 'image/png');
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('Could not render PDF to an image.');
+    downloadBlob(blob, `${originalFilename.replace(/\.[^/.]+$/, '')}.png`);
   } catch (err) {
     console.warn('[convertPdfToImage Warning, using fallback]', err);
     // Fallback: If PDF canvas rendering is blocked by CORS/Worker, download direct
     downloadFromUrl(pdfUrl, originalFilename);
+  } finally {
+    await loadingTask?.destroy();
   }
 }

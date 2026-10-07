@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import Database from 'better-sqlite3';
@@ -42,6 +43,9 @@ let remoteProfile = { _id: 'mongo-profile', employee_id: 'TEST-1', full_name: 'C
 let connected = true;
 let lookups = 0;
 const account = { id: 7, employee_id: 'TEST-1', email: 'test@example.invalid', role: 'employee', status: 'active', full_name: null, password_hash: bcrypt.hashSync('test-account-password', 4) };
+let localWrites = 0;
+const cloudWrites = [];
+let failCloudWrite = false;
 const fixtureDb = { prepare(sql) {
   return {
     get() {
@@ -50,16 +54,17 @@ const fixtureDb = { prepare(sql) {
       return { ...account };
     },
     all: () => [],
+    run: () => { localWrites++; return { changes: 1 }; },
   };
 } };
 mock.module('./db/schema.js', { namedExports: { db: fixtureDb } });
 mock.module('./middleware/audit.js', { namedExports: { logAudit() {} } });
 mock.module('./db/mongo.js', { namedExports: { isMongoConnected: () => connected } });
 mock.module('./models/index.js', { namedExports: {
-  Employee: { findOne() { lookups++; return { lean: async () => remoteProfile }; } },
-  User: {}, Notification: {}, Timesheet: {}, Document: {},
+  Employee: { findOne() { lookups++; return { lean: async () => remoteProfile }; }, async updateOne(query, update, options) { cloudWrites.push({ model: 'Employee', query, update, options }); if (failCloudWrite) throw new Error('Simulated cloud failure'); } },
+  User: { findOne: () => ({ lean: async () => ({ ...account }) }), async updateOne(query, update, options) { cloudWrites.push({ model: 'User', query, update, options }); } }, Notification: {}, Timesheet: {}, Document: { find: () => ({ lean: async () => [] }) },
 } });
-const { getEmployeeProfile } = await import('./controllers/employeeController.js');
+const { getEmployeeProfile, toggleEmploymentStatus } = await import('./controllers/employeeController.js');
 const { getMe, login } = await import('./controllers/authController.js');
 function response() {
   return { statusCode: 200, body: null, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; return this; } };
@@ -120,4 +125,33 @@ test('a disconnected cloud database is not queried', async () => {
     assert.equal(res.statusCode, 404);
     assert.equal(lookups, before);
   } finally { connected = true; }
+});
+
+
+test('cloud-only employment edits persist account and profile together and do not report success on failure', async () => {
+  const priorProfile = remoteProfile;
+  remoteProfile = { employee_id: 'TEST-1', full_name: 'Cloud Employee', start_date: '2026-01-01' };
+  let ended = 0, committed = 0;
+  const session = { async withTransaction(work) { await work(); committed++; }, async endSession() { ended++; } };
+  const mockedSession = mock.method(mongoose, 'startSession', async () => session);
+  try {
+    const req = { params: { employeeId: 'TEST-1' }, user: { employeeId: 'ADMIN-001', email: 'admin@example.test' }, body: { employmentStatus: 'Inactive', endDate: '2026-02-01' } };
+    cloudWrites.length = 0;
+    const saved = response();
+    await toggleEmploymentStatus(req, saved);
+    assert.equal(saved.statusCode, 200);
+    assert.equal(saved.body.employee.employment_status, 'Inactive');
+    assert.equal(committed, 1);
+    assert.equal(cloudWrites.length, 2);
+    assert.equal(cloudWrites[1].update.$set.status, 'suspended');
+    assert.ok(cloudWrites.every(write => write.options.session === session));
+    failCloudWrite = true;
+    const writesBefore = localWrites;
+    const failed = response();
+    await toggleEmploymentStatus(req, failed);
+    assert.equal(failed.statusCode, 500);
+    assert.equal(localWrites, writesBefore);
+    assert.equal(committed, 1);
+    assert.equal(ended, 2);
+  } finally { mockedSession.mock.restore(); failCloudWrite = false; remoteProfile = priorProfile; }
 });

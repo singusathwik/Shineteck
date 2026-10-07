@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, FileText, Image as ImageIcon, Paperclip, ChevronDown, Loader2 } from 'lucide-react';
-import { convertImageToPdfAndDownload, convertPdfToImageAndDownload, downloadFromUrl } from '../../utils/fileConverter.js';
+import { downloadFromUrl } from '../../utils/download.js';
 import { getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 
 export function DocumentDownloadMenu({ doc, variant = 'compact', className = '' }) {
@@ -35,7 +35,7 @@ export function DocumentDownloadMenu({ doc, variant = 'compact', className = '' 
         downloadFromUrl(streamUrl, doc.file_name);
       } else if (isImage) {
         // Convert image to official PDF
-        await convertImageToPdfAndDownload(streamUrl, doc.file_name, {
+        await (await import('../../utils/fileConverter.js')).convertImageToPdfAndDownload(streamUrl, doc.file_name, {
           docType: doc.document_type,
           employeeId: doc.employee_id
         });
@@ -60,7 +60,7 @@ export function DocumentDownloadMenu({ doc, variant = 'compact', className = '' 
         downloadFromUrl(streamUrl, doc.file_name);
       } else if (isPdf) {
         // Convert PDF page to PNG
-        await convertPdfToImageAndDownload(streamUrl, doc.file_name);
+        await (await import('../../utils/fileConverter.js')).convertPdfToImageAndDownload(streamUrl, doc.file_name);
       } else {
         downloadFromUrl(streamUrl, doc.file_name);
       }

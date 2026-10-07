@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
@@ -20,7 +20,10 @@ export function AdminAuditLogs() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchLogs = async () => {
+  const requestVersion = useRef(null);
+  const fetchLogs = useCallback(async () => {
+    const version = Symbol();
+    requestVersion.current = version;
     try {
       const params = {};
       if (search) params.search = search;
@@ -29,17 +32,19 @@ export function AdminAuditLogs() {
       if (statusFilter !== 'ALL') params.status = statusFilter;
 
       const data = await api.getAuditLogs(params);
+      if (version !== requestVersion.current) return;
       setLogs(data.logs || []);
     } catch (err) {
       console.error('Failed to load audit logs:', err);
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) setIsLoading(false);
     }
-  };
+  }, [search, actionFilter, roleFilter, statusFilter]);
 
   useEffect(() => {
     fetchLogs();
-  }, [search, actionFilter, roleFilter, statusFilter]);
+    return () => { requestVersion.current = null; };
+  }, [fetchLogs]);
 
   return (
     <div className="space-y-6">

@@ -11,7 +11,7 @@ export function validateDailyHours(start, end, input) {
   if (!Array.isArray(entries) || entries.length !== dates.length) throw new Error('Enter hours for every date in the period, including zero for days off.');
   const map = new Map();
   for (const row of entries) {
-    if (!row || map.has(row.date) || !dates.includes(row.date) || row.hours === '' || row.hours == null || !['number', 'string'].includes(typeof row.hours)) throw new Error('Each date must have exactly one hours entry.');
+    if (!row || map.has(row.date) || !dates.includes(row.date) || (typeof row.hours === 'string' && !/^\d+(?:\.\d{1,2})?$/.test(row.hours.trim())) || row.hours == null || !['number', 'string'].includes(typeof row.hours)) throw new Error('Each date must have exactly one hours entry.');
     const hours = Number(row.hours);
     if (!Number.isFinite(hours) || hours < 0 || hours > 24 || Math.abs(hours * 100 - Math.round(hours * 100)) > 0.000001) throw new Error('Daily hours must be from 0 to 24, with at most two decimal places.');
     map.set(row.date, hours);
@@ -27,5 +27,9 @@ export function monthlyHours(entries) {
   return Object.fromEntries(Object.entries(totals).map(([month, hours]) => [month, hours / 100]));
 }
 export function decodeDailyHours(row) {
-  try { return Array.isArray(row.daily_hours) ? row.daily_hours : JSON.parse(row.daily_hours || '[]'); } catch { return []; }
+  try {
+    const entries = Array.isArray(row.daily_hours) ? row.daily_hours : JSON.parse(row.daily_hours || '[]');
+    if (!Array.isArray(entries) || !entries.length) return [];
+    return validateDailyHours(row.start_date || entries[0]?.date, row.end_date || entries.at(-1)?.date, entries);
+  } catch { return []; }
 }

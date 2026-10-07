@@ -1,3 +1,4 @@
+import { persistAvatar } from '../services/avatars.js';
 import { notifyEmployee } from '../services/notifications.js';
 import { accessError } from '../services/companyAccessStore.js';
 import { persistPrivateFile, readPrivateFile } from '../services/privateFiles.js';
@@ -12,12 +13,13 @@ import { Document as MongoDoc, Notification as MongoNotif } from '../models/inde
 import { isMongoConnected } from '../db/mongo.js';
 
 // Upload Cropped Profile Picture (returns public-accessible or tokenized path)
-export function uploadProfilePicture(req, res) {
+export async function uploadProfilePicture(req, res) {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file uploaded.' });
     }
 
+    await persistAvatar(req.file);
     const relativeUrl = `/uploads/avatars/${req.file.filename}`;
 
     // If user is already logged in, update employee table
@@ -47,6 +49,7 @@ export function uploadProfilePicture(req, res) {
       size: req.file.size
     });
   } catch (err) {
+    if (req.file?.path) await fs.promises.unlink(req.file.path).catch(() => {});
     console.error('[uploadProfilePicture Error]', err);
     res.status(500).json({ error: 'Failed to save profile picture.' });
   }
@@ -60,7 +63,7 @@ const ALLOWED_DOC_TYPES = [
 ];
 
 // Required documents are owned by both an employee and a company.
-const handle = action => async (req, res) => { try { await action(req, res); } catch (error) { res.status(error.status || 500).json({ error: error.status ? error.message : 'Unable to process the document. Please try again.' }); } };
+const handle = action => async (req, res) => { try { await action(req, res); } catch (error) { if (req.file?.path) await fs.promises.unlink(req.file.path).catch(() => {}); res.status(error.status || 500).json({ error: error.status ? error.message : 'Unable to process the document. Please try again.' }); } };
 const normalize = row => ({ ...row, id: String(row._id || row.id) });
 export async function documentRows() { return (await mergedRecords('documents', MongoDoc, documentIdentity)).map(normalize); }
 async function find(id) { return /^[a-f0-9]{24}$/i.test(id) && isMongoConnected() ? MongoDoc.findById(id).lean() : db.prepare('SELECT * FROM documents WHERE id = ?').get(id); }
@@ -71,7 +74,7 @@ export const uploadEmployeeDocument = handle(async (req, res) => {
   const expiry = req.body.expiryDate || null;
   if (expiry && (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || !Number.isFinite(Date.parse(expiry)) || new Date(expiry).toISOString().slice(0, 10) !== expiry)) throw accessError('Enter a valid expiry date.', 400);
   const uploaded = { documentType: type, fileName: req.file.originalname, filePath: req.file.filename, fileSize: req.file.size, mimeType: req.file.mimetype, uploadedAt: new Date().toISOString() };
-  if (!req.user) return res.json({ message: 'Document uploaded for registration.', document: { ...uploaded, uploadToken: createUploadReceipt(uploaded) } });
+  if (!req.user) return res.json({ message: 'Document uploaded for registration.', document: { ...uploaded, uploadToken: createUploadReceipt(uploaded, req.registrationToken) } });
   if (!req.companyId) throw accessError('Select a company before uploading.', 400);
   await persistPrivateFile(req.file);
   const data = { employee_id: req.user.employeeId, company_id: req.companyId, document_type: type, expiry_date: expiry, file_name: req.file.originalname, file_path: req.file.filename, file_size: req.file.size, mime_type: req.file.mimetype, status: 'Uploaded', review_notes: null, uploaded_at: new Date().toISOString(), reviewed_at: null, reviewed_by: null };
@@ -90,8 +93,9 @@ export const streamDocument = handle(async (req, res) => {
   const doc = await find(req.params.id);
   if (!doc) throw accessError('Document not found.', 404);
   if (req.user.role !== 'admin' && doc.employee_id !== req.user.employeeId) throw accessError('Access denied.');
-  res.type(doc.mime_type || 'application/octet-stream');
-  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.file_name)}"`);
+  const inline = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'text/plain'].includes(doc.mime_type);
+  res.type(inline ? doc.mime_type : 'application/octet-stream');
+  res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(doc.file_name)}"`);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   const bytes = await readPrivateFile(doc.file_path);
   if (bytes) return res.send(bytes);

@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { randomBytes } from 'node:crypto';
-import { db } from '../db/schema.js';
+import { accounts } from '../services/accounts.js';
 
 export const JWT_SECRET = process.env.JWT_SECRET || randomBytes(48).toString('hex');
 
-export function authenticateToken(req, res, next) {
+export async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1];
 
@@ -21,15 +21,17 @@ export function authenticateToken(req, res, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     
     // Verify user still exists and is active
-    const user = db.prepare('SELECT id, employee_id, email, role, status FROM users WHERE id = ?').get(decoded.id);
-    if (!user || user.employee_id !== decoded.employeeId || user.email !== decoded.email) {
+    if (typeof decoded.employeeId !== 'string' || typeof decoded.email !== 'string') return res.status(401).json({ error: 'Invalid session. Please sign in again.' });
+    const account = await accounts.find(decoded.employeeId);
+    if (!account || account.employee_id !== decoded.employeeId || account.email !== decoded.email) {
       return res.status(401).json({ error: 'User no longer exists.' });
     }
 
-    if (user.status === 'suspended') {
+    if (account.status === 'suspended') {
       return res.status(403).json({ error: 'Account has been suspended. Please contact HR.' });
     }
 
+    const user = accounts.cache(account);
     req.user = {
       id: user.id,
       employeeId: user.employee_id,
@@ -40,7 +42,8 @@ export function authenticateToken(req, res, next) {
 
     next();
   } catch (err) {
-    return res.status(403).json({ error: 'Invalid or expired token.' });
+    if (err.status === 503) return res.status(503).json({ error: err.message });
+    return res.status(401).json({ error: 'Invalid or expired token. Please sign in again.' });
   }
 }
 

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { accessStore } from '../services/companyAccessStore.js';
 import bcrypt from 'bcryptjs';
 import { db } from '../db/schema.js';
@@ -9,6 +10,23 @@ import { generateNextEmployeeIdSync } from './settingsController.js';
 import { createEmployeeProfileReader } from '../services/employeeProfileReader.js';
 
 const findEmployeeProfile = createEmployeeProfileReader({ db, Employee: MongoEmployee, isMongoConnected });
+
+function invalidEmploymentDates(start, end) {
+  const valid = value => value == null || value === '' || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value);
+  return !valid(start) || !valid(end) || Boolean(start && end && start > end);
+}
+
+// Account access and employment details must commit together in cloud storage.
+async function saveCloudEmployment(employeeId, profile, accountStatus) {
+  if (!isMongoConnected()) return;
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await MongoEmployee.updateOne({ employee_id: employeeId }, { $set: profile }, { session });
+      if (accountStatus) await MongoUser.updateOne({ employee_id: employeeId }, { $set: { status: accountStatus } }, { session });
+    });
+  } finally { await session.endSession(); }
+}
 
 // Admin: Create new employee directly
 export async function createEmployeeByAdmin(req, res) {
@@ -224,11 +242,8 @@ export async function getEmployeeProfile(req, res) {
     const account = db.prepare('SELECT role, status FROM users WHERE employee_id = ?').get(employeeId);
     const employee = { ...profile, role: account?.role, account_status: account?.status };
 
-    const documents = db.prepare(`
-      SELECT id, document_type, file_name, file_size, mime_type, status, review_notes, uploaded_at, reviewed_at
-      FROM documents
-      WHERE employee_id = ?
-    `).all(employeeId);
+    const { documentRows } = await import('./documentController.js');
+    const documents = (await documentRows()).filter(row => row.employee_id === employeeId);
 
     res.json({
       employee,
@@ -249,6 +264,9 @@ export async function updateEmployeeProfile(req, res) {
       return res.status(403).json({ error: 'Unauthorized to update this employee profile.' });
     }
 
+    if (Object.values(req.body).some(value => value !== null && typeof value !== 'string')) {
+      return res.status(400).json({ error: 'Profile fields must be text.' });
+    }
     const {
       phone,
       gender,
@@ -331,11 +349,12 @@ export async function updateEmployeeProfile(req, res) {
       if (endDate !== undefined) finalEndDate = endDate ? endDate.trim() : null;
       if (employmentStatus !== undefined && ['Active', 'Inactive'].includes(employmentStatus)) {
         finalEmploymentStatus = employmentStatus;
-        // Keep users status aligned
-        db.prepare('UPDATE users SET status = ? WHERE employee_id = ?')
-          .run(finalEmploymentStatus === 'Active' ? 'active' : 'suspended', employeeId);
+
       }
     }
+
+    if (invalidEmploymentDates(finalStartDate, finalEndDate)) return res.status(400).json({ error: 'Enter valid employment dates; end date cannot precede start date.' });
+    if (isAdmin && employmentStatus !== undefined && !['Active', 'Inactive'].includes(employmentStatus)) return res.status(400).json({ error: 'Invalid employment status.' });
 
     const finalDesignation = (isAdmin && designation) ? designation.trim() : currentEmp.designation;
     const finalDob = (isAdmin && dateOfBirth) ? dateOfBirth : currentEmp.date_of_birth;
@@ -349,67 +368,26 @@ export async function updateEmployeeProfile(req, res) {
 
     const workLocation = req.body.workLocationAddress === undefined ? currentEmp.work_location_address : String(req.body.workLocationAddress).trim();
     if (workLocation && workLocation.length > 1000) return res.status(400).json({ error: 'Work location must be 1,000 characters or less.' });
-    if (isMongoConnected()) await MongoEmployee.updateOne({ employee_id: employeeId }, { $set: { work_location_address: workLocation || '' } });
-    db.prepare('UPDATE employees SET work_location_address = ? WHERE employee_id = ?').run(workLocation || '', employeeId);
-    db.prepare(`
-      UPDATE employees
-      SET first_name = ?,
-          last_name = ?,
-          middle_initial = ?,
-          full_name = ?,
-          gender = ?,
-          designation = ?,
-          date_of_birth = ?,
-          start_date = ?,
-          end_date = ?,
-          employment_status = ?,
-          phone = ?,
-          country = ?,
-          state = ?,
-          city = ?,
-          zip_code = ?,
-          zip_code_part1 = ?,
-          zip_code_part2 = ?,
-          address = ?,
-          address_line_1 = ?,
-          address_line_2 = ?,
-          suite_apt = ?,
-          emergency_first_name = ?,
-          emergency_last_name = ?,
-          emergency_email = ?,
-          emergency_phone = ?,
-          emergency_relationship = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE employee_id = ?
-    `).run(
-      finalFirstName,
-      finalLastName,
-      finalMiddleInitial,
-      finalFullName,
-      finalGender,
-      finalDesignation,
-      finalDob,
-      finalStartDate,
-      finalEndDate,
-      finalEmploymentStatus,
-      phone ? phone.trim() : currentEmp.phone,
-      newCountry ? newCountry.trim() : '',
-      newState ? newState.trim() : '',
-      newCity ? newCity.trim() : '',
-      newZip ? newZip.trim() : '',
-      newZipPart1 ? newZipPart1.trim() : null,
-      newZipPart2 ? newZipPart2.trim() : null,
-      newAddress ? newAddress.trim() : currentEmp.address,
-      newAddr1 ? newAddr1.trim() : null,
-      newAddr2 ? newAddr2.trim() : null,
-      newSuite ? newSuite.trim() : null,
-      finalEmergFirst ? finalEmergFirst.trim() : null,
-      finalEmergLast ? finalEmergLast.trim() : null,
-      finalEmergEmail ? finalEmergEmail.trim() : null,
-      finalEmergPhone ? finalEmergPhone.trim() : null,
-      finalEmergRel ? finalEmergRel.trim() : null,
-      employeeId
-    );
+    const profileData = {
+      first_name: finalFirstName, last_name: finalLastName, middle_initial: finalMiddleInitial,
+      full_name: finalFullName, gender: finalGender, designation: finalDesignation,
+      date_of_birth: finalDob, start_date: finalStartDate, end_date: finalEndDate,
+      employment_status: finalEmploymentStatus, work_location_address: workLocation || '',
+      phone: phone ? phone.trim() : currentEmp.phone,
+      country: newCountry?.trim() || '', state: newState?.trim() || '', city: newCity?.trim() || '',
+      zip_code: newZip?.trim() || '', zip_code_part1: newZipPart1?.trim() || null,
+      zip_code_part2: newZipPart2?.trim() || null, address: newAddress?.trim() || currentEmp.address,
+      address_line_1: newAddr1?.trim() || null, address_line_2: newAddr2?.trim() || null,
+      suite_apt: newSuite?.trim() || null, emergency_first_name: finalEmergFirst?.trim() || null,
+      emergency_last_name: finalEmergLast?.trim() || null, emergency_email: finalEmergEmail?.trim() || null,
+      emergency_phone: finalEmergPhone?.trim() || null, emergency_relationship: finalEmergRel?.trim() || null,
+    };
+    const accountStatus = isAdmin && employmentStatus !== undefined ? (finalEmploymentStatus === 'Active' ? 'active' : 'suspended') : null;
+    await saveCloudEmployment(employeeId, profileData, accountStatus);
+    db.transaction(() => {
+      db.prepare(`UPDATE employees SET ${Object.keys(profileData).map(key => `${key}=@${key}`).join(',')}, updated_at=CURRENT_TIMESTAMP WHERE employee_id=@employeeId`).run({ ...profileData, employeeId });
+      if (accountStatus) db.prepare('UPDATE users SET status=? WHERE employee_id=?').run(accountStatus, employeeId);
+    })();
 
     logAudit({
       userId: req.user.employeeId,
@@ -423,7 +401,6 @@ export async function updateEmployeeProfile(req, res) {
     });
 
     const updated = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
-    if (isMongoConnected()) { const { id, user_id, ...profileData } = updated; await MongoEmployee.updateOne({ employee_id: employeeId }, { $set: profileData }); }
     const todayStr = new Date().toISOString().split('T')[0];
     const isStillWorking = (updated.employment_status !== 'Inactive') && (!updated.end_date || updated.end_date >= todayStr);
 
@@ -441,7 +418,7 @@ export async function updateEmployeeProfile(req, res) {
 }
 
 // Admin: Toggle / Update Employee Employment Status (Active / Inactive) and Start/End dates
-export function toggleEmploymentStatus(req, res) {
+export async function toggleEmploymentStatus(req, res) {
   try {
     const { employeeId } = req.params;
     const { employmentStatus, startDate, endDate, reason } = req.body;
@@ -450,7 +427,8 @@ export function toggleEmploymentStatus(req, res) {
       return res.status(400).json({ error: "Employment status must be either 'Active' or 'Inactive'." });
     }
 
-    const employee = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
+    if ([startDate, endDate, reason].some(value => value != null && typeof value !== 'string')) return res.status(400).json({ error: 'Employment dates and reason must be text.' });
+    const employee = await findEmployeeProfile(employeeId);
     if (!employee) {
       return res.status(404).json({ error: 'Employee not found.' });
     }
@@ -464,6 +442,9 @@ export function toggleEmploymentStatus(req, res) {
     } else if (employmentStatus === 'Active' && (endDate === null || endDate === '')) {
       finalEndDate = null;
     }
+
+    if (invalidEmploymentDates(finalStartDate, finalEndDate)) return res.status(400).json({ error: 'Enter valid employment dates; end date cannot precede start date.' });
+    await saveCloudEmployment(employeeId, { employment_status: employmentStatus, start_date: finalStartDate, end_date: finalEndDate }, employmentStatus === 'Active' ? 'active' : 'suspended');
 
     db.prepare(`
       UPDATE employees
@@ -480,23 +461,6 @@ export function toggleEmploymentStatus(req, res) {
       SET status = ?
       WHERE employee_id = ?
     `).run(employmentStatus === 'Active' ? 'active' : 'suspended', employeeId);
-
-    // Sync to Mongo if connected
-    if (isMongoConnected()) {
-      MongoEmployee.updateOne(
-        { employee_id: employeeId },
-        {
-          employment_status: employmentStatus,
-          start_date: finalStartDate,
-          end_date: finalEndDate
-        }
-      ).catch(e => console.error('[MongoDB Employment Status Sync Error]', e.message));
-
-      MongoUser.updateOne(
-        { employee_id: employeeId },
-        { status: employmentStatus === 'Active' ? 'active' : 'suspended' }
-      ).catch(e => console.error('[MongoDB User Status Sync Error]', e.message));
-    }
 
     // Notification
     const notifTitle = `Employment Status: ${employmentStatus}`;
@@ -525,7 +489,7 @@ export function toggleEmploymentStatus(req, res) {
       ipAddress: req.ip
     });
 
-    const updated = db.prepare('SELECT * FROM employees WHERE employee_id = ?').get(employeeId);
+    const updated = { ...employee, employment_status: employmentStatus, start_date: finalStartDate, end_date: finalEndDate };
     const todayStr = new Date().toISOString().split('T')[0];
     const isStillWorking = (updated.employment_status !== 'Inactive') && (!updated.end_date || updated.end_date >= todayStr);
 

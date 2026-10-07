@@ -9,6 +9,12 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const expired = () => { setAuthToken(null); setUser(null); };
+    window.addEventListener('session-expired', expired);
+    return () => window.removeEventListener('session-expired', expired);
+  }, []);
+
+  useEffect(() => {
     async function checkAuth() {
       const token = getAuthToken();
       if (!token) {

@@ -1,37 +1,38 @@
-import { AdminExpenses } from './pages/admin/AdminExpenses.jsx';
-import { AdminCompanies } from './pages/admin/AdminCompanies.jsx';
 import { InvitationForm } from './components/common/InvitationForm.jsx';
-import { InvitationPage } from './pages/InvitationPage.jsx';
 import { CompanyProvider, CompanySelector, useCompany } from './context/CompanyContext.jsx';
-import { AdminCompanyAccess } from './pages/admin/AdminCompanyAccess.jsx';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { Header } from './components/common/Header.jsx';
 import { Sidebar } from './components/common/Sidebar.jsx';
 import { CommandPalette } from './components/common/CommandPalette.jsx';
 
-import { LoginPage } from './pages/LoginPage.jsx';
-import { RegisterWizard } from './pages/RegisterWizard.jsx';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
+const AdminExpenses = lazy(() => import('./pages/admin/AdminExpenses.jsx').then(module => ({ default: module.AdminExpenses })));
+const AdminCompanies = lazy(() => import('./pages/admin/AdminCompanies.jsx').then(module => ({ default: module.AdminCompanies })));
+const InvitationPage = lazy(() => import('./pages/InvitationPage.jsx').then(module => ({ default: module.InvitationPage })));
+const AdminCompanyAccess = lazy(() => import('./pages/admin/AdminCompanyAccess.jsx').then(module => ({ default: module.AdminCompanyAccess })));
+
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx').then(module => ({ default: module.LoginPage })));
+const RegisterWizard = lazy(() => import('./pages/RegisterWizard.jsx').then(module => ({ default: module.RegisterWizard })));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.jsx').then(module => ({ default: module.ForgotPasswordPage })));
 
 // Employee Pages
-import { EmployeeDashboard } from './pages/employee/EmployeeDashboard.jsx';
-import { EmployeeProfile } from './pages/employee/EmployeeProfile.jsx';
-import { EmployeeTimesheets } from './pages/employee/EmployeeTimesheets.jsx';
-import { EmployeeDocuments } from './pages/employee/EmployeeDocuments.jsx';
-import { EmployeeNotifications } from './pages/employee/EmployeeNotifications.jsx';
+const EmployeeDashboard = lazy(() => import('./pages/employee/EmployeeDashboard.jsx').then(module => ({ default: module.EmployeeDashboard })));
+const EmployeeProfile = lazy(() => import('./pages/employee/EmployeeProfile.jsx').then(module => ({ default: module.EmployeeProfile })));
+const EmployeeTimesheets = lazy(() => import('./pages/employee/EmployeeTimesheets.jsx').then(module => ({ default: module.EmployeeTimesheets })));
+const EmployeeDocuments = lazy(() => import('./pages/employee/EmployeeDocuments.jsx').then(module => ({ default: module.EmployeeDocuments })));
+const EmployeeNotifications = lazy(() => import('./pages/employee/EmployeeNotifications.jsx').then(module => ({ default: module.EmployeeNotifications })));
 
 // Admin Pages
-import { AdminDashboard } from './pages/admin/AdminDashboard.jsx';
-import { AdminApprovals } from './pages/admin/AdminApprovals.jsx';
-import { AdminEmployees } from './pages/admin/AdminEmployees.jsx';
-import { AdminEmployeeDetail } from './pages/admin/AdminEmployeeDetail.jsx';
-import { AdminTimesheets } from './pages/admin/AdminTimesheets.jsx';
-import { AdminPayroll } from './pages/admin/AdminPayroll.jsx';
-import { AdminSettings } from './pages/admin/AdminSettings.jsx';
-import { AdminAuditLogs } from './pages/admin/AdminAuditLogs.jsx';
-import { AdminVendorDetails } from './pages/admin/AdminVendorDetails.jsx';
-import { AdminPayrollEntries } from './pages/admin/AdminPayrollEntries.jsx';
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard.jsx').then(module => ({ default: module.AdminDashboard })));
+const AdminApprovals = lazy(() => import('./pages/admin/AdminApprovals.jsx').then(module => ({ default: module.AdminApprovals })));
+const AdminEmployees = lazy(() => import('./pages/admin/AdminEmployees.jsx').then(module => ({ default: module.AdminEmployees })));
+const AdminEmployeeDetail = lazy(() => import('./pages/admin/AdminEmployeeDetail.jsx').then(module => ({ default: module.AdminEmployeeDetail })));
+const AdminTimesheets = lazy(() => import('./pages/admin/AdminTimesheets.jsx').then(module => ({ default: module.AdminTimesheets })));
+const AdminPayroll = lazy(() => import('./pages/admin/AdminPayroll.jsx').then(module => ({ default: module.AdminPayroll })));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings.jsx').then(module => ({ default: module.AdminSettings })));
+const AdminAuditLogs = lazy(() => import('./pages/admin/AdminAuditLogs.jsx').then(module => ({ default: module.AdminAuditLogs })));
+const AdminVendorDetails = lazy(() => import('./pages/admin/AdminVendorDetails.jsx').then(module => ({ default: module.AdminVendorDetails })));
+const AdminPayrollEntries = lazy(() => import('./pages/admin/AdminPayrollEntries.jsx').then(module => ({ default: module.AdminPayrollEntries })));
 
 function MainApp() {
   const companyWorkspace = useCompany();
@@ -44,9 +45,7 @@ function MainApp() {
   const returnToLogin = () => { history.replaceState(null, '', window.location.pathname); setInviteToken(null); setPublicView('login'); };
 
   // Authenticated Tabs
-  const [employeeTab, setEmployeeTab] = useState('dashboard');
-  const activeTab = isAdmin ? companyWorkspace.activeTab : employeeTab;
-  const setActiveTab = isAdmin ? companyWorkspace.setActiveTab : setEmployeeTab;
+  const { activeTab, setActiveTab } = companyWorkspace;
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -219,7 +218,7 @@ function MainApp() {
 export default function App() {
   return (
     <AuthProvider>
-      <CompanyProvider><MainApp /></CompanyProvider>
+      <Suspense fallback={<div role="status" className="p-8 text-slate-600">Loading portal…</div>}><CompanyProvider><MainApp /></CompanyProvider></Suspense>
     </AuthProvider>
   );
 }

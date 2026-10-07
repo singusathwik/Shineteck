@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, FileText, Image as ImageIcon, FileSpreadsheet, Paperclip, ChevronDown } from 'lucide-react';
-import { exportTimesheetAsPdf, exportTimesheetAsImage, exportTimesheetAsCSV, downloadFromUrl } from '../../utils/fileConverter.js';
+import { downloadFromUrl } from '../../utils/download.js';
 import { getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
 
 export function TimesheetDownloadMenu({ timesheet, variant = 'compact', className = '' }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -19,23 +21,21 @@ export function TimesheetDownloadMenu({ timesheet, variant = 'compact', classNam
 
   if (!timesheet) return null;
 
-  const handleDownloadPdf = (e) => {
+  const exportFile = async (e, format) => {
     e.stopPropagation();
     setIsOpen(false);
-    exportTimesheetAsPdf(timesheet);
+    setError('');
+    setBusy(true);
+    try {
+      const converter = await import('../../utils/fileConverter.js');
+      await converter[format](timesheet);
+    } catch {
+      setError('Export failed. Please try again.');
+    } finally { setBusy(false); }
   };
-
-  const handleDownloadImage = (e) => {
-    e.stopPropagation();
-    setIsOpen(false);
-    exportTimesheetAsImage(timesheet);
-  };
-
-  const handleDownloadCSV = (e) => {
-    e.stopPropagation();
-    setIsOpen(false);
-    exportTimesheetAsCSV(timesheet);
-  };
+  const handleDownloadPdf = e => exportFile(e, 'exportTimesheetAsPdf');
+  const handleDownloadImage = e => exportFile(e, 'exportTimesheetAsImage');
+  const handleDownloadCSV = e => exportFile(e, 'exportTimesheetAsCSV');
 
   const handleDownloadOriginal = (e) => {
     e.stopPropagation();
@@ -47,9 +47,11 @@ export function TimesheetDownloadMenu({ timesheet, variant = 'compact', classNam
 
   return (
     <div ref={menuRef} className={`relative inline-block text-left ${className}`}>
+      {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
       {variant === 'full' ? (
         <button
           type="button"
+          disabled={busy}
           onClick={() => setIsOpen(!isOpen)}
           className="enterprise-btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-2xs transition-all cursor-pointer"
         >
@@ -60,6 +62,7 @@ export function TimesheetDownloadMenu({ timesheet, variant = 'compact', classNam
       ) : (
         <button
           type="button"
+          disabled={busy}
           onClick={() => setIsOpen(!isOpen)}
           className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 rounded-lg transition-colors cursor-pointer"
           title="Download in your choice of format (PDF, Image, CSV, Original)"

@@ -1,6 +1,6 @@
 import { DailyHoursBreakdown } from '../../components/timesheet/DailyHoursBreakdown.jsx';
 import { MonthlyHours } from '../../components/timesheet/MonthlyHours.jsx';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
@@ -30,22 +30,27 @@ export function AdminTimesheets() {
   const [statusMessage, setStatusMessage] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  const fetchTimesheets = async () => {
+  const requestVersion = useRef(null);
+  const fetchTimesheets = useCallback(async () => {
+    const version = Symbol();
+    requestVersion.current = version;
     try {
       const params = {};
       if (search) params.search = search;
       if (statusFilter !== 'ALL') params.status = statusFilter;
 
       const data = await api.getAllTimesheets(params);
+      if (version !== requestVersion.current) return;
       setTimesheets(data.timesheets || []);
     } catch (err) {
       console.error('Failed to load timesheets:', err);
     }
-  };
+  }, [search, statusFilter]);
 
   useEffect(() => {
     fetchTimesheets();
-  }, [search, statusFilter]);
+    return () => { requestVersion.current = null; };
+  }, [fetchTimesheets]);
 
   const handleExportCSV = () => {
     const formattedData = timesheets.map(ts => ({

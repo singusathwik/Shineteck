@@ -313,21 +313,18 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete, invita
   };
 
   const handleDocumentUpload = async (docType, file) => {
-    try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('documentType', docType);
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('documentType', docType);
 
-      const res = await api.uploadDocument(formData);
-      setDocuments(prev => ({
-        ...prev,
-        [docType]: res.document
-      }));
-      setErrors(prev => ({ ...prev, docs: null }));
-    } catch (err) {
-      throw err;
-    }
+    const res = await api.uploadDocument(formData, invitation?.token);
+    setDocuments(prev => ({
+      ...prev,
+      [docType]: res.document
+    }));
+    setErrors(prev => ({ ...prev, docs: null }));
   };
+
 
   const handleDocumentRemove = (docType) => {
     setDocuments(prev => ({
@@ -340,7 +337,7 @@ export function RegisterWizard({ onNavigateLogin, onRegistrationComplete, invita
     try {
       const formData = new FormData();
       formData.append('avatar', result.blob, 'profile_cropped.jpg');
-      const uploadRes = await api.uploadAvatar(formData);
+      const uploadRes = await api.uploadAvatar(formData, invitation?.token);
 
       setProfilePhoto({
         blob: result.blob,

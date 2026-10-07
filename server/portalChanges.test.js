@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { datesInPeriod, validateDailyHours, monthlyHours } from '../client/src/utils/dailyHours.js';
+import { datesInPeriod, validateDailyHours, monthlyHours, decodeDailyHours } from '../client/src/utils/dailyHours.js';
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'shineteck-portal-test-'));
 process.env.NODE_ENV = 'test';
@@ -49,7 +49,7 @@ test('inclusive daily dates and monthly allocation handle month boundaries and l
   assert.deepEqual(monthlyHours(entries), { '2024-02': 15.25, '2024-03': 6.5 });
   for (const bad of ['2026-02-29', '2026-13-01', 'garbage']) assert.throws(() => datesInPeriod(bad, '2026-03-01'));
   assert.throws(() => datesInPeriod('2026-03-01', '2026-02-01'));
-  for (const hours of ['', null, -1, 25, 'NaN', 1.001, true]) assert.throws(() => validateDailyHours('2026-01-01', '2026-01-01', [{ date: '2026-01-01', hours }]));
+  for (const hours of ['', '   ', '0x10', null, -1, 25, 'NaN', 1.001, true]) assert.throws(() => validateDailyHours('2026-01-01', '2026-01-01', [{ date: '2026-01-01', hours }]));
   assert.throws(() => validateDailyHours('2026-01-01', '2026-01-02', [{ date: '2026-01-01', hours: 8 }, { date: '2026-01-01', hours: 8 }]));
 });
 
@@ -331,4 +331,69 @@ test('work location saves and shared employee edits require all company grants',
   const result=await call('/admin/employee-invoices',{token:adminA,method:'POST',body:{...invoice,company_id:A}});
   assert.equal(result.status,201,JSON.stringify(result.data));
   assert.equal((await call('/admin/employee-invoices?employee_id=EMP-MULTI',{token:adminB})).data.invoices.length,0);
+});
+
+
+test('timesheet exports preserve daily month allocation, neutralize formulas and do not invent overtime', async () => {
+  const { timesheetCSV } = await import('../client/src/utils/timesheetExport.js');
+  const { parse } = await import('csv-parse/sync');
+  const csv = timesheetCSV({ id: 1, employee_name: '=1+1', start_date: '2026-01-31', end_date: '2026-02-01', total_hours: 16, daily_hours: [{ date: '2026-01-31', hours: 8 }, { date: '2026-02-01', hours: 8 }] });
+  const rows = parse(csv, { columns: true });
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0]['Employee Name'], "'=1+1");
+  assert.deepEqual(rows.map(row => row.Month), ['2026-01', '2026-02']);
+  assert.equal(rows.reduce((sum, row) => sum + Number(row.Hours), 0), 16);
+  const legacy = parse(timesheetCSV({ total_hours: 80, daily_hours: '{}' }), { columns: true });
+  assert.equal(legacy[0].Hours, '80');
+  assert.match(legacy[0].Allocation, /daily detail unavailable/);
+  assert.doesNotMatch(csv, /Overtime|Regular Hours/);
+  for (const daily_hours of ['{}', 'null', 'broken', '[{"date":"invalid","hours":8}]']) assert.deepEqual(decodeDailyHours({ daily_hours }), []);
+});
+
+test('uploads require invitations and receipts cannot be reused or altered', async () => {
+  const { verifyUploadReceipt } = await import('./services/uploadReceipt.js');
+  const makeUpload = () => { const form = new FormData(); form.append('documentType', 'passport'); form.append('document', new Blob(['test PDF'], { type: 'application/pdf' }), 'passport.pdf'); return form; };
+  const denied = await fetch(base + '/upload/document', { method: 'POST', body: makeUpload() });
+  assert.ok([400, 403, 404, 410].includes(denied.status));
+  const actor = { role: 'admin', employeeId: 'ADMIN-001', email: 'admin-001@example.test', ...(await getAdminAccess({ role: 'admin', employeeId: 'ADMIN-001' })) };
+  let sent;
+  await createInvitation({ firstName: 'Upload', lastName: 'Test', email: 'upload-test@example.test', role: 'employee', companyIds: [A] }, actor, { send: async message => { sent = message; } });
+  const uploaded = await fetch(base + '/upload/document', { method: 'POST', headers: { 'X-Invitation-Token': sent.token }, body: makeUpload() });
+  assert.equal(uploaded.status, 200);
+  const { document } = await uploaded.json();
+  assert.doesNotThrow(() => verifyUploadReceipt(document, sent.token));
+  assert.throws(() => verifyUploadReceipt(document, 'another-invitation'));
+  assert.throws(() => verifyUploadReceipt({ ...document, mimeType: 'text/html' }, sent.token));
+  assert.throws(() => verifyUploadReceipt({ ...document, fileName: 'altered.pdf' }, sent.token));
+  const avatar = new FormData(); avatar.append('avatar', new Blob(['test image'], { type: 'image/png' }), 'portrait.png');
+  const avatarResponse = await fetch(base + '/upload/avatar', { method: 'POST', headers: { 'X-Invitation-Token': sent.token }, body: avatar });
+  assert.equal(avatarResponse.status, 200);
+  const portrait = await avatarResponse.json();
+  fs.unlinkSync(path.join(process.env.SHINETECK_UPLOAD_DIR, 'avatars', portrait.fileName));
+  const restored = await fetch(base.replace(/\/api$/, '') + portrait.imageUrl);
+  assert.equal(restored.status, 200);
+  assert.equal(await restored.text(), 'test image');
+  assert.equal((await fetch(base.replace(/\/api$/, '') + '/uploads/avatars/' + document.filePath)).status, 404);
+
+  for (const [name, type] of [['attack.svg', 'image/jpeg'], ['attack.html', 'application/pdf'], ['attack.pdf', 'text/html']]) {
+    const form = new FormData(); form.append('documentType', 'passport'); form.append('document', new Blob(['<script>alert(1)</script>'], { type }), name);
+    assert.equal((await call('/documents/upload', { token: employee, company: A, method: 'POST', body: form })).status, 400);
+  }
+  const before = fs.readdirSync(path.join(process.env.SHINETECK_UPLOAD_DIR, 'private/documents')).length;
+  const invalid = makeUpload(); invalid.append('expiryDate', '2026-02-30');
+  assert.equal((await call('/documents/upload', { token: employee, company: A, method: 'POST', body: invalid })).status, 400);
+  assert.equal(fs.readdirSync(path.join(process.env.SHINETECK_UPLOAD_DIR, 'private/documents')).length, before);
+});
+
+test('invalid employment edits cannot suspend an employee or reverse employment dates', async () => {
+  const route = '/admin/employees/EMP-MULTI';
+  const before = db.prepare('SELECT status FROM users WHERE employee_id=?').get('EMP-MULTI');
+  assert.equal((await call(route, { method: 'PUT', body: { employmentStatus: 'Inactive', workLocationAddress: 'x'.repeat(1001) } })).status, 400);
+  assert.deepEqual(db.prepare('SELECT status FROM users WHERE employee_id=?').get('EMP-MULTI'), before);
+  for (const dates of [{ startDate: '2026-02-30' }, { startDate: '2026-01-31', endDate: '2026-01-01' }, { startDate: {} }]) {
+    assert.equal((await call(route + '/employment-status', { method: 'PATCH', body: { employmentStatus: 'Inactive', ...dates } })).status, 400);
+  }
+  assert.deepEqual(db.prepare('SELECT status FROM users WHERE employee_id=?').get('EMP-MULTI'), before);
+  const expired = jwt.sign({ employeeId: 'EMP-MULTI', email: 'emp-multi@example.test' }, JWT_SECRET, { expiresIn: -1 });
+  assert.equal((await call('/employee/profile', { token: expired })).status, 401);
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const AVATAR_PALETTES = [
   { bg: 'bg-linear-to-br from-blue-600 to-blue-800', text: 'text-white font-bold', border: 'border-blue-700 shadow-blue-500/20' },
@@ -20,6 +20,7 @@ export function EmployeeAvatar({
   className = ''
 }) {
   const [imgError, setImgError] = useState(false);
+  useEffect(() => { setImgError(false); }, [imageUrl]);
 
   // Generate clean initials
   const cleanName = (name || '').replace(/[^a-zA-Z0-9\s]/g, '').trim();

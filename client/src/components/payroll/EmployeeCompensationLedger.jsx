@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../../services/api.js';
 import { StatusBadge } from '../common/StatusBadge.jsx';
 import { EmployeeSearchableDropdown } from './EmployeeSearchableDropdown.jsx';
@@ -200,12 +200,10 @@ export function EmployeeCompensationLedger({ onSwitchToStatements }) {
         setEmployees(emps);
         setAllPayrollRecords(existingRecords);
 
-        if (emps.length > 0 && !selectedEmployeeId) {
+        if (emps.length > 0) {
           const rajesh = emps.find(e => e.employee_id === 'SH-2008');
           const firstEmp = rajesh || emps[0];
-          setSelectedEmployeeId(firstEmp.employee_id);
-          const initial = computeDefaultLedger(firstEmp, selectedYear, existingRecords);
-          setLedgerData(initial);
+          setSelectedEmployeeId(current => current || firstEmp.employee_id);
         }
       } catch (err) {
         console.error('Failed to load employees:', err);
@@ -217,7 +215,10 @@ export function EmployeeCompensationLedger({ onSwitchToStatements }) {
   }, []);
 
   // 2. Load Ledger data whenever selectedEmployeeId or selectedYear changes
-  const fetchLedger = async () => {
+  const ledgerRequest = useRef(null);
+  const fetchLedger = useCallback(async () => {
+    const request = Symbol();
+    ledgerRequest.current = request;
     if (!selectedEmployeeId) return;
     const emp = employees.find(e => e.employee_id === selectedEmployeeId);
     if (emp) {
@@ -226,20 +227,23 @@ export function EmployeeCompensationLedger({ onSwitchToStatements }) {
     }
     try {
       const data = await api.getEmployeeCompensationLedger(selectedEmployeeId, selectedYear);
+      if (ledgerRequest.current !== request) return;
       if (data && data.months) {
         setLedgerData(data);
       }
     } catch (err) {
+      if (ledgerRequest.current !== request) return;
       console.warn('Backend compensation ledger API unavailable, using computed ledger:', err);
       if (emp) {
         setLedgerData(computeDefaultLedger(emp, selectedYear, allPayrollRecords));
       }
     }
-  };
+  }, [selectedEmployeeId, selectedYear, employees, allPayrollRecords]);
 
   useEffect(() => {
     fetchLedger();
-  }, [selectedEmployeeId, selectedYear]);
+    return () => { ledgerRequest.current = null; };
+  }, [fetchLedger]);
 
   // Handle opening Disbursal Modal for a specific month
   const handleOpenDisburse = (month) => {

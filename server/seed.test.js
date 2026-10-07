@@ -17,7 +17,9 @@ test('fresh database seeding completes and can be repeated without duplicate doc
     assert.equal(documents.length, 5);
     assert.deepEqual(documents.map(document => document.status), ['Uploaded', 'Uploaded', 'Uploaded', 'Uploaded', 'Needs Replacement']);
     assert.ok(db.prepare('SELECT COUNT(*) AS count FROM vendor_details').get().count > 0);
+    db.prepare("UPDATE system_settings SET value='9000' WHERE key='id_current_seq'").run();
     await seedDatabase();
+    assert.equal(db.prepare("SELECT value FROM system_settings WHERE key='id_current_seq'").get().value, '9000');
     assert.deepEqual(db.prepare('SELECT status FROM documents ORDER BY id').all(), documents);
   } finally {
     db.close();

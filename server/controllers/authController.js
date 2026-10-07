@@ -1,3 +1,4 @@
+import { accounts } from '../services/accounts.js';
 import mongoose from 'mongoose';
 import path from 'node:path';
 import { PRIVATE_DOCS_DIR } from '../middleware/upload.js';
@@ -21,6 +22,7 @@ const findEmployeeProfile = createEmployeeProfileReader({ db, Employee: MongoEmp
 export async function register(req, res) {
   let claimed = false, newEmployeeId = null, cloudCommitted = false, completed = false;
   try {
+    if (Object.entries(req.body).some(([key, value]) => !['uploadedDocuments', 'companyIds'].includes(key) && value != null && typeof value !== 'string')) throw accessError('Registration fields must be text.', 400);
     const invitation = await readInvitation(req.body.invitationToken);
     if (invitation.role !== 'employee' || invitation.email !== String(req.body.email || '').trim().toLowerCase()) throw accessError('Use the email address on your employee invitation.', 400);
     const registrationCompany = req.body.companyId;
@@ -90,7 +92,7 @@ export async function register(req, res) {
 
     if (Array.isArray(uploadedDocuments)) {
       for (const doc of uploadedDocuments) {
-        try { verifyUploadReceipt(doc); } catch { return res.status(400).json({ error: 'Please upload your registration documents again.' }); }
+        try { verifyUploadReceipt(doc, req.body.invitationToken); } catch { return res.status(400).json({ error: 'Please upload your registration documents again.' }); }
         if (db.prepare('SELECT id FROM documents WHERE file_path = ?').get(doc.filePath) || (isMongoConnected() && await MongoDoc.exists({ file_path: doc.filePath }))) return res.status(400).json({ error: 'Document already attached to an account.' });
       }
     }
@@ -290,65 +292,7 @@ export async function login(req, res) {
 
     const cleanIdentifier = identifier.trim().toLowerCase();
 
-    // Resolve the account by email or employee ID; the client cannot choose its role.
-    let user = db.prepare(`
-      SELECT u.id, u.employee_id, u.email, u.password_hash, u.role, u.status,
-             e.full_name, e.designation, e.profile_image_url, e.registration_status
-      FROM users u
-      LEFT JOIN employees e ON e.employee_id = u.employee_id
-      WHERE LOWER(u.email) = ? OR LOWER(u.employee_id) = ?
-    `).get(cleanIdentifier, cleanIdentifier);
-
-    // If not found in SQLite, check MongoDB Atlas as fallback
-    if (!user && isMongoConnected()) {
-      try {
-        const mUser = await MongoUser.findOne({
-          $or: [{ email: cleanIdentifier }, { employee_id: new RegExp(`^${cleanIdentifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }]
-        });
-
-        if (mUser) {
-          const mEmp = await MongoEmployee.findOne({ employee_id: mUser.employee_id });
-          // Sync to local SQLite
-          try {
-            const insRes = db.prepare(`
-              INSERT OR REPLACE INTO users (employee_id, email, password_hash, role, status)
-              VALUES (?, ?, ?, ?, ?)
-            `).run(mUser.employee_id, mUser.email, mUser.password_hash, mUser.role, mUser.status || 'active');
-
-            if (mEmp) {
-              db.prepare(`
-                INSERT OR REPLACE INTO employees (
-                  user_id, employee_id, first_name, last_name, middle_initial, full_name, email, phone, designation,
-                  date_of_birth, country, state, city, zip_code, address, start_date, end_date, employment_status, registration_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              `).run(
-                insRes.lastInsertRowid, mEmp.employee_id, mEmp.first_name || '', mEmp.last_name || '', mEmp.middle_initial || '',
-                mEmp.full_name || '', mEmp.email || '', mEmp.phone || '', mEmp.designation || '', mEmp.date_of_birth || '',
-                mEmp.country || '', mEmp.state || '', mEmp.city || '', mEmp.zip_code || '', mEmp.address || '',
-                mEmp.start_date || '', mEmp.end_date || null, mEmp.employment_status || 'Active', mEmp.registration_status || 'Approved'
-              );
-            }
-          } catch (syncErr) {
-            console.warn('[Sync SQLite Warning]', syncErr.message);
-          }
-
-          user = {
-            id: db.prepare('SELECT id FROM users WHERE employee_id = ?').get(mUser.employee_id)?.id,
-            employee_id: mUser.employee_id,
-            email: mUser.email,
-            password_hash: mUser.password_hash,
-            role: mUser.role,
-            status: mUser.status || 'active',
-            full_name: mEmp ? mEmp.full_name : 'User',
-            designation: mEmp ? mEmp.designation : 'Staff',
-            profile_image_url: mEmp ? mEmp.profile_image_url : null,
-            registration_status: mEmp ? mEmp.registration_status : 'Approved'
-          };
-        }
-      } catch (mErr) {
-        console.warn('[MongoDB Atlas Lookup Warning]', mErr.message);
-      }
-    }
+    let user = await accounts.find(cleanIdentifier);
 
     if (!user) {
       logAudit({
@@ -381,6 +325,7 @@ export async function login(req, res) {
       return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
+    user = accounts.cache(user);
     if (!user.full_name) {
       user = withEmployeeProfile(user, await findEmployeeProfile(user.employee_id));
     }
@@ -420,7 +365,7 @@ export async function login(req, res) {
     });
   } catch (err) {
     console.error('[Login Error]', err);
-    res.status(500).json({ error: 'An unexpected server error occurred during login.' });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'An unexpected server error occurred during login.' });
   }
 }
 

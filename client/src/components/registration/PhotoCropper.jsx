@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DEFAULT_PORTRAIT_SVG } from '../../assets/defaultPortrait.js';
 import {
   Upload,
@@ -32,6 +32,7 @@ export function PhotoCropper({ onSave, initialImage = null, onCancel, onBack }) 
   const [croppedPreviewUrl, setCroppedPreviewUrl] = useState(DEFAULT_PORTRAIT_SVG);
   const [uploadError, setUploadError] = useState(null);
 
+  const [imageVersion, setImageVersion] = useState(0);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -43,21 +44,13 @@ export function PhotoCropper({ onSave, initialImage = null, onCancel, onBack }) 
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       imageRef.current = img;
-      drawCanvas();
-      generatePreview();
+      setImageVersion(value => value + 1);
     };
     img.src = imageSrc;
+    return () => { img.onload = null; };
   }, [imageSrc]);
 
-  // Redraw canvas and live preview whenever zoom, rotation, or pan updates
-  useEffect(() => {
-    if (imageRef.current) {
-      drawCanvas();
-      generatePreview();
-    }
-  }, [zoom, rotation, pan]);
-
-  const drawCanvas = () => {
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !imageRef.current) return;
     const ctx = canvas.getContext('2d');
@@ -81,7 +74,7 @@ export function PhotoCropper({ onSave, initialImage = null, onCancel, onBack }) 
 
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
-  };
+  }, [pan, rotation, zoom]);
 
   const generatePreview = () => {
     const canvas = canvasRef.current;
@@ -94,6 +87,11 @@ export function PhotoCropper({ onSave, initialImage = null, onCancel, onBack }) 
       // Fallback
     }
   };
+
+  useEffect(() => {
+    drawCanvas();
+    generatePreview();
+  }, [drawCanvas, imageVersion]);
 
   const handleFileChange = (e) => {
     setUploadError(null);

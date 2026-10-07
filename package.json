@@ -13,20 +13,24 @@
     "postinstall": "npm --prefix client install --include=dev",
     "build": "npm --prefix client install --include=dev && npm --prefix client run build",
     "start": "node server/server.js",
-    "test:portal": "node --experimental-test-module-mocks --test server/companyAccess.test.js server/invoice.test.js server/payrollInformation.test.js server/employee-profile.test.js server/portalChanges.test.js server/seed.test.js"
+    "test:portal": "node --experimental-test-module-mocks --test server/companyAccess.test.js server/invoice.test.js server/payrollInformation.test.js server/employee-profile.test.js server/portalChanges.test.js server/seed.test.js server/accounts.test.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.6.2",
-    "concurrently": "^9.2.1",
     "cors": "^2.8.5",
-    "csv-parse": "^6.1.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.2",
     "multer": "^2.0.2",
-    "uuid": "^13.0.0",
-    "xlsx": "^0.18.5"
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "csv-parse": "^7.0.3",
+    "concurrently": "^9.2.1"
+  },
+  "overrides": {
+    "shell-quote": "^1.11.0"
   }
 }

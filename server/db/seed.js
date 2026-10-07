@@ -316,7 +316,7 @@ export async function seedDatabase() {
   }
 
   // Update sequence counter
-  db.prepare("UPDATE system_settings SET value = '2015' WHERE key = 'id_current_seq'").run();
+  db.prepare("UPDATE system_settings SET value = '2015' WHERE key = 'id_current_seq' AND CAST(value AS INTEGER) < 2015").run();
 
   console.log('[DB] Individual seed checks complete. All multi-national records, timesheets, approvals, and payroll verified in SQLite.');
 }

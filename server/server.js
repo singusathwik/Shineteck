@@ -1,3 +1,4 @@
+import { serveStoredAvatar } from './services/avatars.js';
 import { listExpenses, saveExpense } from './controllers/expenseController.js';
 import express from 'express';
 import cors from 'cors';
@@ -26,6 +27,7 @@ import * as vendorCtrl from './controllers/vendorController.js';
 import * as payrollEntryCtrl from './controllers/payrollEntryController.js';
 import { invoiceHandlers } from './controllers/invoiceController.js';
 import { companyGuard } from './middleware/companyScope.js';
+import { requireRegistrationInvitation } from './middleware/registrationUpload.js';
 import * as invitationCtrl from './controllers/invitationController.js';
 import * as accessCtrl from './controllers/companyAccessController.js';
 
@@ -42,13 +44,18 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Company-Id']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Company-Id', 'X-Invitation-Token']
 }));
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Static route for avatars (Publicly viewable profile icons)
-app.use('/uploads/avatars', express.static(AVATAR_DIR));
+app.use('/uploads/avatars', (req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  if (!/^\/avatar-[a-f\d-]{36}\.(?:jpe?g|png|webp)$/i.test(req.path)) return res.status(404).end();
+  next();
+}, express.static(AVATAR_DIR));
+app.get('/uploads/avatars/:filename', serveStoredAvatar);
 
 // -------------------------------------------------------------
 // Public Routes
@@ -82,8 +89,8 @@ app.post('/api/auth/forgot-password', authCtrl.forgotPassword);
 app.post('/api/auth/reset-password', authCtrl.resetPassword);
 
 // Temp upload during registration wizard (pre-auth)
-app.post('/api/upload/avatar', uploadAvatar.single('avatar'), docCtrl.uploadProfilePicture);
-app.post('/api/upload/document', uploadDocument.single('document'), docCtrl.uploadEmployeeDocument);
+app.post('/api/upload/avatar', requireRegistrationInvitation, uploadAvatar.single('avatar'), docCtrl.uploadProfilePicture);
+app.post('/api/upload/document', requireRegistrationInvitation, uploadDocument.single('document'), docCtrl.uploadEmployeeDocument);
 
 // -------------------------------------------------------------
 // Protected Routes (Employees & Admins)
@@ -206,8 +213,9 @@ if (fs.existsSync(clientDistPath)) {
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('[Server Error]', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'An internal server error occurred.'
+  const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : err.name === 'MulterError' ? 400 : err.status || 500;
+  res.status(status).json({
+    error: err.code === 'LIMIT_FILE_SIZE' ? 'The file exceeds the upload size limit.' : status < 500 ? err.message : 'An internal server error occurred.'
   });
 });
 
@@ -216,7 +224,8 @@ async function startServer() {
   try {
     // 1. Initialize SQLite Database & Local Defaults
     try {
-      await seedDatabase();
+      if (process.env.MONGODB_URI?.trim()) initSchema();
+      else await seedDatabase();
       console.log('[DB] Database schema and seeds ready.');
     } catch (dbErr) {
       console.error('[DB Init Warning]', dbErr.message);

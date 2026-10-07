@@ -71,7 +71,7 @@ export async function connectMongoDB() {
     return true;
   } catch (err) {
     console.warn('[MongoDB Atlas] Cloud cluster unreachable (IP whitelist required in Atlas dashboard: Network Access -> + Add IP -> Allow From Anywhere 0.0.0.0/0).');
-    console.log('[Database Engine] Active and running with built-in SQLite engine (all data persisted and operational).');
+    console.warn('[Database Engine] Cloud account access is unavailable until MongoDB reconnects.');
     isConnected = false;
     return false;
   }

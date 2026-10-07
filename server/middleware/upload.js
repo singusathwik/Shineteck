@@ -38,7 +38,8 @@ const documentStorage = multer.diskStorage({
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const docType = req.body.documentType || req.params.docType || 'doc';
-    const cleanDocType = docType.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (typeof docType !== 'string') return cb(Object.assign(new Error('Invalid document type.'), { status: 400 }));
+    const cleanDocType = docType.slice(0, 80).replace(/[^a-zA-Z0-9_-]/g, '');
     const filename = `${cleanDocType}-${uuidv4()}${ext}`;
     cb(null, filename);
   }
@@ -56,73 +57,39 @@ const timesheetStorage = multer.diskStorage({
   }
 });
 
-// Filter for Images
-const imageFileFilter = (req, file, cb) => {
-  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid image format. Only JPG, JPEG, PNG, and WebP are supported.'), false);
-  }
+// Validate both extension and MIME type; never accept active SVG/HTML uploads.
+const mimeTypes = {
+  '.jpg': ['image/jpeg', 'image/jpg'], '.jpeg': ['image/jpeg', 'image/jpg'],
+  '.png': ['image/png'], '.webp': ['image/webp'], '.pdf': ['application/pdf'],
+  '.doc': ['application/msword'], '.docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  '.txt': ['text/plain'], '.csv': ['text/csv', 'application/csv', 'text/plain', 'application/vnd.ms-excel'],
+  '.xls': ['application/vnd.ms-excel'], '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
 };
-
-// Filter for Documents (Compliance, ID, Tax, etc.)
-const documentFileFilter = (req, file, cb) => {
-  const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx', '.txt'];
+const filter = extensions => (_req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
-  
-  if (
-    file.mimetype.startsWith('image/') ||
-    file.mimetype === 'application/pdf' ||
-    file.mimetype.includes('word') ||
-    file.mimetype.includes('officedocument') ||
-    allowedExts.includes(ext)
-  ) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid document format. Supported: PDF, JPG, JPEG, PNG, WebP, Word (DOC, DOCX), TXT.'), false);
-  }
+  const allowed = extensions.includes(ext) && (mimeTypes[ext].includes(file.mimetype) || file.mimetype === 'application/octet-stream');
+  if (!allowed) return cb(Object.assign(new Error('Unsupported file type or mismatched file extension. Use one of: ' + extensions.join(', ')), { status: 400 }));
+  file.mimetype = mimeTypes[ext][0];
+  cb(null, true);
 };
-
-// Filter for Timesheets (Universal: Sheets, PDF, Images, Word Docs)
-const timesheetFileFilter = (req, file, cb) => {
-  const allowedExts = [
-    '.csv', '.xlsx', '.xls', '.pdf',
-    '.png', '.jpg', '.jpeg', '.webp',
-    '.doc', '.docx', '.txt'
-  ];
-  const ext = path.extname(file.originalname).toLowerCase();
-  
-  if (
-    file.mimetype.startsWith('image/') ||
-    file.mimetype === 'application/pdf' ||
-    file.mimetype.includes('spreadsheet') ||
-    file.mimetype.includes('excel') ||
-    file.mimetype.includes('csv') ||
-    file.mimetype.includes('word') ||
-    file.mimetype.includes('officedocument') ||
-    allowedExts.includes(ext)
-  ) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid timesheet format. Supported formats: CSV, XLSX, XLS, PDF, PNG, JPG, WebP, Word (DOC, DOCX), TXT.'), false);
-  }
-};
+const imageFileFilter = filter(['.jpg', '.jpeg', '.png', '.webp']);
+const documentFileFilter = filter(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx', '.txt']);
+const timesheetFileFilter = filter(Object.keys(mimeTypes));
 
 export const uploadAvatar = multer({
   storage: avatarStorage,
   fileFilter: imageFileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { files: 1, fields: 20, fieldSize: 64 * 1024, fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 export const uploadDocument = multer({
   storage: documentStorage,
   fileFilter: documentFileFilter,
-  limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit
+  limits: { files: 1, fields: 20, fieldSize: 64 * 1024, fileSize: 25 * 1024 * 1024 } // 25MB limit
 });
 
 export const uploadTimesheet = multer({
   storage: timesheetStorage,
   fileFilter: timesheetFileFilter,
-  limits: { fileSize: 25 * 1024 * 1024 } // 25MB limit
+  limits: { files: 1, fields: 20, fieldSize: 64 * 1024, fileSize: 25 * 1024 * 1024 } // 25MB limit
 });

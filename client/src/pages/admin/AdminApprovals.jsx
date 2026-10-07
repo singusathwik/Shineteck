@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api, getAuthToken, getDocumentStreamUrl } from '../../services/api.js';
 import { StatusBadge } from '../../components/common/StatusBadge.jsx';
 import { EmployeeAvatar } from '../../components/common/EmployeeAvatar.jsx';
@@ -52,7 +52,10 @@ export function AdminApprovals({ onSelectEmployee }) {
 
   const token = getAuthToken();
 
-  const fetchEmployees = async () => {
+  const requestVersion = useRef(null);
+  const fetchEmployees = useCallback(async () => {
+    const version = Symbol();
+    requestVersion.current = version;
     setIsLoading(true);
     try {
       const params = {};
@@ -62,17 +65,19 @@ export function AdminApprovals({ onSelectEmployee }) {
       params.sortOrder = 'DESC';
 
       const data = await api.getAllEmployees(params);
+      if (version !== requestVersion.current) return;
       setEmployees(data.employees || []);
     } catch (err) {
       console.error('Failed to load employee approvals queue:', err);
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) setIsLoading(false);
     }
-  };
+  }, [activeStatusTab, search]);
 
   useEffect(() => {
     fetchEmployees();
-  }, [activeStatusTab, search]);
+    return () => { requestVersion.current = null; };
+  }, [fetchEmployees]);
 
   const loadEmployeeQuickInspect = async (emp) => {
     setInspectingEmployee(emp);

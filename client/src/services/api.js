@@ -2,9 +2,7 @@
 
 export const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`
-  : (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
-    ? 'https://shineteck.onrender.com/api'
-    : '/api';
+  : '/api';
 
 let companyScope = 'all';
 export function setCompanyScope(value) { companyScope = value; }
@@ -62,7 +60,10 @@ export async function request(endpoint, options = {}) {
     // Refresh employee permissions too; context requests must not trigger a retry loop.
     if (response.status === 403 && token && !endpoint.startsWith('/auth/') && !endpoint.includes('company-context')) window.dispatchEvent(new Event('company-access-denied'));
     const errorMsg = data && data.error ? data.error : 'The service is unavailable. Please try again shortly.';
-    throw new Error(errorMsg);
+    const error = new Error(errorMsg);
+    error.status = response.status;
+    if (response.status === 401 && token && !endpoint.startsWith('/auth/login')) window.dispatchEvent(new Event('session-expired'));
+    throw error;
   }
 
   return data;
@@ -84,8 +85,8 @@ export const api = {
   resetPassword: (data) => request('/auth/reset-password', { method: 'POST', body: data }),
 
   // Uploads
-  uploadAvatar: (formData) => request('/upload/avatar', { method: 'POST', body: formData }),
-  uploadDocument: (formData) => request('/upload/document', { method: 'POST', body: formData }),
+  uploadAvatar: (formData, invitationToken) => request('/upload/avatar', { method: 'POST', body: formData, headers: { 'X-Invitation-Token': invitationToken || '' } }),
+  uploadDocument: (formData, invitationToken) => request('/upload/document', { method: 'POST', body: formData, headers: { 'X-Invitation-Token': invitationToken || '' } }),
 
   // Employee Portal
   getProfile: () => request('/employee/profile', { signal: AbortSignal.timeout(45000) }),
