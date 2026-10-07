@@ -28,4 +28,3 @@ export function downloadFromUrl(url, filename) {
     document.body.removeChild(a);
   }, 200);
 }
-
