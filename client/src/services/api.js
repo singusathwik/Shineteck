@@ -31,7 +31,7 @@ export function getTimesheetDownloadUrl(tsId, token = getAuthToken()) {
 export async function request(endpoint, options = {}) {
   const token = getAuthToken();
   const headers = { ...options.headers };
-  if (!endpoint.includes('company-context') && !endpoint.startsWith('/admin/access') && !endpoint.startsWith('/auth/')) headers['X-Company-Id'] = companyScope;
+  if (!endpoint.includes('company-context') && !endpoint.startsWith('/admin/access') && !endpoint.startsWith('/auth/')) headers['X-Company-Id'] ??= companyScope;
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -91,14 +91,14 @@ export const api = {
   // Employee Portal
   getProfile: () => request('/employee/profile', { signal: AbortSignal.timeout(45000) }),
   updateProfile: (data) => request('/employee/profile', { method: 'PUT', body: data }),
-  getMyDocuments: () => request('/documents'),
-  uploadDocAuth: (formData) => request('/documents/upload', { method: 'POST', body: formData }),
+  getMyDocuments: (companyId = 'all') => request('/documents', { headers: { 'X-Company-Id': companyId } }),
+  uploadDocAuth: (formData, companyId) => request('/documents/upload', { method: 'POST', body: formData, headers: { 'X-Company-Id': companyId } }),
   getMyTimesheets: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return request(`/timesheets/my${query ? `?${query}` : ''}`);
   },
-  submitTimesheet: (formData) => request('/timesheets/submit', { method: 'POST', body: formData }),
-  getMyVendors: () => request('/vendors/my'),
+  submitTimesheet: (formData, companyId) => request('/timesheets/submit', { method: 'POST', body: formData, headers: { 'X-Company-Id': companyId } }),
+  getMyVendors: (companyId = 'all') => request('/vendors/my', { headers: { 'X-Company-Id': companyId } }),
   getMyPayroll: () => request('/payroll/my'),
   getNotifications: () => request('/notifications'),
   markNotificationRead: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),

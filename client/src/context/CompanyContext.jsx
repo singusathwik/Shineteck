@@ -27,7 +27,6 @@ export function CompanyProvider({ children }) {
         if (previous.current && previous.current !== signature) {
           setCompanyScope('all'); setSelected('all'); setRevision(value => value + 1);
         }
-        if (!previous.current && role !== 'admin' && data.companies.length) { setCompanyScope(data.companies[0].id); setSelected(data.companies[0].id); }
         previous.current = signature;
         setContext(data); setError('');
       } catch (err) { if (live) { setContext(null); setError(err.message); } }

@@ -43,7 +43,7 @@ export function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
   ];
 
   const adminGroups = [
-    ...(isSuperAdmin ? [{ groupTitle: 'SUPER ADMIN', items: [{ id: 'company-management', label: 'Company Management', icon: Building2 }, { id: 'company-access', label: 'Administrators & Access', icon: ShieldCheck }, { id: 'invite-admin', label: 'Add Domain Admin', icon: UserCheck }] }] : []),
+    ...(isSuperAdmin ? [{ groupTitle: 'SUPER ADMIN', items: [{ id: 'company-management', label: 'Company Management', icon: Building2 }, { id: 'company-access', label: 'Administrators', icon: ShieldCheck }, { id: 'employee-companies', label: 'Employee Companies', icon: Users }, { id: 'invite-admin', label: 'Add Domain Admin', icon: UserCheck }] }] : []),
     {
       groupTitle: 'OPERATIONS',
       items: [

@@ -84,7 +84,7 @@ test('timesheet submission, cross-month totals, review and download honor record
   assert.equal(january.data.employees[0].hours + hours.data.employees[0].hours, saved.data.timesheet.total_hours);
   assert.deepEqual((await call('/admin/timesheet-hours?month=2026-03', { token: adminA })).data.employees, []);
   const csv = await call(`/timesheets/download/${id}`, { token: employee, company: A });
-  assert.equal(csv.status, 200); assert.match(csv.data, /2026-01-31/);
+  assert.equal(csv.status, 200); assert.match(csv.data, /01\/31\/2026/);
   assert.equal((await call('/timesheets/submit', { token: employee, method: 'POST', company: A, body })).status, 409);
 });
 
@@ -341,7 +341,7 @@ test('timesheet exports preserve daily month allocation, neutralize formulas and
   const rows = parse(csv, { columns: true });
   assert.equal(rows.length, 2);
   assert.equal(rows[0]['Employee Name'], "'=1+1");
-  assert.deepEqual(rows.map(row => row.Month), ['2026-01', '2026-02']);
+  assert.deepEqual(rows.map(row => row.Month), ['01/2026', '02/2026']);
   assert.equal(rows.reduce((sum, row) => sum + Number(row.Hours), 0), 16);
   const legacy = parse(timesheetCSV({ total_hours: 80, daily_hours: '{}' }), { columns: true });
   assert.equal(legacy[0].Hours, '80');

@@ -1,3 +1,4 @@
+import { formatDateTime, formatDatesInText } from '../../utils/displayDate.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api.js';
 import { Bell, Check, Info, AlertTriangle, CheckCircle2, X } from 'lucide-react';
@@ -136,9 +137,9 @@ export function NotificationDropdown() {
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ring-2 ring-blue-400/40 shrink-0"></span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">{n.message}</p>
+                    <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">{formatDatesInText(n.message)}</p>
                     <span className="text-[10px] text-slate-500 font-mono mt-1.5 block">
-                      {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatDateTime(n.created_at)}
                     </span>
                   </div>
 

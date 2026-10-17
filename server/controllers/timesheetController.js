@@ -1,3 +1,4 @@
+import { formatDate, formatMonth } from '../../client/src/utils/displayDate.js';
 import { notifyEmployee } from '../services/notifications.js';
 import { mergedRecords, timesheetIdentity } from '../services/portalRecords.js';
 import { persistPrivateFile, readPrivateFile } from '../services/privateFiles.js';
@@ -104,6 +105,6 @@ export const downloadTimesheetFile = handle(async (req, res) => {
   }
   const safe = value => `"${String(value ?? '').replace(/^[=+@-]/, "'$&").replaceAll('"', '""')}"`;
   const entries = decodeDailyHours(row);
-  const lines = entries.length ? [['Date', 'Hours', 'Month'], ...entries.map(entry => [entry.date, entry.hours, entry.date.slice(0, 7)])] : [['Period start', 'Period end', 'Total hours', 'Daily allocation'], [row.start_date, row.end_date, row.total_hours, 'Unavailable for legacy timesheet']];
+  const lines = entries.length ? [['Date', 'Hours', 'Month'], ...entries.map(entry => [formatDate(entry.date), entry.hours, formatMonth(entry.date.slice(0, 7))])] : [['Start date', 'End date', 'Total hours', 'Daily allocation'], [formatDate(row.start_date), formatDate(row.end_date), row.total_hours, 'Unavailable for legacy timesheet']];
   res.type('text/csv').attachment(`timesheet-${row.employee_id}-${row.start_date}.csv`).send(lines.map(line => line.map(safe).join(',')).join('\r\n'));
 });

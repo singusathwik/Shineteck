@@ -9,6 +9,7 @@ import { CommandPalette } from './components/common/CommandPalette.jsx';
 const AdminExpenses = lazy(() => import('./pages/admin/AdminExpenses.jsx').then(module => ({ default: module.AdminExpenses })));
 const AdminCompanies = lazy(() => import('./pages/admin/AdminCompanies.jsx').then(module => ({ default: module.AdminCompanies })));
 const InvitationPage = lazy(() => import('./pages/InvitationPage.jsx').then(module => ({ default: module.InvitationPage })));
+const AdminEmployeeCompanies = lazy(() => import('./pages/admin/AdminEmployeeCompanies.jsx').then(module => ({ default: module.AdminEmployeeCompanies })));
 const AdminCompanyAccess = lazy(() => import('./pages/admin/AdminCompanyAccess.jsx').then(module => ({ default: module.AdminCompanyAccess })));
 
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx').then(module => ({ default: module.LoginPage })));
@@ -129,7 +130,7 @@ function MainApp() {
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 overflow-y-auto bg-slate-100/70 custom-scrollbar">
           <div className="page-content mx-auto p-4 sm:p-6 lg:p-8">
-            {!(isAdmin && ['company-management', 'company-access', 'invite-admin'].includes(activeTab)) && <CompanySelector />}
+            {isAdmin && !['company-management', 'company-access', 'employee-companies', 'invite-admin'].includes(activeTab) && <CompanySelector />}
             {/* Employee Views */}
             {isEmployee && (
               <>
@@ -194,6 +195,7 @@ function MainApp() {
                 {isSuperAdmin && activeTab === 'invite-admin' && <InvitationForm role="admin" />}
                 {isSuperAdmin && activeTab === 'company-management' && <AdminCompanies />}
                 {isSuperAdmin && activeTab === 'company-access' && <AdminCompanyAccess />}
+                {isSuperAdmin && activeTab === 'employee-companies' && <AdminEmployeeCompanies />}
                 {isSuperAdmin && activeTab === 'settings' && <AdminSettings />}
                 {isSuperAdmin && activeTab === 'audit' && <AdminAuditLogs />}
               </>

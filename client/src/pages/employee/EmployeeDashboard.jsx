@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/displayDate.js';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../services/api.js';
@@ -170,7 +171,7 @@ export function EmployeeDashboard({ onNavigateTab }) {
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-600" />
                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-display">
-                  Recent Work Periods
+                  Recent Work Dates
                 </h3>
               </div>
               <button
@@ -196,7 +197,7 @@ export function EmployeeDashboard({ onNavigateTab }) {
                   >
                     <div>
                       <p className="font-bold text-slate-900">
-                        {ts.start_date} &rarr; {ts.end_date}
+                        {formatDate(ts.start_date)} &rarr; {formatDate(ts.end_date)}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
                         <span className="font-bold font-mono text-slate-800">{ts.total_hours} Hours</span>

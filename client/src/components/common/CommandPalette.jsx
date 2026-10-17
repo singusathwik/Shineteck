@@ -42,7 +42,7 @@ export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
     // Common / Employee
     ...(isEmployee ? [
       { id: 'emp-dash', title: 'Employee Dashboard', subtitle: 'View work overview and stats', category: 'Navigation', icon: LayoutDashboard, tab: 'dashboard' },
-      { id: 'emp-prof', title: 'My Profile & ID Badge', subtitle: 'View contact details and holographic badge', category: 'Navigation', icon: User, tab: 'profile' },
+      { id: 'emp-prof', title: 'My Profile & ID', subtitle: 'View identity, contact details and work location', category: 'Navigation', icon: User, tab: 'profile' },
       { id: 'emp-time', title: 'Work Timesheets', subtitle: 'Submit hours and view status', category: 'Navigation', icon: Clock, tab: 'timesheet' },
       { id: 'emp-doc', title: 'Document Vault', subtitle: 'W-4, I-9, Passport, and Visa files', category: 'Navigation', icon: FileText, tab: 'documents' },
       { id: 'emp-notif', title: 'Notifications Center', subtitle: 'Read corporate alerts', category: 'Navigation', icon: Bell, tab: 'notifications' }
@@ -55,7 +55,8 @@ export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
       { id: 'adm-app', title: 'Onboarding Approvals Dossier', subtitle: 'Review pending applications and verify IDs', category: 'Admin Suite', icon: UserCheck, tab: 'approvals' },
       { id: 'adm-time', title: 'Timesheet Approvals', subtitle: 'Authorize periodic consultant hours', category: 'Timesheet & Payroll', icon: Clock, tab: 'timesheets' },
       { id: 'adm-ven', title: 'Vendor Placements', subtitle: 'Client contracts, MSA and purchase orders', category: 'Staff & Placements', icon: Building2, tab: 'vendors' },
-      { id: 'adm-access', title: 'Super Admin', subtitle: 'Employee companies and administrator permissions', category: 'Admin Suite', icon: Building2, tab: 'company-access' },
+      { id: 'employee-companies', title: 'Employee Companies', subtitle: 'Assign employees to companies', category: 'Super Admin', icon: Users, tab: 'employee-companies' },
+      { id: 'adm-access', title: 'Administrators', subtitle: 'Administrator company permissions and access history', category: 'Super Admin', icon: Building2, tab: 'company-access' },
       { id: 'adm-set', title: 'Sequential ID Generator Settings', subtitle: 'Configure Prefix, Digits, and Next Counter', category: 'Admin Suite', icon: Sliders, tab: 'settings' },
       { id: 'adm-aud', title: 'Security Audit Logs', subtitle: 'Track user sessions and compliance events', category: 'Admin Suite', icon: ShieldAlert, tab: 'audit' }
     ] : []),
@@ -74,7 +75,7 @@ export function CommandPalette({ isOpen, onClose, onNavigateTab }) {
 
   // Filter actions based on query
   const filteredActions = allActions.filter(item => {
-    if (!isSuperAdmin && ['settings', 'audit', 'company-access', 'company-management', 'invite-admin'].includes(item.tab)) return false;
+    if (!isSuperAdmin && ['settings', 'audit', 'company-access', 'employee-companies', 'company-management', 'invite-admin'].includes(item.tab)) return false;
     if (!query.trim()) return true;
     const q = query.toLowerCase().trim();
     return (

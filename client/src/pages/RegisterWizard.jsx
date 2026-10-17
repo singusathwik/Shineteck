@@ -96,7 +96,7 @@ const INDIA_DOCS = [
 // US & Global compliance documents definition (10 Required + 3 Optional)
 const GLOBAL_DOCS = [
   { key: 'i9', title: 'Form I-9 — Employment Eligibility Verification', desc: 'USCIS verification document with Section 1 completed.', sample: '/sample_docs/i9.png', required: true },
-  { key: 'w4', title: 'Form W-4 / W-9 — Withholding Certificate', desc: 'IRS federal tax withholding form signed for current fiscal year.', sample: '/sample_docs/w4.png', required: true },
+  { key: 'w4', title: 'Form W-4 — Withholding Certificate', desc: 'IRS federal tax withholding form signed for current fiscal year.', sample: '/sample_docs/w4.png', required: true },
   { key: 'passport', title: 'Government Passport Copy', desc: 'Color photograph bio page of your official government passport.', sample: '/sample_docs/passport.png', required: true },
   { key: 'visa', title: 'Visa Copy / Work Authorization Document', desc: 'Work authorization, H-1B, Green Card, or EAD document copy.', sample: '/sample_docs/visa.png', required: true },
   { key: 'emergency_contact_form', title: 'Emergency Contact Information Form', desc: 'Primary & secondary emergency contact details and authorization.', required: true },

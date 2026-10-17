@@ -1,3 +1,5 @@
+import { DateInput } from '../../components/common/DateInput.jsx';
+import { formatDate } from '../../utils/displayDate.js';
 import { DailyHoursBreakdown } from '../../components/timesheet/DailyHoursBreakdown.jsx';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api, getAuthToken, getTimesheetDownloadUrl } from '../../services/api.js';
@@ -55,11 +57,11 @@ export function EmployeeTimesheets() {
   const handleExportCSV = () => {
     const formattedData = timesheets.map(ts => ({
       'Timesheet ID': ts.id,
-      'Work Period': `${ts.start_date} to ${ts.end_date}`,
+      'Date': `${formatDate(ts.start_date)} to ${formatDate(ts.end_date)}`,
       'Total Hours': ts.total_hours,
       'Vendor / Client': ts.vendor_name || 'Direct / Shineteck',
       'Status': ts.status,
-      'Submitted Date': ts.submitted_at ? new Date(ts.submitted_at).toLocaleDateString() : 'N/A',
+      'Submitted Date': ts.submitted_at ? formatDate(ts.submitted_at) : 'N/A',
       'Admin Feedback': ts.admin_feedback || 'None'
     }));
     exportToCSV(formattedData, `My_Shineteck_Timesheets_${new Date().toISOString().slice(0, 10)}.csv`);
@@ -80,7 +82,7 @@ export function EmployeeTimesheets() {
               Work Timesheet Submissions
             </h1>
             <p className="text-xs text-slate-600 mt-1 font-medium">
-              Submit periodic work hours, upload CSV/Excel activity sheets, and track HR payroll authorization
+              Submit daily work hours, upload CSV/Excel activity sheets, and track HR payroll authorization
             </p>
           </div>
 
@@ -131,8 +133,7 @@ export function EmployeeTimesheets() {
           <div className="flex flex-wrap items-end gap-2 min-w-0 w-full sm:w-auto">
             <label className="flex-1 min-w-0 sm:flex-none flex flex-col gap-1 text-slate-600">
               Start date
-            <input
-              type="date"
+            <DateInput
               value={startDateFilter}
               onChange={(e) => setStartDateFilter(e.target.value)}
               className="w-full min-w-0 px-2.5 py-1.5 border border-slate-300 rounded-xl text-slate-700 font-medium text-xs shadow-2xs"
@@ -140,8 +141,7 @@ export function EmployeeTimesheets() {
             </label>
             <label className="flex-1 min-w-0 sm:flex-none flex flex-col gap-1 text-slate-600">
               End date
-            <input
-              type="date"
+            <DateInput
               value={endDateFilter}
               onChange={(e) => setEndDateFilter(e.target.value)}
               min={startDateFilter || undefined}
@@ -174,7 +174,7 @@ export function EmployeeTimesheets() {
           <table className="enterprise-table">
           <thead>
             <tr>
-              <th>Period Range</th>
+              <th>Date</th>
               <th>Vendor Assignment</th>
               <th>Work Hours</th>
               <th>Attached File</th>
@@ -195,7 +195,7 @@ export function EmployeeTimesheets() {
               timesheets.map((ts) => (
                 <tr key={ts.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="font-bold text-slate-900">
-                    {ts.start_date} <span className="text-slate-400 font-normal">to</span> {ts.end_date}
+                    {formatDate(ts.start_date)} <span className="text-slate-400 font-normal">to</span> {formatDate(ts.end_date)}
                   </td>
                   <td>
                     {ts.vendor_name ? (
@@ -213,7 +213,7 @@ export function EmployeeTimesheets() {
                     <TimesheetDownloadMenu timesheet={ts} />
                   </td>
                   <td className="text-slate-500 font-mono text-[11px]">
-                    {new Date(ts.submitted_at).toLocaleDateString()}
+                    {formatDate(ts.submitted_at)}
                   </td>
                   <td className="text-slate-600 max-w-[200px] truncate text-xs">
                     {ts.admin_feedback || ts.notes || <span className="text-slate-400">—</span>}

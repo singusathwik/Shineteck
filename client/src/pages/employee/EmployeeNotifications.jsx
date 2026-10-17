@@ -1,3 +1,4 @@
+import { formatDateTime, formatDatesInText } from '../../utils/displayDate.js';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api.js';
 import { Bell, Check, CheckCircle2, AlertTriangle, Info, CheckCheck } from 'lucide-react';
@@ -91,9 +92,9 @@ export function EmployeeNotifications() {
                       <span className="w-2 h-2 rounded-full bg-blue-600 inline-block shadow-xs animate-pulse"></span>
                     )}
                   </div>
-                  <p className="text-slate-600 text-xs mt-1 leading-relaxed font-medium">{n.message}</p>
+                  <p className="text-slate-600 text-xs mt-1 leading-relaxed font-medium">{formatDatesInText(n.message)}</p>
                   <span className="text-[10px] text-slate-400 font-mono mt-1.5 block">
-                    {new Date(n.created_at).toLocaleString()}
+                    {formatDateTime(n.created_at)}
                   </span>
                 </div>
               </div>

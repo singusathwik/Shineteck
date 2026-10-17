@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from './displayDate.js';
 import { jsPDF } from 'jspdf';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { decodeDailyHours } from './dailyHours.js';
@@ -18,15 +19,15 @@ export function exportTimesheetAsPdf(timesheet) {
   const empName = timesheet.employee_full_name || timesheet.employee_name || timesheet.full_name || timesheet.employee_id || 'Employee';
   const empId = timesheet.employee_id || 'N/A';
   const vendor = timesheet.vendor_name || 'Standard / Direct Placement';
-  const startDate = timesheet.start_date || 'N/A';
-  const endDate = timesheet.end_date || 'N/A';
+  const startDate = formatDate(timesheet.start_date, 'N/A');
+  const endDate = formatDate(timesheet.end_date, 'N/A');
   const totalHours = parseFloat(timesheet.total_hours) || 0;
   const entries = decodeDailyHours(timesheet);
   const daysWorked = entries.filter(row => row.hours > 0).length;
   const status = timesheet.status || 'Pending';
   const notes = timesheet.notes || 'None recorded.';
   const feedback = timesheet.admin_feedback || 'No administrative notes recorded.';
-  const submittedAt = timesheet.submitted_at ? new Date(timesheet.submitted_at).toLocaleDateString() : new Date().toLocaleDateString();
+  const submittedAt = timesheet.submitted_at ? formatDate(timesheet.submitted_at) : formatDate(new Date());
 
   // Primary Header Banner (Navy #0f2b48)
   doc.setFillColor(15, 43, 72);
@@ -46,7 +47,7 @@ export function exportTimesheetAsPdf(timesheet) {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(190, 210, 240);
   doc.text('Enterprise Workforce Management & Timesheet Verification Slip', 15, 23);
-  doc.text(`Generated: ${new Date().toLocaleString()} | ID: #${timesheet.id || 'NEW'}`, 15, 30);
+  doc.text(`Generated: ${formatDateTime(new Date())} | ID: #${timesheet.id || 'NEW'}`, 15, 30);
 
   // Status Badge on Top Right
   doc.setFillColor(status === 'Approved' ? 16 : status === 'Needs Correction' ? 217 : 37, status === 'Approved' ? 149 : status === 'Needs Correction' ? 119 : 99, status === 'Approved' ? 106 : status === 'Needs Correction' ? 6 : 235);
@@ -88,7 +89,7 @@ export function exportTimesheetAsPdf(timesheet) {
   doc.setTextColor(15, 43, 72);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('2. Work Period & Hours Accounting', 15, y);
+  doc.text('2. Work Dates & Hours Accounting', 15, y);
 
   doc.roundedRect(15, y + 4, 180, 46, 2, 2, 'FD');
 
@@ -98,7 +99,7 @@ export function exportTimesheetAsPdf(timesheet) {
   doc.roundedRect(20, y + 9, 52, 34, 2, 2, 'FD');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
-  doc.text('PERIOD DATES', 24, y + 16);
+  doc.text('DATES', 24, y + 16);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
@@ -176,7 +177,7 @@ export function exportTimesheetAsPdf(timesheet) {
 
   doc.setFont('helvetica', 'bold');
   doc.text(`Authorized by: ${timesheet.reviewed_by || 'Shineteck HR Admin Portal'}`, 22, y + 28);
-  doc.text(`Status Verification: ${status.toUpperCase()} (${new Date().toLocaleDateString()})`, 110, y + 28);
+  doc.text(`Status Verification: ${status.toUpperCase()} (${formatDate(new Date())})`, 110, y + 28);
 
   // Footer
   doc.setFontSize(7.5);
@@ -194,8 +195,8 @@ export function exportTimesheetAsImage(timesheet) {
   const empName = timesheet.employee_full_name || timesheet.employee_name || timesheet.full_name || timesheet.employee_id || 'Employee';
   const empId = timesheet.employee_id || 'N/A';
   const vendor = timesheet.vendor_name || 'Direct / Shineteck Inc.';
-  const startDate = timesheet.start_date || 'N/A';
-  const endDate = timesheet.end_date || 'N/A';
+  const startDate = formatDate(timesheet.start_date, 'N/A');
+  const endDate = formatDate(timesheet.end_date, 'N/A');
   const totalHours = parseFloat(timesheet.total_hours) || 0;
   const entries = decodeDailyHours(timesheet);
   const daysWorked = entries.filter(row => row.hours > 0).length;
@@ -231,7 +232,7 @@ export function exportTimesheetAsImage(timesheet) {
 
   ctx.fillStyle = '#93c5fd';
   ctx.font = '16px sans-serif';
-  ctx.fillText('Official Timesheet & Work-Period Authorization Card', 70, 125);
+  ctx.fillText('Official Timesheet & Work Date Authorization Card', 70, 125);
 
   // Status Badge
   ctx.fillStyle = status === 'Approved' ? '#059669' : status === 'Needs Correction' ? '#d97706' : '#2563eb';
@@ -271,7 +272,7 @@ export function exportTimesheetAsImage(timesheet) {
   // Column 2
   ctx.fillStyle = '#64748b';
   ctx.font = 'bold 14px sans-serif';
-  ctx.fillText('WORK PERIOD', 480, 200);
+  ctx.fillText('WORK DATES', 480, 200);
   ctx.fillStyle = '#0f172a';
   ctx.font = 'bold 22px sans-serif';
   ctx.fillText(`${startDate} → ${endDate}`, 480, 235);
@@ -329,7 +330,7 @@ export function exportTimesheetAsImage(timesheet) {
   ctx.fillText(`Notes / Review: ${timesheet.admin_feedback || timesheet.notes || 'Timesheet record certified by Shineteck HR.'}`, 90, 525);
   ctx.fillStyle = '#94a3b8';
   ctx.font = '12px sans-serif';
-  ctx.fillText(`Digitally verified at ${new Date().toLocaleString()} | Reference Record #${timesheet.id || 'N/A'}`, 90, 560);
+  ctx.fillText(`Digitally verified at ${formatDateTime(new Date())} | Reference Record #${timesheet.id || 'N/A'}`, 90, 560);
 
   // Convert canvas to blob & download
   canvas.toBlob((blob) => {
@@ -386,7 +387,7 @@ export async function convertImageToPdfAndDownload(imageUrl, originalFilename = 
         pdf.setFontSize(8.5);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(190, 210, 240);
-        const subtitle = `${meta.docType ? meta.docType.toUpperCase() : 'DOCUMENT'} | Employee: ${meta.employeeId || 'Verified Record'} | Exported: ${new Date().toLocaleDateString()}`;
+        const subtitle = `${meta.docType ? meta.docType.toUpperCase() : 'DOCUMENT'} | Employee: ${meta.employeeId || 'Verified Record'} | Exported: ${formatDate(new Date())}`;
         pdf.text(subtitle, 12, 18);
 
         // Available area for the image
